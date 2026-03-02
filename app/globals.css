@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --radius-xl: 0.75rem;
+  --radius-lg: 0.5rem;
+}
+
+@layer base {
+  :root {
+    --background: oklch(0.985 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(0.985 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.25 0.02 250);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.965 0 0);
+    --secondary-foreground: oklch(0.25 0.02 250);
+    --muted: oklch(0.965 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.94 0.01 250);
+    --accent-foreground: oklch(0.25 0.02 250);
+    --destructive: oklch(0.55 0.2 25);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.92 0 0);
+    --input: oklch(0.92 0 0);
+    --ring: oklch(0.55 0.2 250);
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.2 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.65 0.2 250);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.22 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.22 0 0);
+    --muted-foreground: oklch(0.65 0 0);
+    --accent: oklch(0.28 0.02 250);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.5 0.2 25);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.28 0 0);
+    --input: oklch(0.28 0 0);
+    --ring: oklch(0.65 0.2 250);
+  }
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+  }
+}
+
+/* ─── Text-effect preview animations ─────────────────────────────────────── */
+@keyframes ef-fade-in {
+  0%   { opacity: 0; }
+  60%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes ef-fade-out {
+  0%   { opacity: 1; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes ef-slide-up {
+  0%   { transform: translateY(8px); opacity: 0; }
+  60%  { transform: translateY(0);   opacity: 1; }
+  100% { transform: translateY(0);   opacity: 1; }
+}
+@keyframes ef-slide-down {
+  0%   { transform: translateY(0);   opacity: 1; }
+  60%  { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(8px); opacity: 0; }
+}
+@keyframes ef-pop {
+  0%   { transform: scale(0.2); opacity: 0; }
+  50%  { transform: scale(1.1); opacity: 1; }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+@keyframes ef-bounce {
+  0%   { transform: scale(0.2); }
+  55%  { transform: scale(1.18); }
+  75%  { transform: scale(0.9); }
+  90%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+@keyframes ef-shake {
+  0%,100% { transform: translateX(0); }
+  15%     { transform: translateX(-5px); }
+  35%     { transform: translateX(5px); }
+  55%     { transform: translateX(-4px); }
+  75%     { transform: translateX(4px); }
+  90%     { transform: translateX(-2px); }
+}
+@keyframes ef-wiggle {
+  0%,100% { transform: rotate(0deg); }
+  20%     { transform: rotate(-14deg); }
+  50%     { transform: rotate(14deg); }
+  75%     { transform: rotate(-7deg); }
+  90%     { transform: rotate(5deg); }
+}
+@keyframes ef-pulse {
+  0%,100% { transform: scale(1); }
+  40%     { transform: scale(1.28); }
+  70%     { transform: scale(0.95); }
+}
+@keyframes ef-typewriter {
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}

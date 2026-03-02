@@ -1,0 +1,56 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { createAutosaveService } from "@/core/application/services/autosave-service";
+import type { Project } from "@/core/domain/project";
+import { useEditor } from "./use-editor";
+
+export function useAutosave() {
+  const { state, projectRepo } = useEditor();
+  const serviceRef = useRef<ReturnType<typeof createAutosaveService> | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+
+  if (!serviceRef.current && projectRepo) {
+    serviceRef.current = createAutosaveService(projectRepo);
+  }
+  const service = serviceRef.current;
+
+  useEffect(() => {
+    if (!service) return;
+    const unsub = service.subscribe((s) => {
+      setSaveStatus(s.saveStatus);
+      setLastSavedAt(s.lastSavedAt);
+    });
+    return unsub;
+  }, [service]);
+
+  const project: Project | null =
+    state.file && state.metadata
+      ? {
+          id: `local-${state.file.name}-${state.file.lastModified}`,
+          name: state.projectName,
+          sourceFile: {
+            name: state.file.name,
+            size: state.file.size,
+            type: state.file.type,
+          },
+          timeline: {
+            duration: state.metadata.duration,
+            frameCount: state.metadata.frameCount,
+            overlays: state.overlays,
+          },
+          outputSettings: state.outputSettings,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }
+      : null;
+
+  useEffect(() => {
+    if (!service || !project) return;
+    service.scheduleSave(project);
+  }, [service, state.outputSettings, state.overlays, state.projectName, state.file?.name, state.metadata?.frameCount]);
+
+  const saveNow = project && service ? () => service.saveNow(project) : undefined;
+  return { saveStatus, lastSavedAt, saveNow };
+}

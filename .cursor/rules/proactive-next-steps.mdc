@@ -1,0 +1,15 @@
+---
+description: Require every agent response to end with a Next Steps Menu and a direct question.
+globs: 
+alwaysApply: true
+---
+
+# PROACTIVE NEXT STEPS
+
+- **Always** end every response with a **"NEXT STEPS MENU"** of **3–6 options**.
+- Each option must include:
+  - **Goal** (what we achieve)
+  - **Scope** (S / M / L: small, medium, large effort)
+  - **Files to touch** (paths or areas)
+- **Make options interactive**: In the GifAlchemy app, the `NextStepsMenu` component (floating button bottom-right) shows clickable options; when the user clicks one, copy that option’s letter to the clipboard and show a toast so they can paste it in chat. In chat, present each option as a **clickable-looking** line (e.g. **A.** Goal here (S) — `files`) and invite: **"Click an option in the app or reply with the letter (A/B/C/...) to implement."**
+- After the menu, ask: **"Which option should I implement next (A/B/C/...)?"**
