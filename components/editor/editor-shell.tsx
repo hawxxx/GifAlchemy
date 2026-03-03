@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EditorTopBar } from "./editor-top-bar";
 import { ToolsRail } from "./tools-rail";
 import { CanvasStage } from "./canvas-stage";
 import { PropertiesPanel } from "./properties-panel";
 import { TimelinePanel } from "./timeline-panel";
 import { NextStepsMenu } from "./next-steps-menu";
+import { OnboardingModal } from "./onboarding-modal";
+import { KeyboardShortcutsModal } from "./keyboard-shortcuts-modal";
 import { useEditor } from "@/hooks/use-editor";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useRestoreProject } from "@/hooks/use-restore-project";
 import { useEditorKeyboard } from "@/hooks/use-editor-keyboard";
 import { cn } from "@/lib/utils";
 
+const ONBOARDING_KEY = "gifalchemy:onboarding:v1";
+
 export function EditorShell({ className }: { className?: string }) {
   const { state, dispatch } = useEditor();
   const { saveStatus } = useAutosave();
   const urlRateInitialized = useRef(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useRestoreProject();
   useEditorKeyboard();
@@ -38,6 +44,25 @@ export function EditorShell({ className }: { className?: string }) {
     window.history.replaceState({}, "", url.toString());
   }, [state.playbackRate]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const seen = window.localStorage.getItem(ONBOARDING_KEY);
+    if (!seen) setShowOnboarding(true);
+  }, []);
+
+  useEffect(() => {
+    const openShortcuts = () => setShowShortcuts(true);
+    window.addEventListener("gifalchemy:open-shortcuts", openShortcuts);
+    return () => window.removeEventListener("gifalchemy:open-shortcuts", openShortcuts);
+  }, []);
+
+  const dismissOnboarding = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ONBOARDING_KEY, "seen");
+    }
+    setShowOnboarding(false);
+  };
+
   return (
     <div
       className={cn(
@@ -45,14 +70,12 @@ export function EditorShell({ className }: { className?: string }) {
         className
       )}
     >
-      {/* Top bar — spans full width */}
       <EditorTopBar
         projectName={state.projectName}
         saveStatus={saveStatus}
         onProjectNameChange={(name) => dispatch({ type: "SET_PROJECT_NAME", payload: name })}
       />
 
-      {/* Main area: tools rail + canvas + properties, stacked above timeline */}
       <div
         className="grid flex-1 min-h-0 overflow-hidden"
         style={{
@@ -60,18 +83,15 @@ export function EditorShell({ className }: { className?: string }) {
           gridTemplateRows: "1fr",
         }}
       >
-        {/* Tools rail */}
         <ToolsRail
           activeTool={state.activeTool}
           onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
         />
 
-        {/* Canvas */}
         <div className="min-h-0 overflow-hidden">
           <CanvasStage />
         </div>
 
-        {/* Properties panel */}
         <PropertiesPanel
           activeTool={state.activeTool}
           metadata={state.metadata}
@@ -82,12 +102,22 @@ export function EditorShell({ className }: { className?: string }) {
         />
       </div>
 
-      {/* Timeline — full width at bottom, fixed height */}
       <div className="shrink-0" style={{ height: 170 }}>
         <TimelinePanel />
       </div>
 
       <NextStepsMenu />
+
+      <OnboardingModal
+        open={showOnboarding}
+        onClose={dismissOnboarding}
+        onOpenShortcuts={() => {
+          dismissOnboarding();
+          setShowShortcuts(true);
+        }}
+      />
+
+      <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

@@ -5,11 +5,39 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
+import type { OutputFormat } from "@/core/domain/gif-types";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const;
+const EXPORT_SUPPORT_MATRIX: Array<{
+  format: OutputFormat;
+  status: "native" | "fallback";
+  fallbackTo?: OutputFormat;
+  note: string;
+}> = [
+  { format: "gif", status: "native", note: "Fully supported encoder." },
+  {
+    format: "apng",
+    status: "fallback",
+    fallbackTo: "gif",
+    note: "APNG path is unavailable in this build.",
+  },
+  {
+    format: "mp4",
+    status: "fallback",
+    fallbackTo: "gif",
+    note: "Video container export is unavailable in this build.",
+  },
+  {
+    format: "webm",
+    status: "fallback",
+    fallbackTo: "gif",
+    note: "Video container export is unavailable in this build.",
+  },
+];
 
 export function OptimizeToolPanel() {
   const { state, dispatch } = useEditor();
+  const selectedFormat = state.outputSettings.format;
 
   return (
     <div className="space-y-4">
@@ -57,6 +85,37 @@ export function OptimizeToolPanel() {
         <p className="text-[11px] text-muted-foreground">
           Tip: For faster exports, trim timeline range and reduce output dimensions in Resize.
         </p>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-background/70 p-2.5">
+        <p className="text-xs font-medium mb-2">Export format support matrix</p>
+        <div className="space-y-1.5">
+          {EXPORT_SUPPORT_MATRIX.map((row) => {
+            const isActive = row.format === selectedFormat;
+            return (
+              <div
+                key={row.format}
+                className={cn(
+                  "rounded border px-2 py-1.5 text-[11px]",
+                  isActive ? "border-primary/50 bg-primary/5" : "border-border/50 bg-muted/20"
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium uppercase">{row.format}</span>
+                  <span
+                    className={cn(
+                      "uppercase text-[10px]",
+                      row.status === "native" ? "text-emerald-600" : "text-amber-600"
+                    )}
+                  >
+                    {row.status === "native" ? "native" : `fallback -> ${row.fallbackTo?.toUpperCase()}`}
+                  </span>
+                </div>
+                <p className="mt-1 text-muted-foreground">{row.note}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

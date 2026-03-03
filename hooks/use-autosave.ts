@@ -5,11 +5,19 @@ import { createAutosaveService } from "@/core/application/services/autosave-serv
 import type { Project } from "@/core/domain/project";
 import { useEditor } from "./use-editor";
 
+export interface AutosaveEvent {
+  status: "saving" | "saved" | "error";
+  at: number;
+}
+
+const MAX_AUTOSAVE_EVENTS = 20;
+
 export function useAutosave() {
   const { state, projectRepo } = useEditor();
   const serviceRef = useRef<ReturnType<typeof createAutosaveService> | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [timeline, setTimeline] = useState<AutosaveEvent[]>([]);
 
   if (!serviceRef.current && projectRepo) {
     serviceRef.current = createAutosaveService(projectRepo);
@@ -19,7 +27,13 @@ export function useAutosave() {
   useEffect(() => {
     if (!service) return;
     const unsub = service.subscribe((s) => {
-      setSaveStatus(s.saveStatus);
+      setSaveStatus((prev) => {
+        if (prev !== s.saveStatus && s.saveStatus !== "idle") {
+          const nextEvent: AutosaveEvent = { status: s.saveStatus, at: Date.now() };
+          setTimeline((current) => [...current, nextEvent].slice(-MAX_AUTOSAVE_EVENTS));
+        }
+        return s.saveStatus;
+      });
       setLastSavedAt(s.lastSavedAt);
     });
     return unsub;
@@ -44,6 +58,7 @@ export function useAutosave() {
           trimStart: state.trimStart,
           trimEnd: state.trimEnd,
           playbackRate: state.playbackRate,
+          snapshots: state.snapshots,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }
@@ -52,8 +67,8 @@ export function useAutosave() {
   useEffect(() => {
     if (!service || !project) return;
     service.scheduleSave(project, state.file ?? null);
-  }, [service, state.file, state.outputSettings, state.overlays, state.projectName, state.trimStart, state.trimEnd, state.playbackRate, state.metadata?.frameCount]);
+  }, [service, state.file, state.outputSettings, state.overlays, state.projectName, state.trimStart, state.trimEnd, state.playbackRate, state.snapshots, state.metadata?.frameCount]);
 
   const saveNow = project && service ? () => service.saveNow(project, state.file ?? null) : undefined;
-  return { saveStatus, lastSavedAt, saveNow };
+  return { saveStatus, lastSavedAt, timeline, saveNow };
 }
