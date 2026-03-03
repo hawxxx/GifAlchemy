@@ -333,7 +333,22 @@ export function CanvasStage() {
     try {
       if (!processor.isReady) await initialize();
       const { decodeGif } = await import("@/core/application/commands/editor-commands");
+      const startedAt = performance.now();
       const { frames, metadata } = await decodeGif(processor, file);
+      const decodeMs = Math.max(0, performance.now() - startedAt);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("gifalchemy:decode-profile", {
+            detail: {
+              decodeMs,
+              frameCount: frames.length,
+              width: metadata.width,
+              height: metadata.height,
+              at: Date.now(),
+            },
+          })
+        );
+      }
       dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
       dispatch({ type: "PROCESSOR_READY" });
     } catch (e) {

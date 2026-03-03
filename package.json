@@ -6,7 +6,13 @@
     "dev": "npx next dev --turbopack",
     "build": "npx next build",
     "start": "npx next start",
-    "lint": "npx next lint"
+    "lint": "npx next lint",
+    "test": "npm run test:unit",
+    "test:unit": "npx vitest run",
+    "test:unit:watch": "npx vitest",
+    "test:smoke": "npx playwright test",
+    "test:smoke:headed": "npx playwright test --headed",
+    "release:checklist": "node scripts/release-checklist.mjs"
   },
   "dependencies": {
     "next": "^15.0.0",
@@ -39,7 +45,9 @@
     "eslint-config-next": "^15.0.0",
     "postcss": "^8.4.49",
     "@tailwindcss/postcss": "^4.0.0",
+    "@playwright/test": "^1.55.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.8"
   }
 }

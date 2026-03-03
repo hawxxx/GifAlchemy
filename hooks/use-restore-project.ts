@@ -57,6 +57,7 @@ export function useRestoreProject() {
             trimStart: project.trimStart ?? 0,
             trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
             playbackRate: project.playbackRate ?? 1,
+            snapshots: project.snapshots ?? [],
           },
         });
       } catch {
