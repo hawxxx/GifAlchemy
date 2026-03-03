@@ -8,7 +8,6 @@ import { OverlayRenderer } from "./overlay-renderer";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
 import { ERROR_MESSAGES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 import type { ProcessingProgress } from "@/core/domain/gif-types";
 
 function ExportProgressOverlay({
@@ -206,16 +205,68 @@ export function CanvasStage() {
     setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, preset)));
   }, []);
 
-  const updateCrop = useCallback((next: { x: number; y: number; width: number; height: number }) => {
+  const updateCrop = useCallback((
+    next: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      aspectRatioPreset?: CropAspectPreset;
+      rotation?: number;
+      flipX?: boolean;
+      flipY?: boolean;
+    },
+    changedKeys: string[] = []
+  ) => {
     const meta = state.metadata;
     if (!meta) return;
-    const x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
-    const y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
-    const width = Math.max(1, Math.min(meta.width - x, Math.round(next.width)));
-    const height = Math.max(1, Math.min(meta.height - y, Math.round(next.height)));
+    const ratio = ratioFromPreset(next.aspectRatioPreset);
+    let width = Math.max(1, Math.round(next.width));
+    let height = Math.max(1, Math.round(next.height));
+
+    if (ratio) {
+      if (changedKeys.includes("width") && !changedKeys.includes("height")) {
+        height = Math.max(1, Math.round(width / ratio));
+      } else if (changedKeys.includes("height") && !changedKeys.includes("width")) {
+        width = Math.max(1, Math.round(height * ratio));
+      } else {
+        const hFromW = Math.max(1, Math.round(width / ratio));
+        const wFromH = Math.max(1, Math.round(height * ratio));
+        if (Math.abs(hFromW - height) <= Math.abs(wFromH - width)) height = hFromW;
+        else width = wFromH;
+      }
+    }
+
+    let x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
+    let y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
+    width = Math.max(1, Math.min(meta.width - x, width));
+    height = Math.max(1, Math.min(meta.height - y, height));
+
+    if (ratio) {
+      const maxWidthByHeight = Math.max(1, Math.floor(height * ratio));
+      const maxHeightByWidth = Math.max(1, Math.floor(width / ratio));
+      if (maxWidthByHeight <= width) width = maxWidthByHeight;
+      else height = maxHeightByWidth;
+      width = Math.max(1, Math.min(meta.width - x, width));
+      height = Math.max(1, Math.min(meta.height - y, height));
+      if (x + width > meta.width) x = Math.max(0, meta.width - width);
+      if (y + height > meta.height) y = Math.max(0, meta.height - height);
+    }
+
     dispatch({
       type: "UPDATE_OUTPUT_SETTINGS",
-      payload: { crop: { x, y, width, height } },
+      payload: {
+        crop: {
+          x,
+          y,
+          width,
+          height,
+          aspectRatioPreset: next.aspectRatioPreset ?? "free",
+          rotation: (((next.rotation ?? 0) % 360) + 360) % 360,
+          flipX: Boolean(next.flipX),
+          flipY: Boolean(next.flipY),
+        },
+      },
     });
   }, [dispatch, state.metadata]);
 
