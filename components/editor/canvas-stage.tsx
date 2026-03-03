@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import { Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UploadZone } from "./upload-zone";
 import { SkeletonLoader } from "./skeleton-loader";
@@ -72,7 +73,7 @@ function ExportProgressOverlay({
   );
 }
 
-const CHECKERBOARD = "repeating-conic-gradient(#e5e5e5 0% 25%, #f5f5f5 0% 50%) 50% / 16px 16px";
+const CHECKERBOARD = "repeating-conic-gradient(#1a1a1e 0% 25%, #242428 0% 50%) 50% / 16px 16px";
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_PRESETS = [0.5, 1, 2] as const;
@@ -90,6 +91,7 @@ export function CanvasStage() {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
   const [showSafeArea, setShowSafeArea] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const cropDragRef = useRef<{
     mode: CropDragMode;
@@ -129,6 +131,14 @@ export function CanvasStage() {
       window.removeEventListener("keyup", onKeyUp);
     };
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isPreviewMode) setIsPreviewMode(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isPreviewMode]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -414,6 +424,9 @@ export function CanvasStage() {
   });
   const crop = state.outputSettings.crop;
 
+  const effectiveShowRulers = isPreviewMode ? false : showRulers;
+  const effectiveShowSafeArea = isPreviewMode ? false : showSafeArea;
+
   const cropHandleStyles: Array<{ mode: CropDragMode; cursor: string; className: string; ariaLabel: string }> = [
     { mode: "nw", cursor: "nwse-resize", className: "-left-1.5 -top-1.5", ariaLabel: "Resize crop top left" },
     { mode: "n", cursor: "ns-resize", className: "left-1/2 -translate-x-1/2 -top-1.5", ariaLabel: "Resize crop top edge" },
@@ -430,7 +443,10 @@ export function CanvasStage() {
   return (
     <div
       ref={containerRef}
-      className="flex items-center justify-center h-full bg-muted/20 rounded-xl overflow-hidden relative"
+      className={cn(
+        "flex items-center justify-center h-full rounded-xl relative",
+        isPreviewMode ? "bg-black" : "bg-[#111318]"
+      )}
       onPointerDown={handlePanStart}
       onPointerMove={(e) => {
         handlePanMove(e);
@@ -448,78 +464,19 @@ export function CanvasStage() {
       style={{ cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : undefined }}
     >
       <div
-        className="relative rounded-lg overflow-visible shadow-sm border border-border/50"
+        className="relative rounded-lg overflow-visible shadow-sm border border-border/30"
         style={{
-          background: CHECKERBOARD,
+          background: isPreviewMode ? "#0a0a0a" : CHECKERBOARD,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "center center",
         }}
       >
-        <div className="absolute -top-8 right-0 flex items-center gap-1">
-          <span
-            className={cn(
-              "h-7 inline-flex items-center rounded-lg px-2 text-[11px] border",
-              state.snapToGrid
-                ? "bg-primary text-primary-foreground border-primary/70"
-                : "bg-background/80 text-muted-foreground border-border/70"
-            )}
-            title="Arrow-key nudge snapping"
-          >
-            Snap {state.snapToGrid ? "8px" : "off"}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="h-7 text-xs rounded-lg"
-            onClick={fitToView}
-          >
-            Fit
-          </Button>
-          {ZOOM_PRESETS.map((preset) => (
-            <Button
-              key={preset}
-              variant={Math.abs(zoom - preset) < 0.01 ? "default" : "secondary"}
-              size="sm"
-              className="h-7 text-xs rounded-lg min-w-[3rem]"
-              onClick={() => setZoomPreset(preset)}
-            >
-              {Math.round(preset * 100)}%
-            </Button>
-          ))}
-          <Button
-            variant="secondary"
-            size="sm"
-            className="h-7 text-xs rounded-lg"
-            onClick={resetView}
-          >
-            Reset view
-          </Button>
-          <Button
-            variant={showRulers ? "default" : "secondary"}
-            size="sm"
-            className="h-7 text-xs rounded-lg"
-            onClick={() => setShowRulers((v) => !v)}
-          >
-            Rulers
-          </Button>
-          <Button
-            variant={showSafeArea ? "default" : "secondary"}
-            size="sm"
-            className="h-7 text-xs rounded-lg"
-            onClick={() => setShowSafeArea((v) => !v)}
-          >
-            Safe area
-          </Button>
-          <span className="text-xs text-muted-foreground self-center tabular-nums">
-            {Math.round(zoom * 100)}%
-          </span>
-        </div>
         <canvas
           ref={canvasRef}
           className="block max-w-full max-h-full"
           style={{ width: w, height: h }}
         />
-        {showRulers && (
+        {effectiveShowRulers && (
           <>
             <div
               className="absolute left-0 bg-card/90 border-b border-border/70 pointer-events-none"
@@ -577,7 +534,7 @@ export function CanvasStage() {
             />
           </>
         )}
-        {showSafeArea && (
+        {effectiveShowSafeArea && (
           <>
             <div
               className="absolute border border-amber-400/90 border-dashed pointer-events-none"
@@ -601,7 +558,7 @@ export function CanvasStage() {
             />
           </>
         )}
-        {state.activeTool === "trim" && crop && (
+        {!isPreviewMode && state.activeTool === "trim" && crop && (
           <>
             <div
               className="absolute bg-black/45 pointer-events-none"
@@ -675,8 +632,108 @@ export function CanvasStage() {
             frameCount={state.frames.length}
             width={w}
             height={h}
+            previewMode={isPreviewMode}
           />
         )}
+      </div>
+
+      {/* Preview mode top bar */}
+      {isPreviewMode && (
+        <div className="absolute inset-x-0 top-0 z-50 flex items-center justify-between px-4 py-2 bg-black/60 backdrop-blur-sm pointer-events-auto animate-fade-in rounded-t-xl">
+          <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
+          <button
+            type="button"
+            onClick={() => setIsPreviewMode(false)}
+            className="text-[11px] text-white/60 hover:text-white transition-colors flex items-center gap-1"
+          >
+            <X className="h-3 w-3" />
+            Exit
+          </button>
+        </div>
+      )}
+
+      {/* Floating zoom bar — outside the transform div so it never pans/scales */}
+      <div
+        className={cn(
+          "absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-full bg-card/95 backdrop-blur-md border border-border/40 shadow-2xl px-3 py-1.5 z-[100]",
+          isPreviewMode && "opacity-60"
+        )}
+      >
+        <span
+          className={cn(
+            "h-6 inline-flex items-center rounded-full px-2 text-[10px] border",
+            state.snapToGrid
+              ? "bg-primary text-primary-foreground border-primary/70"
+              : "bg-background/80 text-muted-foreground border-border/70"
+          )}
+          title="Arrow-key nudge snapping"
+        >
+          Snap {state.snapToGrid ? "8px" : "off"}
+        </span>
+        <span className="w-px h-4 bg-border/50 mx-0.5" />
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-6 px-2 text-[10px] rounded-full"
+          onClick={fitToView}
+        >
+          Fit
+        </Button>
+        {ZOOM_PRESETS.map((preset) => (
+          <Button
+            key={preset}
+            variant={Math.abs(zoom - preset) < 0.01 ? "default" : "secondary"}
+            size="sm"
+            className="h-6 px-2 text-[10px] rounded-full"
+            onClick={() => setZoomPreset(preset)}
+          >
+            {Math.round(preset * 100)}%
+          </Button>
+        ))}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-6 px-2 text-[10px] rounded-full"
+          onClick={resetView}
+        >
+          Reset view
+        </Button>
+        <span className="w-px h-4 bg-border/50 mx-0.5" />
+        <Button
+          variant={showRulers ? "default" : "secondary"}
+          size="sm"
+          className="h-6 px-2 text-[10px] rounded-full"
+          onClick={() => setShowRulers((v) => !v)}
+        >
+          Rulers
+        </Button>
+        <Button
+          variant={showSafeArea ? "default" : "secondary"}
+          size="sm"
+          className="h-6 px-2 text-[10px] rounded-full"
+          onClick={() => setShowSafeArea((v) => !v)}
+        >
+          Safe area
+        </Button>
+        <span className="w-px h-4 bg-border/50 mx-0.5" />
+        <span
+          className={cn(
+            "text-[10px] self-center tabular-nums px-1 font-medium",
+            Math.abs(zoom - 1) < 0.01 ? "text-muted-foreground" : "text-primary"
+          )}
+        >
+          {Math.round(zoom * 100)}%
+        </span>
+        <span className="w-px h-4 bg-border/50 mx-0.5" />
+        <Button
+          variant={isPreviewMode ? "default" : "secondary"}
+          size="sm"
+          className="h-6 px-2 text-[10px] rounded-full gap-1"
+          onClick={() => setIsPreviewMode((v) => !v)}
+        >
+          <Eye className="h-3 w-3" />
+          {isPreviewMode ? "Exit" : "Preview"}
+        </Button>
       </div>
     </div>
   );

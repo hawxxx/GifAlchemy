@@ -748,7 +748,7 @@ export function TimelinePanel() {
                     const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
                     return (
                       <div
-                        key={kf.frameIndex}
+                        key={`${overlay.id}-kf-${kf.frameIndex}`}
                         title={`Frame ${kf.frameIndex}`}
                         className="absolute top-1/2 -translate-y-1/2 w-[7px] h-[7px] rotate-45 bg-white/90 border border-white/40 pointer-events-none"
                         style={{ left: `calc(${kfPct}% - 3.5px)` }}

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ToolId } from "@/lib/constants";
-import { TOOL_IDS } from "@/lib/constants";
 
 const TOOL_ICONS: Record<ToolId, React.ComponentType<{ className?: string }>> = {
   resize: Maximize2,
@@ -28,6 +27,22 @@ const TOOL_ICONS: Record<ToolId, React.ComponentType<{ className?: string }>> = 
   templates: LayoutTemplate,
   batch: Layers,
 };
+
+const TOOL_LABELS: Record<ToolId, string> = {
+  resize: "Resize",
+  trim: "Trim",
+  optimize: "Optimize",
+  text: "Text",
+  stickers: "Stickers",
+  templates: "Templates",
+  batch: "Batch",
+};
+
+const TOOL_GROUPS: ToolId[][] = [
+  ["resize", "trim", "optimize"],
+  ["text", "stickers", "templates"],
+  ["batch"],
+];
 
 export interface ToolsRailProps {
   activeTool: ToolId | null;
@@ -40,39 +55,53 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
     <TooltipProvider delayDuration={300}>
       <aside
         className={cn(
-          "flex flex-col items-center py-3 gap-2 border-r border-border/50 bg-muted/20 rounded-r-xl",
+          "flex flex-col py-3 border-r border-border/40 bg-card rounded-r-xl",
           className
         )}
       >
-        {TOOL_IDS.map((id) => {
-          const isActive = activeTool === id;
-          const Icon = TOOL_ICONS[id];
-          const button = (
-            <button
-              type="button"
-              onClick={() => onSelectTool(isActive ? null : id)}
-              aria-label={id}
-              title={`${id.charAt(0).toUpperCase() + id.slice(1)} (click to ${isActive ? "deselect" : "select"})`}
-              className={cn(
-                "flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ease-out",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                "active:scale-95",
-                isActive && "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30",
-                !isActive && "hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
-              )}
-            >
-              {Icon && <Icon className="h-5 w-5" />}
-            </button>
-          );
-          return (
-            <Tooltip key={id}>
-              <TooltipTrigger asChild>{button}</TooltipTrigger>
-              <TooltipContent side="right" className="rounded-lg">
-                {id.charAt(0).toUpperCase() + id.slice(1)}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+        {TOOL_GROUPS.map((group, gi) => (
+          <div key={gi}>
+            {gi > 0 && (
+              <div className="my-2 mx-3 border-t border-border/30" />
+            )}
+            {group.map((id) => {
+              const isActive = activeTool === id;
+              const Icon = TOOL_ICONS[id];
+              return (
+                <div
+                  key={id}
+                  className="relative flex items-center justify-center py-0.5"
+                >
+                  {isActive && (
+                    <span className="absolute left-0 h-5 w-[2px] rounded-r-full bg-primary" />
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => onSelectTool(isActive ? null : id)}
+                        aria-label={TOOL_LABELS[id]}
+                        className={cn(
+                          "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150 ease-out",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                          "active:scale-[0.97]",
+                          isActive
+                            ? "bg-primary/15 text-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        {Icon && <Icon className="h-[18px] w-[18px]" />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="rounded-lg">
+                      {TOOL_LABELS[id]}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </aside>
     </TooltipProvider>
   );

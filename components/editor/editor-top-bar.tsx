@@ -148,7 +148,7 @@ export function EditorTopBar({
   return (
     <header
       className={cn(
-        "flex items-center gap-4 px-4 h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm shrink-0",
+        "flex items-center gap-4 px-4 h-12 border-b border-border/60 bg-card/80 backdrop-blur-sm shrink-0",
         className
       )}
     >

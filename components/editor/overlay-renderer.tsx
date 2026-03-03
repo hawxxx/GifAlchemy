@@ -4,6 +4,7 @@ import { useMemo, useRef, useCallback, useState, type MouseEvent, type CSSProper
 import { useEditor } from "@/hooks/use-editor";
 import type { Overlay, TypewriterCursorStyle } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
+import { FloatingTextToolbar } from "./floating-text-toolbar";
 
 function splitGraphemes(text: string): string[] {
   if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
@@ -96,6 +97,19 @@ function interpolate(overlay: Overlay, frameIndex: number): InterpolatedState {
   };
 }
 
+// ─── Handle definitions ───────────────────────────────────────────────────────
+
+const RESIZE_HANDLES = [
+  { id: "nw", cursor: "nwse-resize", style: { top: 0, left: 0 },           tx: "-50%", ty: "-50%" },
+  { id: "n",  cursor: "ns-resize",   style: { top: 0, left: "50%" },       tx: "-50%", ty: "-50%" },
+  { id: "ne", cursor: "nesw-resize", style: { top: 0, right: 0 },          tx: "50%",  ty: "-50%" },
+  { id: "w",  cursor: "ew-resize",   style: { top: "50%", left: 0 },       tx: "-50%", ty: "-50%" },
+  { id: "e",  cursor: "ew-resize",   style: { top: "50%", right: 0 },      tx: "50%",  ty: "-50%" },
+  { id: "sw", cursor: "nesw-resize", style: { bottom: 0, left: 0 },        tx: "-50%", ty: "50%"  },
+  { id: "s",  cursor: "ns-resize",   style: { bottom: 0, left: "50%" },    tx: "-50%", ty: "50%"  },
+  { id: "se", cursor: "nwse-resize", style: { bottom: 0, right: 0 },       tx: "50%",  ty: "50%"  },
+] as const;
+
 // ─── OverlayRenderer ─────────────────────────────────────────────────────────
 
 export interface OverlayRendererProps {
@@ -107,14 +121,14 @@ export interface OverlayRendererProps {
 }
 
 export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRendererProps) {
-  const { state, dispatch, contentInputRef } = useEditor();
+  const { state, dispatch } = useEditor();
   const { activeTool, selectedOverlayId } = state;
   const isTextMode = activeTool === "text";
 
   // Container ref — used to convert pixel deltas to normalised coordinates
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Drag state stored in a ref to avoid stale closure issues in pointer handlers
+  // Drag state for overlay position
   const dragState = useRef<{
     overlayId: string;
     startClientX: number;
@@ -123,9 +137,33 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     startY: number;
     baseKeyframes: Overlay["keyframes"];
   } | null>(null);
+
+  // Drag state for resize handles
+  const resizeDragRef = useRef<{
+    overlayId: string;
+    centerX: number;
+    centerY: number;
+    startDist: number;
+    startScale: number;
+    kfIndex: number;
+    baseKeyframes: Overlay["keyframes"];
+  } | null>(null);
+
+  // Drag state for rotate handle
+  const rotateDragRef = useRef<{
+    overlayId: string;
+    centerX: number;
+    centerY: number;
+    startAngle: number;
+    startRotation: number;
+    kfIndex: number;
+    baseKeyframes: Overlay["keyframes"];
+  } | null>(null);
+
   const [snapGuides, setSnapGuides] = useState<{ vertical?: number; horizontal?: number } | null>(
     null
   );
+  const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
 
   const interpolated = useMemo(
     () => overlays.map((o) => ({ overlay: o, ...interpolate(o, currentFrameIndex) })),
@@ -197,12 +235,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     };
   }, [currentFrameIndex, frameStartsMs, state.frames]);
 
+  // ─── Overlay drag handlers ──────────────────────────────────────────────────
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
       e.stopPropagation();
+      if (editingOverlayId === overlay.id) return;
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
       dispatch({ type: "SET_TOOL", payload: "text" });
-      if (isTextMode && overlay.locked !== true) {
+      if (overlay.locked !== true) {
         const start = interpolate(overlay, currentFrameIndex);
         dragState.current = {
           overlayId: overlay.id,
@@ -216,7 +257,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       }
     },
-    [isTextMode, dispatch, currentFrameIndex]
+    [dispatch, currentFrameIndex, editingOverlayId]
   );
 
   const handlePointerMove = useCallback(
@@ -285,22 +326,110 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     setSnapGuides(null);
   }, []);
 
-  const focusContentInput = useCallback(() => {
-    // Retry focus a few frames because the text panel/input mounts after tool switch.
-    let tries = 0;
-    const tryFocus = () => {
-      const input = contentInputRef.current;
-      if (input) {
-        input.focus();
-        const len = input.value.length;
-        input.setSelectionRange(len, len);
-        return;
-      }
-      tries += 1;
-      if (tries < 6) requestAnimationFrame(tryFocus);
-    };
-    requestAnimationFrame(tryFocus);
-  }, [contentInputRef]);
+  // ─── Resize handle handlers ─────────────────────────────────────────────────
+
+  const handleResizePointerDown = useCallback(
+    (e: React.PointerEvent, overlay: Overlay, currentScale: number) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const st = interpolate(overlay, currentFrameIndex);
+      const centerX = rect.left + st.x * rect.width;
+      const centerY = rect.top + st.y * rect.height;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const startDist = Math.sqrt(dx * dx + dy * dy);
+      if (startDist < 2) return;
+
+      const kfs = [...overlay.keyframes].sort((a, b) => a.frameIndex - b.frameIndex);
+      const exactIdx = kfs.findIndex((k) => k.frameIndex === currentFrameIndex);
+      const kfIndex = exactIdx !== -1 ? exactIdx : 0;
+
+      resizeDragRef.current = {
+        overlayId: overlay.id,
+        centerX,
+        centerY,
+        startDist,
+        startScale: currentScale,
+        kfIndex,
+        baseKeyframes: overlay.keyframes.map((k) => ({ ...k })),
+      };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [currentFrameIndex]
+  );
+
+  const handleResizePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const drag = resizeDragRef.current;
+      if (!drag) return;
+      const dx = e.clientX - drag.centerX;
+      const dy = e.clientY - drag.centerY;
+      const currentDist = Math.sqrt(dx * dx + dy * dy);
+      const newScale = Math.max(0.05, drag.startScale * (currentDist / drag.startDist));
+      const keyframes = drag.baseKeyframes.map((k, i) =>
+        i === drag.kfIndex ? { ...k, scale: newScale } : k
+      );
+      dispatch({ type: "UPDATE_OVERLAY", payload: { id: drag.overlayId, updates: { keyframes } } });
+    },
+    [dispatch]
+  );
+
+  const handleResizePointerUp = useCallback(() => {
+    resizeDragRef.current = null;
+  }, []);
+
+  // ─── Rotate handle handlers ─────────────────────────────────────────────────
+
+  const handleRotatePointerDown = useCallback(
+    (e: React.PointerEvent, overlay: Overlay, currentRotation: number) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const st = interpolate(overlay, currentFrameIndex);
+      const centerX = rect.left + st.x * rect.width;
+      const centerY = rect.top + st.y * rect.height;
+
+      const kfs = [...overlay.keyframes].sort((a, b) => a.frameIndex - b.frameIndex);
+      const exactIdx = kfs.findIndex((k) => k.frameIndex === currentFrameIndex);
+      const kfIndex = exactIdx !== -1 ? exactIdx : 0;
+
+      rotateDragRef.current = {
+        overlayId: overlay.id,
+        centerX,
+        centerY,
+        startAngle: Math.atan2(e.clientY - centerY, e.clientX - centerX),
+        startRotation: currentRotation,
+        kfIndex,
+        baseKeyframes: overlay.keyframes.map((k) => ({ ...k })),
+      };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [currentFrameIndex]
+  );
+
+  const handleRotatePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const drag = rotateDragRef.current;
+      if (!drag) return;
+      const currentAngle = Math.atan2(e.clientY - drag.centerY, e.clientX - drag.centerX);
+      const deltaAngle = (currentAngle - drag.startAngle) * (180 / Math.PI);
+      const newRotation = drag.startRotation + deltaAngle;
+      const keyframes = drag.baseKeyframes.map((k, i) =>
+        i === drag.kfIndex ? { ...k, rotation: newRotation } : k
+      );
+      dispatch({ type: "UPDATE_OVERLAY", payload: { id: drag.overlayId, updates: { keyframes } } });
+    },
+    [dispatch]
+  );
+
+  const handleRotatePointerUp = useCallback(() => {
+    rotateDragRef.current = null;
+  }, []);
 
   const handleDoubleClick = useCallback(
     (e: MouseEvent, overlay: Overlay) => {
@@ -309,16 +438,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
       dragState.current = null;
       dispatch({ type: "SET_TOOL", payload: "text" });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
-      focusContentInput();
+      setEditingOverlayId(overlay.id);
     },
-    [dispatch, focusContentInput]
+    [dispatch]
   );
 
   const visibleOverlays = interpolated.filter(({ overlay }) => overlay.visible !== false);
   if (visibleOverlays.length === 0) return null;
 
   return (
-    // absolute inset-0 fills the canvas container exactly; no explicit w/h needed
     <div ref={containerRef} className="absolute inset-0 overflow-visible">
       {snapGuides?.vertical !== undefined && (
         <div
@@ -334,25 +462,28 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
       )}
       {visibleOverlays.map(({ overlay, x, y, scale, rotation, opacity }) => {
         const isSelected = selectedOverlayId === overlay.id;
+        const showHandles = isSelected && isTextMode && !overlay.locked;
         const typewriterState = getTypewriterState(overlay);
         const isTypewriter = typewriterState !== null;
         const content = transformContent(overlay.content || " ", overlay.textTransform ?? "none");
         const visibleContent = typewriterState?.visibleContent ?? content;
         const showCursor = typewriterState?.showCursor ?? false;
         const cursorStyle = typewriterState?.cursorStyle ?? "bar";
-        const shadowColor = overlay.textShadowColor ?? "#000000";
-        const shadowBlur = overlay.textShadowBlur ?? 0;
-        const shadowOffsetX = overlay.textShadowOffsetX ?? 0;
-        const shadowOffsetY = overlay.textShadowOffsetY ?? 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ov = overlay as any;
+        const shadowColor = ov.textShadowColor ?? "#000000";
+        const shadowBlur = ov.textShadowBlur ?? 0;
+        const shadowOffsetX = ov.textShadowOffsetX ?? 0;
+        const shadowOffsetY = ov.textShadowOffsetY ?? 0;
         const textShadow = `${shadowOffsetX}px ${shadowOffsetY}px ${shadowBlur}px ${shadowColor}`;
-        const fillType = overlay.fillType ?? "solid";
-        const gradientFrom = overlay.gradientFrom ?? "#ffffff";
-        const gradientTo = overlay.gradientTo ?? "#3b82f6";
-        const gradientAngle = overlay.gradientAngle ?? 90;
-        const backgroundColor = overlay.backgroundColor ?? "#00000000";
-        const backgroundPaddingX = overlay.backgroundPaddingX ?? 0;
-        const backgroundPaddingY = overlay.backgroundPaddingY ?? 0;
-        const backgroundRadius = overlay.backgroundRadius ?? 0;
+        const fillType = ov.fillType ?? "solid";
+        const gradientFrom = ov.gradientFrom ?? "#ffffff";
+        const gradientTo = ov.gradientTo ?? "#3b82f6";
+        const gradientAngle = ov.gradientAngle ?? 90;
+        const backgroundColor = ov.backgroundColor ?? "#00000000";
+        const backgroundPaddingX = ov.backgroundPaddingX ?? 0;
+        const backgroundPaddingY = ov.backgroundPaddingY ?? 0;
+        const backgroundRadius = ov.backgroundRadius ?? 0;
         const textFillStyles =
           fillType === "gradient"
             ? {
@@ -362,11 +493,24 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
                 color: "transparent",
               }
             : { color: overlay.color };
-        const textBoxStyles = {
+
+        const effectAnim: Record<string, string> = {
+          "rainbow": "ef-rainbow 2s linear infinite",
+          "neon-glow": "ef-neon-glow 1.5s ease-in-out infinite",
+          "glitch": "ef-glitch 0.8s step-end infinite",
+        };
+        const activeEffectType = overlay.effects[0]?.type;
+        const effectAnimation =
+          activeEffectType && activeEffectType in effectAnim
+            ? effectAnim[activeEffectType]
+            : undefined;
+
+        const textBoxStyles: CSSProperties = {
           display: "inline-block",
           backgroundColor,
           padding: `${backgroundPaddingY}px ${backgroundPaddingX}px`,
           borderRadius: `${backgroundRadius}px`,
+          ...(fillType !== "gradient" && effectAnimation ? { animation: effectAnimation } : {}),
         };
 
         return (
@@ -380,15 +524,18 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
                 : isTextMode
                   ? "cursor-move"
                   : "cursor-pointer",
-              isSelected && isTextMode
-                ? "outline outline-2 outline-offset-2 outline-blue-400/80 rounded-sm"
-                : ""
+              showHandles
+                ? "border-2 border-dashed border-blue-400/70 rounded-sm"
+                : isSelected && isTextMode
+                  ? "outline outline-2 outline-offset-2 outline-blue-400/80 rounded-sm"
+                  : ""
             )}
             style={{
               left: `${x * 100}%`,
               top: `${y * 100}%`,
               transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`,
               opacity,
+              minWidth: "8ch",
               fontFamily: overlay.fontFamily,
               fontSize: overlay.fontSize,
               fontWeight: overlay.fontWeight ?? "normal",
@@ -406,9 +553,51 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
             onPointerUp={handlePointerUp}
             onDoubleClick={(e) => handleDoubleClick(e, overlay)}
           >
-            {isTypewriter ? (
+            {editingOverlayId === overlay.id ? (
+              <div
+                contentEditable="true"
+                suppressContentEditableWarning
+                onPointerDown={(e) => e.stopPropagation()}
+                onBlur={(e) => {
+                  const text = e.currentTarget.textContent ?? "";
+                  dispatch({ type: "UPDATE_OVERLAY", payload: { id: overlay.id, updates: { content: text } } });
+                  setEditingOverlayId(null);
+                }}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    setEditingOverlayId(null);
+                  }
+                }}
+                onInput={(e) => {
+                  const text = (e.currentTarget as HTMLDivElement).textContent ?? "";
+                  dispatch({ type: "UPDATE_OVERLAY", payload: { id: overlay.id, updates: { content: text } } });
+                }}
+                ref={(el) => {
+                  if (el && document.activeElement !== el) {
+                    el.textContent = overlay.content;
+                    el.focus();
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    range.selectNodeContents(el);
+                    range.collapse(false);
+                    sel?.removeAllRanges();
+                    sel?.addRange(range);
+                  }
+                }}
+                style={{
+                  outline: "none",
+                  minWidth: "4ch",
+                  minHeight: "1em",
+                  cursor: "text",
+                  userSelect: "text" as const,
+                  whiteSpace: "pre-wrap",
+                  textAlign: overlay.textAlign ?? "center",
+                  background: "transparent",
+                }}
+              />
+            ) : isTypewriter ? (
               <span className="relative inline-block whitespace-pre" style={textBoxStyles}>
-                {/* Reserve full-width box so text does not "drift" while typing. */}
                 <span className="invisible">{content}</span>
                 <span className="absolute inset-0 whitespace-pre block" style={{ textAlign: overlay.textAlign ?? "center" }}>
                   {visibleContent || " "}
@@ -424,9 +613,57 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
             ) : (
               <span style={textBoxStyles}>{content}</span>
             )}
+
+            {showHandles && (
+              <>
+                {/* Connector line from top-center to rotate handle */}
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: 0,
+                    left: "50%",
+                    width: 1,
+                    height: 28,
+                    transform: "translate(-50%, -100%)",
+                    background: "rgba(96, 165, 250, 0.7)",
+                  }}
+                />
+                {/* Rotate handle */}
+                <div
+                  className="absolute h-4 w-4 rounded-full bg-white border-2 border-blue-400 shadow z-[90]"
+                  style={{
+                    top: 0,
+                    left: "50%",
+                    transform: "translate(-50%, calc(-100% - 28px))",
+                    cursor: "crosshair",
+                  }}
+                  onPointerDown={(e) => handleRotatePointerDown(e, overlay, rotation)}
+                  onPointerMove={handleRotatePointerMove}
+                  onPointerUp={handleRotatePointerUp}
+                />
+                {/* 8 resize handles */}
+                {RESIZE_HANDLES.map((h) => (
+                  <div
+                    key={h.id}
+                    className="absolute h-3 w-3 rounded-sm bg-blue-400 border-2 border-white shadow z-[90]"
+                    style={{
+                      ...h.style,
+                      transform: `translate(${h.tx}, ${h.ty})`,
+                      cursor: h.cursor,
+                    }}
+                    onPointerDown={(e) => handleResizePointerDown(e, overlay, scale)}
+                    onPointerMove={handleResizePointerMove}
+                    onPointerUp={handleResizePointerUp}
+                  />
+                ))}
+              </>
+            )}
           </div>
         );
       })}
+
+      {/* FloatingTextToolbar renders with position:fixed so it floats above the canvas */}
+      <FloatingTextToolbar />
     </div>
   );
 }

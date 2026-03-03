@@ -5,29 +5,32 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Trash2, Plus, Type, Bold, Italic, Copy, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import { useOverlays } from "@/hooks/use-overlays";
 import { useEditor } from "@/hooks/use-editor";
 import { ANIMATION_PRESETS } from "@/core/domain/presets";
 import type { AnimationPresetType, Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
+import { FontLoader } from "@/components/editor/font-loader";
+import { FontPicker } from "@/components/editor/font-picker";
+import type { FontOption } from "@/components/editor/font-picker";
 
-const FONT_OPTIONS = [
-  { id: "system-ui", label: "System" },
-  { id: "Georgia, serif", label: "Georgia" },
-  { id: "Arial, sans-serif", label: "Arial" },
-  { id: "'Times New Roman', serif", label: "Times New Roman" },
-  { id: "'Courier New', monospace", label: "Courier" },
-  { id: "Impact, sans-serif", label: "Impact" },
-  { id: "Verdana, sans-serif", label: "Verdana" },
-  { id: "'Comic Sans MS', cursive", label: "Comic Sans" },
+const FONT_OPTIONS: FontOption[] = [
+  { id: "system-ui", label: "System UI", category: "system" },
+  { id: "Georgia, serif", label: "Georgia", category: "system" },
+  { id: "Arial, sans-serif", label: "Arial", category: "system" },
+  { id: "'Times New Roman', serif", label: "Times New Roman", category: "system" },
+  { id: "'Courier New', monospace", label: "Courier New", category: "system" },
+  { id: "Impact, sans-serif", label: "Impact", category: "system" },
+  { id: "Verdana, sans-serif", label: "Verdana", category: "system" },
+  { id: "'Plus Jakarta Sans', sans-serif", label: "HK Modular", category: "google" },
+  { id: "'Rock Salt', cursive", label: "Lava Pro Grunge", category: "google" },
+  { id: "'Permanent Marker', cursive", label: "WC Mano Negra Bold", category: "google" },
+  { id: "'Bebas Neue', sans-serif", label: "Bebas Neue", category: "google" },
+  { id: "'Pacifico', cursive", label: "Pacifico", category: "google" },
+  { id: "'Press Start 2P', monospace", label: "Press Start 2P", category: "google" },
+  { id: "'Cinzel', serif", label: "Cinzel", category: "google" },
+  { id: "'Righteous', sans-serif", label: "Righteous", category: "google" },
 ];
 
 const COLORS_QUICK = ["#ffffff", "#000000", "#ef4444", "#3b82f6", "#22c55e", "#f59e0b"];
@@ -47,6 +50,9 @@ const EFFECT_ANIM: Record<string, string> = {
   "wiggle":     "ef-wiggle 1.4s ease-in-out infinite",
   "pulse":      "ef-pulse 1.4s ease-in-out infinite",
   "typewriter": "ef-typewriter 1.8s ease-out infinite",
+  "neon-glow":  "ef-neon-glow 1.5s ease-in-out infinite",
+  "glitch":     "ef-glitch 0.8s step-end infinite",
+  "rainbow":    "ef-rainbow 2s linear infinite",
 };
 
 function EffectCard({
@@ -80,7 +86,7 @@ function EffectCard({
         </span>
       )}
       {/* mini preview — typewriter needs overflow clip for clip-path */}
-      <div className="flex h-8 w-full items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+      <div className="flex h-9 w-full items-center justify-center overflow-hidden rounded-md bg-zinc-800">
         {isTypewriter ? (
           <span className="inline-flex items-end text-sm font-bold text-white select-none">
             <span
@@ -165,6 +171,7 @@ export function TextToolPanel() {
 
   return (
     <div className="space-y-4">
+      <FontLoader />
       {/* Layer list */}
       {overlays.length > 0 && (
         <div className="space-y-1">
@@ -354,11 +361,11 @@ export function TextToolPanel() {
       <Button
         variant="outline"
         size="sm"
-        className="w-full rounded-lg gap-2"
+        className="w-full rounded-lg gap-2 border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:text-primary hover:border-primary/60 transition-all duration-150 ease-out active:scale-[0.98]"
         onClick={() => addOverlay()}
         disabled={state.frames.length === 0}
       >
-        <Plus className="h-3.5 w-3.5" />
+        <Plus className="h-4 w-4" />
         Add text layer
       </Button>
 
@@ -407,60 +414,14 @@ export function TextToolPanel() {
           <div className="flex gap-2 items-end">
             <div className="flex-1 min-w-0">
               <Label className="text-xs">Font</Label>
-              <Select
-                value={selected.fontFamily}
-                onValueChange={(v) => updateOverlay(selected.id, { fontFamily: v })}
-                disabled={selectedLocked}
-              >
-                <SelectTrigger className="mt-1 h-10 gap-2 bg-background border-border">
-                  <SelectValue>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="flex h-6 w-7 shrink-0 items-center justify-center rounded bg-muted/60 text-xs font-semibold"
-                        style={{ fontFamily: selected.fontFamily }}
-                      >
-                        Aa
-                      </span>
-                      <span
-                        className="truncate text-sm"
-                        style={{ fontFamily: selected.fontFamily }}
-                      >
-                        {FONT_OPTIONS.find((f) => f.id === selected.fontFamily)?.label ?? selected.fontFamily}
-                      </span>
-                    </div>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent
-                  className="min-w-[220px] z-[200]"
-                  align="start"
-                  position="popper"
-                  sideOffset={6}
-                  collisionPadding={16}
-                >
-                  {FONT_OPTIONS.map((f) => (
-                    <SelectItem
-                      key={f.id}
-                      value={f.id}
-                      className="py-2.5 cursor-pointer rounded-md bg-transparent hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="flex h-7 w-8 items-center justify-center rounded bg-muted text-sm font-semibold text-foreground shrink-0"
-                          style={{ fontFamily: f.id }}
-                        >
-                          Aa
-                        </span>
-                        <span
-                          className="text-sm truncate"
-                          style={{ fontFamily: f.id }}
-                        >
-                          {f.label}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <FontPicker
+                  value={selected.fontFamily}
+                  onChange={(v) => updateOverlay(selected.id, { fontFamily: v })}
+                  fonts={FONT_OPTIONS}
+                  disabled={selectedLocked}
+                />
+              </div>
             </div>
             {/* Bold / Italic toggles */}
             <div className="flex gap-1 pb-0.5">
@@ -509,7 +470,21 @@ export function TextToolPanel() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label className="text-xs">Size</Label>
-              <span className="text-xs text-muted-foreground tabular-nums">{selected.fontSize}px</span>
+              <input
+                type="number"
+                min={8}
+                max={120}
+                step={1}
+                value={selected.fontSize}
+                disabled={selectedLocked}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (!isNaN(v) && v >= 8 && v <= 120) {
+                    updateOverlay(selected.id, { fontSize: v });
+                  }
+                }}
+                className="h-6 w-14 rounded-md border border-border/60 bg-muted/40 px-1.5 text-center text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+              />
             </div>
             <Slider
               value={[selected.fontSize]}
@@ -582,16 +557,18 @@ export function TextToolPanel() {
                 className="w-8 h-8 rounded-lg border border-border cursor-pointer p-0.5 bg-transparent"
                 disabled={selectedLocked}
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {COLORS_QUICK.map((c) => (
                   <button
                     key={c}
                     aria-label={c}
                     disabled={selectedLocked}
                     className={cn(
-                      "w-5 h-5 rounded-md border-2 transition-transform hover:scale-110",
+                      "w-6 h-6 rounded-md border-2 transition-all duration-150 hover:scale-110",
                       selectedLocked && "cursor-not-allowed opacity-60 hover:scale-100",
-                      selected.color === c ? "border-primary scale-110" : "border-border"
+                      selected.color === c
+                        ? "border-primary scale-110 shadow-sm"
+                        : "border-border/60 hover:border-border"
                     )}
                     style={{ background: c }}
                     onClick={() => updateOverlay(selected.id, { color: c })}
@@ -627,18 +604,18 @@ export function TextToolPanel() {
                   className="w-7 h-7 rounded-md border border-border cursor-pointer p-0.5 bg-transparent"
                   disabled={selectedLocked}
                 />
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {["#000000", "#ffffff", "#ef4444", "#3b82f6"].map((c) => (
                     <button
                       key={c}
                       aria-label={c}
                       disabled={selectedLocked}
                       className={cn(
-                        "w-5 h-5 rounded-md border-2 transition-transform hover:scale-110",
+                        "w-6 h-6 rounded-md border-2 transition-all duration-150 hover:scale-110",
                         selectedLocked && "cursor-not-allowed opacity-60 hover:scale-100",
                         (selected.strokeColor ?? "#000000") === c
-                          ? "border-primary scale-110"
-                          : "border-border"
+                          ? "border-primary scale-110 shadow-sm"
+                          : "border-border/60 hover:border-border"
                       )}
                       style={{ background: c }}
                       onClick={() => updateOverlay(selected.id, { strokeColor: c })}

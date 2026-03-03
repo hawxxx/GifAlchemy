@@ -13,6 +13,7 @@ import { useEditor } from "@/hooks/use-editor";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useRestoreProject } from "@/hooks/use-restore-project";
 import { useEditorKeyboard } from "@/hooks/use-editor-keyboard";
+import { useProjectPersistence } from "@/hooks/use-project-persistence";
 import { cn } from "@/lib/utils";
 
 const ONBOARDING_KEY = "gifalchemy:onboarding:v1";
@@ -26,6 +27,7 @@ export function EditorShell({ className }: { className?: string }) {
 
   useRestoreProject();
   useEditorKeyboard();
+  useProjectPersistence();
 
   useEffect(() => {
     if (urlRateInitialized.current || typeof window === "undefined") return;
@@ -77,9 +79,9 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <div
-        className="grid flex-1 min-h-0 overflow-hidden"
+        className="grid flex-1 min-h-0 overflow-hidden border-t border-border/40"
         style={{
-          gridTemplateColumns: "56px 1fr 300px",
+          gridTemplateColumns: "52px 1fr 280px",
           gridTemplateRows: "1fr",
         }}
       >
@@ -102,7 +104,7 @@ export function EditorShell({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="shrink-0" style={{ height: 170 }}>
+      <div className="shrink-0 border-t border-border/40 bg-card/50" style={{ height: 170 }}>
         <TimelinePanel />
       </div>
 

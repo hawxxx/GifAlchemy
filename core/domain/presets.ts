@@ -36,4 +36,7 @@ export const ANIMATION_PRESETS: AnimationPresetOption[] = [
   { id: "wiggle", label: "Wiggle", description: "Rotation wiggle" },
   { id: "pulse", label: "Pulse", description: "Scale pulse in and out" },
   { id: "typewriter", label: "Typewriter", description: "Reveal character by character" },
+  { id: "neon-glow", label: "Neon Glow", description: "Purple neon glow text-shadow effect" },
+  { id: "glitch", label: "Glitch", description: "Rapid shake and color-channel shift" },
+  { id: "rainbow", label: "Rainbow", description: "Cycle through rainbow colors" },
 ];

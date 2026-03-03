@@ -119,7 +119,10 @@ export type AnimationPresetType =
   | "bounce"
   | "shake"
   | "wiggle"
-  | "pulse";
+  | "pulse"
+  | "neon-glow"
+  | "glitch"
+  | "rainbow";
 
 export interface OutputSettings {
   width: number;
