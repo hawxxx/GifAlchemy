@@ -10,6 +10,10 @@ export interface Project {
   trimEnd: number;
   /** Playback speed multiplier persisted with project (for example 0.5, 1, 1.5, 2). */
   playbackRate?: number;
+  /** Optional user-saved text/sticker templates created from the current canvas overlays. */
+  templates?: SavedTemplate[];
+  /** Optional project restore points (named snapshots of editor state). */
+  snapshots?: ProjectSnapshot[];
   createdAt: number;
   updatedAt: number;
 }
@@ -18,6 +22,48 @@ export interface Timeline {
   duration: number;
   frameCount: number;
   overlays: Overlay[];
+}
+
+export interface SavedTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  previewDataUrl?: string;
+  layers: SavedTemplateLayer[];
+}
+
+export interface SavedTemplateLayer {
+  content: string;
+  x: number;
+  y: number;
+  fontFamily?: string;
+  fontWeight?: "normal" | "bold";
+  fontStyle?: "normal" | "italic";
+  textAlign?: "left" | "center" | "right";
+  fontSize: number;
+  color?: string;
+  strokeWidth?: number;
+  strokeColor?: string;
+  effect?: AnimationPresetType;
+}
+
+export interface ProjectSnapshot {
+  id: string;
+  label: string;
+  createdAt: number;
+  state: ProjectSnapshotState;
+}
+
+export interface ProjectSnapshotState {
+  overlays: Overlay[];
+  outputSettings: OutputSettings;
+  projectName: string;
+  trimStart: number;
+  trimEnd: number;
+  playbackRate: number;
+  currentFrameIndex: number;
 }
 
 export interface Overlay {

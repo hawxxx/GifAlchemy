@@ -4,14 +4,23 @@ import React, { useReducer, createContext, useMemo, useCallback } from "react";
 import type { IGifProcessor } from "@/core/application/processors/gif-processor.port";
 import type { IProjectRepository } from "@/core/application/repositories/project-repository.port";
 import type { GifFrame, GifMetadata, ProcessingProgress } from "@/core/domain/gif-types";
-import type { Overlay, OutputSettings } from "@/core/domain/project";
+import type { Overlay, OutputSettings, ProjectSnapshot } from "@/core/domain/project";
 import type { ToolId } from "@/lib/constants";
 
 const UNDO_HISTORY_MAX = 50;
+const PROJECT_SNAPSHOTS_MAX = 30;
 
 type UndoableSnapshot = Pick<
   EditorState,
-  "overlays" | "outputSettings" | "projectName" | "trimStart" | "trimEnd" | "selectedOverlayIds" | "selectedOverlayId"
+  | "overlays"
+  | "outputSettings"
+  | "projectName"
+  | "trimStart"
+  | "trimEnd"
+  | "selectedOverlayIds"
+  | "selectedOverlayId"
+  | "playbackRate"
+  | "currentFrameIndex"
 >;
 export interface HistoryEntry {
   id: string;
@@ -46,6 +55,8 @@ export interface EditorState {
   trimEnd: number;
   /** Playback speed multiplier (0.5, 1, 2). */
   playbackRate: number;
+  /** Named restore points for this open project. */
+  snapshots: ProjectSnapshot[];
 }
 
 const defaultOutputSettings: OutputSettings = {
@@ -76,6 +87,7 @@ const initialState: EditorState = {
   trimStart: 0,
   trimEnd: 0,
   playbackRate: 1,
+  snapshots: [],
 };
 
 export type EditorAction =
@@ -102,6 +114,9 @@ export type EditorAction =
   | { type: "SET_PLAYING"; payload: boolean }
   | { type: "SET_TRIM"; payload: { trimStart: number; trimEnd: number } }
   | { type: "SET_PLAYBACK_RATE"; payload: number }
+  | { type: "CREATE_PROJECT_SNAPSHOT"; payload: ProjectSnapshot }
+  | { type: "DELETE_PROJECT_SNAPSHOT"; payload: string }
+  | { type: "RESTORE_PROJECT_SNAPSHOT"; payload: string }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "RESTORE_SNAPSHOT"; payload: UndoableSnapshot }
@@ -117,6 +132,7 @@ export type EditorAction =
         trimStart: number;
         trimEnd: number;
         playbackRate?: number;
+        snapshots?: ProjectSnapshot[];
       };
     }
   | { type: "RESET" };
@@ -129,6 +145,7 @@ const UNDOABLE_ACTIONS = new Set<string>([
   "SET_OVERLAYS",
   "SET_PROJECT_NAME",
   "SET_TRIM",
+  "RESTORE_PROJECT_SNAPSHOT",
 ]);
 
 function createHistoryEntry(label: string): HistoryEntry {
@@ -136,6 +153,39 @@ function createHistoryEntry(label: string): HistoryEntry {
     id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     label,
     at: Date.now(),
+  };
+}
+
+function cloneOutputSettings(settings: OutputSettings): OutputSettings {
+  return {
+    ...settings,
+    crop: settings.crop ? { ...settings.crop } : settings.crop,
+  };
+}
+
+function cloneOverlays(overlays: Overlay[]): Overlay[] {
+  return overlays.map((overlay) => ({
+    ...overlay,
+    keyframes: overlay.keyframes.map((k) => ({ ...k })),
+    effects: overlay.effects.map((fx) => ({ ...fx })),
+  }));
+}
+
+function createProjectSnapshotRecord(state: EditorState, label?: string): ProjectSnapshot {
+  const createdAt = Date.now();
+  return {
+    id: `snap_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+    label: label?.trim() || `Restore point ${new Date(createdAt).toLocaleTimeString()}`,
+    createdAt,
+    state: {
+      overlays: cloneOverlays(state.overlays),
+      outputSettings: cloneOutputSettings(state.outputSettings),
+      projectName: state.projectName,
+      trimStart: state.trimStart,
+      trimEnd: state.trimEnd,
+      playbackRate: state.playbackRate,
+      currentFrameIndex: state.currentFrameIndex,
+    },
   };
 }
 
@@ -155,6 +205,8 @@ function getActionLabel(action: EditorAction): string {
       return "Rename project";
     case "SET_TRIM":
       return "Adjust trim range";
+    case "RESTORE_PROJECT_SNAPSHOT":
+      return "Restore point";
     default:
       return "Edit";
   }
@@ -187,6 +239,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
             : state.projectName,
         trimStart: 0,
         trimEnd: lastFrame,
+        snapshots: [],
       };
     }
     case "UPLOAD_ERROR":
@@ -241,7 +294,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         currentFrameIndex: Math.max(0, Math.min(action.payload, state.frames.length - 1)),
       };
     case "PROCESSING_START":
-      return { ...state, status: "processing", processingProgress: { phase: "", percent: 0 } };
+      return { ...state, status: "processing", processingProgress: { phase: "", percent: 0 }, error: null };
     case "PROCESSING_PROGRESS":
       return { ...state, processingProgress: action.payload };
     case "PROCESSING_DONE":
@@ -279,6 +332,37 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       const rate = [0.5, 1, 1.5, 2].includes(action.payload) ? action.payload : 1;
       return { ...state, playbackRate: rate };
     }
+    case "CREATE_PROJECT_SNAPSHOT": {
+      const next = [action.payload, ...state.snapshots.filter((s) => s.id !== action.payload.id)];
+      return { ...state, snapshots: next.slice(0, PROJECT_SNAPSHOTS_MAX) };
+    }
+    case "DELETE_PROJECT_SNAPSHOT":
+      return {
+        ...state,
+        snapshots: state.snapshots.filter((snapshot) => snapshot.id !== action.payload),
+      };
+    case "RESTORE_PROJECT_SNAPSHOT": {
+      const snapshot = state.snapshots.find((item) => item.id === action.payload);
+      if (!snapshot) return state;
+      const restoredOverlays = cloneOverlays(snapshot.state.overlays);
+      return {
+        ...state,
+        overlays: restoredOverlays,
+        selectedOverlayId: restoredOverlays[0]?.id ?? null,
+        selectedOverlayIds: restoredOverlays[0]?.id ? [restoredOverlays[0].id] : [],
+        outputSettings: cloneOutputSettings(snapshot.state.outputSettings),
+        projectName: snapshot.state.projectName,
+        trimStart: snapshot.state.trimStart,
+        trimEnd: snapshot.state.trimEnd,
+        playbackRate: [0.5, 1, 1.5, 2].includes(snapshot.state.playbackRate)
+          ? snapshot.state.playbackRate
+          : 1,
+        currentFrameIndex: Math.max(
+          0,
+          Math.min(snapshot.state.currentFrameIndex, Math.max(0, state.frames.length - 1))
+        ),
+      };
+    }
     case "RESTORE_SNAPSHOT":
       return { ...state, ...action.payload };
     case "RESTORE_PROJECT": {
@@ -297,6 +381,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         projectName: p.projectName,
         trimStart: p.trimStart,
         trimEnd: p.trimEnd,
+        snapshots: p.snapshots ?? [],
         snapToGrid: state.snapToGrid,
         playbackRate: [0.5, 1, 1.5, 2].includes(p.playbackRate ?? 1) ? (p.playbackRate ?? 1) : 1,
         error: null,
@@ -326,6 +411,10 @@ export interface EditorContextValue {
   canRedo: boolean;
   undoHistory: HistoryEntry[];
   redoHistory: HistoryEntry[];
+  projectSnapshots: ProjectSnapshot[];
+  createProjectSnapshot: (label?: string) => void;
+  restoreProjectSnapshot: (id: string) => void;
+  deleteProjectSnapshot: (id: string) => void;
   processor: IGifProcessor | null;
   projectRepo: IProjectRepository | null;
   processingAbortRef: React.MutableRefObject<AbortController | null>;
@@ -342,13 +431,15 @@ export interface EditorProviderProps {
 
 function snapshot(s: EditorState): UndoableSnapshot {
   return {
-    overlays: s.overlays.map((o) => ({ ...o, keyframes: o.keyframes.map((k) => ({ ...k })) })),
-    outputSettings: { ...s.outputSettings },
+    overlays: cloneOverlays(s.overlays),
+    outputSettings: cloneOutputSettings(s.outputSettings),
     projectName: s.projectName,
     trimStart: s.trimStart,
     trimEnd: s.trimEnd,
     selectedOverlayId: s.selectedOverlayId,
     selectedOverlayIds: [...s.selectedOverlayIds],
+    playbackRate: s.playbackRate,
+    currentFrameIndex: s.currentFrameIndex,
   };
 }
 
@@ -399,8 +490,7 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       }
       if (action.type === "RESET") {
         setHistory({ past: [], future: [], pastEntries: [], futureEntries: [] });
-      }
-      else if (UNDOABLE_ACTIONS.has(action.type))
+      } else if (UNDOABLE_ACTIONS.has(action.type)) {
         setHistory((h) => ({
           past: [...h.past, snapshot(state)].slice(-UNDO_HISTORY_MAX),
           future: [],
@@ -409,6 +499,7 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
           ),
           futureEntries: [],
         }));
+      }
       dispatch(action);
     },
     [state, history.past, history.future, history.pastEntries, history.futureEntries]
@@ -416,6 +507,24 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
 
   const undo = useCallback(() => stableDispatch({ type: "UNDO" }), [stableDispatch]);
   const redo = useCallback(() => stableDispatch({ type: "REDO" }), [stableDispatch]);
+  const createProjectSnapshot = useCallback(
+    (label?: string) => {
+      stableDispatch({ type: "CREATE_PROJECT_SNAPSHOT", payload: createProjectSnapshotRecord(state, label) });
+    },
+    [state, stableDispatch]
+  );
+  const restoreProjectSnapshot = useCallback(
+    (id: string) => {
+      stableDispatch({ type: "RESTORE_PROJECT_SNAPSHOT", payload: id });
+    },
+    [stableDispatch]
+  );
+  const deleteProjectSnapshot = useCallback(
+    (id: string) => {
+      stableDispatch({ type: "DELETE_PROJECT_SNAPSHOT", payload: id });
+    },
+    [stableDispatch]
+  );
 
   const value = useMemo<EditorContextValue>(
     () => ({
@@ -427,6 +536,10 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       canRedo: history.future.length > 0,
       undoHistory: history.pastEntries,
       redoHistory: history.futureEntries,
+      projectSnapshots: state.snapshots,
+      createProjectSnapshot,
+      restoreProjectSnapshot,
+      deleteProjectSnapshot,
       processor,
       projectRepo,
       processingAbortRef,
@@ -441,6 +554,9 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       stableDispatch,
       undo,
       redo,
+      createProjectSnapshot,
+      restoreProjectSnapshot,
+      deleteProjectSnapshot,
       processor,
       projectRepo,
     ]
