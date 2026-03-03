@@ -34,3 +34,6 @@ yarn-error.log*
 
 # types
 next-env.d.ts
+
+# local planning artifacts
+AGENT_WORK_QUEUE.md

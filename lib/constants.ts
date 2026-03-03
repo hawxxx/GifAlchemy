@@ -13,8 +13,7 @@ export const TOOL_IDS = [
 ] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
-export const TOOLS_ACTIVE: ToolId[] = ["resize", "trim", "text"];
-export const TOOLS_COMING_SOON: ToolId[] = ["optimize", "stickers", "templates", "batch"];
+export const TOOLS_ACTIVE: ToolId[] = ["resize", "trim", "optimize", "text", "stickers", "templates", "batch"];
 
 export const ERROR_MESSAGES = {
   UNSUPPORTED_TYPE: "This file type isn't supported. Try a GIF, MP4, or WebM.",

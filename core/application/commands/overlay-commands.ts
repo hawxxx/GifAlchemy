@@ -25,6 +25,7 @@ export function createTextOverlay(
       | "fontFamily"
       | "fontSize"
       | "color"
+      | "textAlign"
       | "strokeWidth"
       | "strokeColor"
       | "fontWeight"
@@ -47,6 +48,7 @@ export function createTextOverlay(
     fontSize: overrides?.fontSize ?? 32,
     fontWeight: overrides?.fontWeight ?? "normal",
     fontStyle: overrides?.fontStyle ?? "normal",
+    textAlign: overrides?.textAlign ?? "center",
     color: overrides?.color ?? "#ffffff",
     strokeWidth: overrides?.strokeWidth ?? 2,
     strokeColor: overrides?.strokeColor ?? "#000000",
@@ -68,6 +70,7 @@ export function updateOverlay(
       | "fontSize"
       | "fontWeight"
       | "fontStyle"
+      | "textAlign"
       | "color"
       | "strokeWidth"
       | "strokeColor"
@@ -159,6 +162,12 @@ export function bakeEffectToKeyframes(
       y = e * 0.15;
     } else if (effectType === "pop") {
       scale = 0.3 + 0.7 * e;
+    } else if (effectType === "scale-in") {
+      scale = 0.6 + 0.4 * e;
+    } else if (effectType === "rotate-in") {
+      rotation = -24 * (1 - e);
+    } else if (effectType === "flicker") {
+      opacity = Math.max(0.2, 0.55 + 0.45 * Math.sin(t * Math.PI * 12));
     } else if (effectType === "bounce") {
       scale = bounceScale(t);
     } else if (effectType === "shake") {
@@ -171,11 +180,11 @@ export function bakeEffectToKeyframes(
     const existingIdx = keyframes.findIndex((k) => k.frameIndex === f);
     const base = keyframes.find((k) => k.frameIndex <= f);
     const baseKf = base ?? keyframes[0];
-    const applyOpacity = ["fade-in", "fade-out"].includes(effectType);
+    const applyOpacity = ["fade-in", "fade-out", "flicker"].includes(effectType);
     const applyY = ["slide-up", "slide-down"].includes(effectType);
-    const applyScale = ["pop", "bounce", "pulse"].includes(effectType);
+    const applyScale = ["pop", "scale-in", "bounce", "pulse"].includes(effectType);
     const applyX = effectType === "shake";
-    const applyRotation = effectType === "wiggle";
+    const applyRotation = ["wiggle", "rotate-in"].includes(effectType);
     if (existingIdx >= 0) {
       keyframes[existingIdx] = {
         ...keyframes[existingIdx],

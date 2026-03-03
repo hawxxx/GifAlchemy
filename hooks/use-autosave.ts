@@ -43,6 +43,7 @@ export function useAutosave() {
           outputSettings: state.outputSettings,
           trimStart: state.trimStart,
           trimEnd: state.trimEnd,
+          playbackRate: state.playbackRate,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }
@@ -51,7 +52,7 @@ export function useAutosave() {
   useEffect(() => {
     if (!service || !project) return;
     service.scheduleSave(project, state.file ?? null);
-  }, [service, state.file, state.outputSettings, state.overlays, state.projectName, state.trimStart, state.trimEnd, state.metadata?.frameCount]);
+  }, [service, state.file, state.outputSettings, state.overlays, state.projectName, state.trimStart, state.trimEnd, state.playbackRate, state.metadata?.frameCount]);
 
   const saveNow = project && service ? () => service.saveNow(project, state.file ?? null) : undefined;
   return { saveStatus, lastSavedAt, saveNow };

@@ -107,6 +107,7 @@ export function EditorTopBar({
           projectName: project.name,
           trimStart: project.trimStart ?? 0,
           trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
+          playbackRate: project.playbackRate ?? 1,
         },
       });
       toast.success(`Opened: ${project.name}`);

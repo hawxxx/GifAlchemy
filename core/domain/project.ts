@@ -8,6 +8,8 @@ export interface Project {
   outputSettings: OutputSettings;
   trimStart: number;
   trimEnd: number;
+  /** Playback speed multiplier persisted with project (for example 0.5, 1, 1.5, 2). */
+  playbackRate?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -26,6 +28,7 @@ export interface Overlay {
   fontSize: number;
   fontWeight: "normal" | "bold";
   fontStyle: "normal" | "italic";
+  textAlign: "left" | "center" | "right";
   color: string;
   strokeWidth: number;
   strokeColor: string;
@@ -59,6 +62,9 @@ export type AnimationPresetType =
   | "slide-up"
   | "slide-down"
   | "pop"
+  | "scale-in"
+  | "rotate-in"
+  | "flicker"
   | "typewriter"
   | "bounce"
   | "shake"

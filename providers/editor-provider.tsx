@@ -102,6 +102,7 @@ export type EditorAction =
         projectName: string;
         trimStart: number;
         trimEnd: number;
+        playbackRate?: number;
       };
     }
   | { type: "RESET" };
@@ -199,13 +200,13 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, isPlaying: action.payload };
     case "SET_TRIM": {
       const last = Math.max(0, state.frames.length - 1);
-      let start = Math.max(0, Math.min(last, action.payload.trimStart));
+      const start = Math.max(0, Math.min(last, action.payload.trimStart));
       let end = Math.max(0, Math.min(last, action.payload.trimEnd));
       if (end < start) end = start;
       return { ...state, trimStart: start, trimEnd: end };
     }
     case "SET_PLAYBACK_RATE": {
-      const rate = [0.5, 1, 2].includes(action.payload) ? action.payload : 1;
+      const rate = [0.5, 1, 1.5, 2].includes(action.payload) ? action.payload : 1;
       return { ...state, playbackRate: rate };
     }
     case "RESTORE_SNAPSHOT":
@@ -225,6 +226,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         projectName: p.projectName,
         trimStart: p.trimStart,
         trimEnd: p.trimEnd,
+        playbackRate: [0.5, 1, 1.5, 2].includes(p.playbackRate ?? 1) ? (p.playbackRate ?? 1) : 1,
         error: null,
         isPlaying: false,
       };

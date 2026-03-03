@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ToolId } from "@/lib/constants";
-import { TOOL_IDS, TOOLS_ACTIVE, TOOLS_COMING_SOON } from "@/lib/constants";
+import { TOOL_IDS } from "@/lib/constants";
 
 const TOOL_ICONS: Record<ToolId, React.ComponentType<{ className?: string }>> = {
   resize: Maximize2,
@@ -46,22 +46,19 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
       >
         {TOOL_IDS.map((id) => {
           const isActive = activeTool === id;
-          const isComingSoon = TOOLS_COMING_SOON.includes(id);
           const Icon = TOOL_ICONS[id];
           const button = (
             <button
               type="button"
-              onClick={() => !isComingSoon && onSelectTool(isActive ? null : id)}
-              disabled={isComingSoon}
-              aria-label={isComingSoon ? `${id} (coming soon)` : id}
-              title={isComingSoon ? "Coming soon" : `${id.charAt(0).toUpperCase() + id.slice(1)} (click to ${isActive ? "deselect" : "select"})`}
+              onClick={() => onSelectTool(isActive ? null : id)}
+              aria-label={id}
+              title={`${id.charAt(0).toUpperCase() + id.slice(1)} (click to ${isActive ? "deselect" : "select"})`}
               className={cn(
                 "flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ease-out",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 "active:scale-95",
-                isComingSoon && "cursor-not-allowed opacity-50",
                 isActive && "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30",
-                !isActive && !isComingSoon && "hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                !isActive && "hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
               )}
             >
               {Icon && <Icon className="h-5 w-5" />}
@@ -71,7 +68,7 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
             <Tooltip key={id}>
               <TooltipTrigger asChild>{button}</TooltipTrigger>
               <TooltipContent side="right" className="rounded-lg">
-                {isComingSoon ? "Coming soon" : id.charAt(0).toUpperCase() + id.slice(1)}
+                {id.charAt(0).toUpperCase() + id.slice(1)}
               </TooltipContent>
             </Tooltip>
           );

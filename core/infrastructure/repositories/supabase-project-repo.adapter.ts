@@ -23,6 +23,7 @@ export function createSupabaseProjectRepo(): IProjectRepository {
           outputSettings: project.outputSettings,
           trimStart: project.trimStart,
           trimEnd: project.trimEnd,
+          playbackRate: project.playbackRate ?? 1,
         },
         updated_at: new Date(project.updatedAt).toISOString(),
       };
@@ -47,6 +48,7 @@ export function createSupabaseProjectRepo(): IProjectRepository {
         outputSettings: d.outputSettings as Project["outputSettings"],
         trimStart: (d.trimStart as number) ?? 0,
         trimEnd: (d.trimEnd as number) ?? 0,
+        playbackRate: (d.playbackRate as number) ?? 1,
         createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
         updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(),
       };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,9 @@ const EFFECT_ANIM: Record<string, string> = {
   "slide-up":   "ef-slide-up 1.8s ease-out infinite",
   "slide-down": "ef-slide-down 1.8s ease-in infinite",
   "pop":        "ef-pop 1.6s ease-out infinite",
+  "scale-in":   "ef-scale-in 1.6s ease-out infinite",
+  "rotate-in":  "ef-rotate-in 1.6s ease-out infinite",
+  "flicker":    "ef-flicker 1.2s linear infinite",
   "bounce":     "ef-bounce 1.6s ease-out infinite",
   "shake":      "ef-shake 1.2s linear infinite",
   "wiggle":     "ef-wiggle 1.4s ease-in-out infinite",
@@ -111,21 +115,104 @@ export function TextToolPanel() {
     clearEffect,
   } = useOverlays();
   const { state, contentInputRef } = useEditor();
+  const [multiSelectedIds, setMultiSelectedIds] = useState<string[]>([]);
 
   const selected = overlays.find((o) => o.id === selectedOverlayId) ?? overlays[0] ?? null;
   const activeEffect = selected?.effects[0]?.type ?? "none";
   const selectedLocked = selected?.locked === true;
+  const frameLast = Math.max(0, state.frames.length - 1);
+  const effectStart = selected?.effects[0]?.startFrame ?? 0;
+  const effectEnd = selected?.effects[0]?.endFrame ?? frameLast;
+  const multiSelectedSet = useMemo(() => new Set(multiSelectedIds), [multiSelectedIds]);
+  const hasMultiSelection = multiSelectedIds.length > 1;
+
+  useEffect(() => {
+    // Drop stale ids when overlays are removed.
+    setMultiSelectedIds((prev) => prev.filter((id) => overlays.some((o) => o.id === id)));
+  }, [overlays]);
+
+  const applyBatchVisibility = (visible: boolean) => {
+    multiSelectedIds.forEach((id) => updateOverlay(id, { visible }));
+  };
+
+  const applyBatchLock = (locked: boolean) => {
+    multiSelectedIds.forEach((id) => updateOverlay(id, { locked }));
+  };
+
+  const removeBatch = () => {
+    multiSelectedIds.forEach((id) => {
+      const overlay = overlays.find((o) => o.id === id);
+      if (!overlay?.locked) removeOverlay(id);
+    });
+    setMultiSelectedIds([]);
+  };
 
   return (
     <div className="space-y-4">
       {/* Layer list */}
       {overlays.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">
-            Text layers
-          </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              Text layers
+            </p>
+            {hasMultiSelection && (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">
+                  {multiSelectedIds.length} selected
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => applyBatchVisibility(false)}
+                >
+                  Hide
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => applyBatchVisibility(true)}
+                >
+                  Show
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => applyBatchLock(true)}
+                >
+                  Lock
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => applyBatchLock(false)}
+                >
+                  Unlock
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] text-destructive hover:text-destructive"
+                  onClick={removeBatch}
+                >
+                  Delete
+                </Button>
+              </div>
+            )}
+          </div>
           {overlays.map((overlay) => {
-            const isSelected = (selectedOverlayId ?? overlays[0]?.id) === overlay.id;
+            const isPrimarySelected = (selectedOverlayId ?? overlays[0]?.id) === overlay.id;
+            const isMultiSelected = multiSelectedSet.has(overlay.id);
+            const isSelected = isPrimarySelected || isMultiSelected;
             return (
               <div
                 key={overlay.id}
@@ -156,8 +243,20 @@ export function TextToolPanel() {
                   const fromId = e.dataTransfer.getData("text/plain");
                   if (fromId) reorderOverlays(fromId, overlay.id);
                 }}
-                onClick={() => selectOverlay(overlay.id)}
-                title="Drag to reorder"
+                onClick={(e) => {
+                  if (e.shiftKey) {
+                    setMultiSelectedIds((prev) =>
+                      prev.includes(overlay.id)
+                        ? prev.filter((id) => id !== overlay.id)
+                        : [...prev, overlay.id]
+                    );
+                    selectOverlay(overlay.id);
+                    return;
+                  }
+                  setMultiSelectedIds([overlay.id]);
+                  selectOverlay(overlay.id);
+                }}
+                title="Click to select. Shift+click for multi-select. Drag to reorder."
               >
                 <button
                   className={cn(
@@ -406,6 +505,26 @@ export function TextToolPanel() {
             />
           </div>
 
+          {/* Alignment */}
+          <div>
+            <Label className="text-xs mb-1 block">Alignment</Label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(["left", "center", "right"] as const).map((align) => (
+                <Button
+                  key={align}
+                  type="button"
+                  variant={(selected.textAlign ?? "center") === align ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-lg text-xs"
+                  disabled={selectedLocked}
+                  onClick={() => updateOverlay(selected.id, { textAlign: align })}
+                >
+                  {align}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* Text color */}
           <div>
             <Label className="text-xs">Text color</Label>
@@ -499,17 +618,57 @@ export function TextToolPanel() {
                     if (p.id === "none") {
                       clearEffect(selected.id);
                     } else {
+                      const nextStart = selected.effects[0]?.startFrame ?? 0;
+                      const nextEnd = selected.effects[0]?.endFrame ?? frameLast;
                       bakeEffect(
                         selected.id,
                         p.id as AnimationPresetType,
-                        0,
-                        Math.max(0, state.frames.length - 1)
+                        Math.max(0, Math.min(frameLast, nextStart)),
+                        Math.max(
+                          Math.max(0, Math.min(frameLast, nextStart)),
+                          Math.max(0, Math.min(frameLast, nextEnd))
+                        )
                       );
                     }
                   }}
                 />
               ))}
             </div>
+            {activeEffect !== "none" && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">Start frame</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={frameLast}
+                    value={effectStart}
+                    disabled={selectedLocked}
+                    onChange={(e) => {
+                      const nextStart = Math.max(0, Math.min(frameLast, Number(e.target.value) || 0));
+                      const nextEnd = Math.max(nextStart, Math.min(frameLast, effectEnd));
+                      bakeEffect(selected.id, activeEffect as AnimationPresetType, nextStart, nextEnd);
+                    }}
+                    className="mt-1 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">End frame</Label>
+                  <Input
+                    type="number"
+                    min={effectStart}
+                    max={frameLast}
+                    value={effectEnd}
+                    disabled={selectedLocked}
+                    onChange={(e) => {
+                      const nextEnd = Math.max(effectStart, Math.min(frameLast, Number(e.target.value) || effectStart));
+                      bakeEffect(selected.id, activeEffect as AnimationPresetType, effectStart, nextEnd);
+                    }}
+                    className="mt-1 rounded-lg"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">

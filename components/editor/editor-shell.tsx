@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { EditorTopBar } from "./editor-top-bar";
 import { ToolsRail } from "./tools-rail";
 import { CanvasStage } from "./canvas-stage";
@@ -15,9 +16,27 @@ import { cn } from "@/lib/utils";
 export function EditorShell({ className }: { className?: string }) {
   const { state, dispatch } = useEditor();
   const { saveStatus } = useAutosave();
+  const urlRateInitialized = useRef(false);
 
   useRestoreProject();
   useEditorKeyboard();
+
+  useEffect(() => {
+    if (urlRateInitialized.current || typeof window === "undefined") return;
+    urlRateInitialized.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const raw = Number(params.get("speed"));
+    if ([0.5, 1, 1.5, 2].includes(raw)) {
+      dispatch({ type: "SET_PLAYBACK_RATE", payload: raw });
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("speed", String(state.playbackRate));
+    window.history.replaceState({}, "", url.toString());
+  }, [state.playbackRate]);
 
   return (
     <div

@@ -75,6 +75,7 @@ function ExportProgressOverlay({
 const CHECKERBOARD = "repeating-conic-gradient(#e5e5e5 0% 25%, #f5f5f5 0% 50%) 50% / 16px 16px";
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
+const ZOOM_PRESETS = [0.5, 1, 2] as const;
 
 export function CanvasStage() {
   const { state, dispatch, processor, processingAbortRef } = useEditor();
@@ -84,14 +85,65 @@ export function CanvasStage() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const zoomRef = useRef(zoom);
+  const panRef = useRef(pan);
+  const spacePressedRef = useRef(false);
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  useEffect(() => {
+    panRef.current = pan;
+  }, [pan]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        spacePressedRef.current = true;
+        setIsSpacePressed(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        spacePressedRef.current = false;
+        setIsSpacePressed(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, []);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (state.status !== "ready" || state.frames.length === 0) return;
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta)));
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const oldZoom = zoomRef.current;
+      const step = e.deltaY > 0 ? -0.1 : 0.1;
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, oldZoom + step));
+      if (nextZoom === oldZoom) return;
+
+      // Keep the cursor target stable while zooming.
+      const cursorDx = e.clientX - (rect.left + rect.width / 2);
+      const cursorDy = e.clientY - (rect.top + rect.height / 2);
+      const currentPan = panRef.current;
+      const scaleFactor = nextZoom / oldZoom;
+      const nextPan = {
+        x: cursorDx - (cursorDx - currentPan.x) * scaleFactor,
+        y: cursorDy - (cursorDy - currentPan.y) * scaleFactor,
+      };
+
+      setPan(nextPan);
+      setZoom(nextZoom);
     },
     [state.status, state.frames.length]
   );
@@ -104,7 +156,9 @@ export function CanvasStage() {
   }, [handleWheel]);
 
   const handlePanStart = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 1 && e.button !== 2) return; // middle or right
+    const canPanWithButton = e.button === 1 || e.button === 2;
+    const canPanWithSpace = e.button === 0 && spacePressedRef.current;
+    if (!canPanWithButton && !canPanWithSpace) return;
     e.preventDefault();
     setIsPanning(true);
     panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
@@ -126,6 +180,24 @@ export function CanvasStage() {
   const resetView = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
+  }, []);
+
+  const fitToView = useCallback(() => {
+    const container = containerRef.current;
+    const meta = state.metadata;
+    if (!container || !meta || meta.width <= 0 || meta.height <= 0) return;
+    const rect = container.getBoundingClientRect();
+    const pad = 40;
+    const fitZoom = Math.min(
+      MAX_ZOOM,
+      Math.max(MIN_ZOOM, Math.min((rect.width - pad) / meta.width, (rect.height - pad) / meta.height))
+    );
+    setZoom(fitZoom);
+    setPan({ x: 0, y: 0 });
+  }, [state.metadata]);
+
+  const setZoomPreset = useCallback((preset: number) => {
+    setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, preset)));
   }, []);
 
   useEffect(() => {
@@ -227,7 +299,8 @@ export function CanvasStage() {
       onPointerMove={handlePanMove}
       onPointerUp={handlePanEnd}
       onPointerLeave={handlePanEnd}
-      style={{ cursor: isPanning ? "grabbing" : undefined }}
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : undefined }}
     >
       <div
         className="relative rounded-lg overflow-visible shadow-sm border border-border/50"
@@ -237,7 +310,26 @@ export function CanvasStage() {
           transformOrigin: "center center",
         }}
       >
-        <div className="absolute -top-8 right-0 flex gap-1">
+        <div className="absolute -top-8 right-0 flex items-center gap-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-7 text-xs rounded-lg"
+            onClick={fitToView}
+          >
+            Fit
+          </Button>
+          {ZOOM_PRESETS.map((preset) => (
+            <Button
+              key={preset}
+              variant={Math.abs(zoom - preset) < 0.01 ? "default" : "secondary"}
+              size="sm"
+              className="h-7 text-xs rounded-lg min-w-[3rem]"
+              onClick={() => setZoomPreset(preset)}
+            >
+              {Math.round(preset * 100)}%
+            </Button>
+          ))}
           <Button
             variant="secondary"
             size="sm"

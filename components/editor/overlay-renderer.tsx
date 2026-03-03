@@ -199,6 +199,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
               fontSize: overlay.fontSize,
               fontWeight: overlay.fontWeight ?? "normal",
               fontStyle: overlay.fontStyle ?? "normal",
+              textAlign: overlay.textAlign ?? "center",
               color: overlay.color,
               WebkitTextStroke:
                 (overlay.strokeWidth ?? 0) > 0
@@ -214,7 +215,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
               <span className="relative inline-block whitespace-pre">
                 {/* Reserve full-width box so text does not "drift" while typing. */}
                 <span className="invisible">{content}</span>
-                <span className="absolute inset-0 whitespace-pre">
+                <span className="absolute inset-0 whitespace-pre block" style={{ textAlign: overlay.textAlign ?? "center" }}>
                   {visibleContent || " "}
                   {showCursor && (
                     <span

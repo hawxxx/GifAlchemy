@@ -4,6 +4,10 @@ import { Separator } from "@/components/ui/separator";
 import { ResizeToolPanel } from "./resize-tool-panel";
 import { TrimToolPanel } from "./trim-tool-panel";
 import { TextToolPanel } from "./text-tool-panel";
+import { OptimizeToolPanel } from "./optimize-tool-panel";
+import { StickersToolPanel } from "./stickers-tool-panel";
+import { TemplatesToolPanel } from "./templates-tool-panel";
+import { BatchToolPanel } from "./batch-tool-panel";
 import type { GifMetadata } from "@/core/domain/gif-types";
 import type { OutputSettings } from "@/core/domain/project";
 import type { ToolId } from "@/lib/constants";
@@ -60,8 +64,12 @@ export function PropertiesPanel({
           />
         )}
         {activeTool === "trim" && <TrimToolPanel />}
+        {activeTool === "optimize" && <OptimizeToolPanel />}
         {activeTool === "text" && <TextToolPanel />}
-        {activeTool !== "resize" && activeTool !== "trim" && activeTool !== "text" && (
+        {activeTool === "stickers" && <StickersToolPanel />}
+        {activeTool === "templates" && <TemplatesToolPanel />}
+        {activeTool === "batch" && <BatchToolPanel />}
+        {activeTool !== "resize" && activeTool !== "trim" && activeTool !== "optimize" && activeTool !== "text" && activeTool !== "stickers" && activeTool !== "templates" && activeTool !== "batch" && (
           <p className="text-xs text-muted-foreground">Select a tool from the left</p>
         )}
       </section>

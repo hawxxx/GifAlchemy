@@ -463,7 +463,8 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         ctx.globalAlpha = opacity;
         ctx.font = `${overlay.fontStyle ?? "normal"} ${overlay.fontWeight ?? "normal"} ${overlay.fontSize}px ${overlay.fontFamily}`;
         ctx.fillStyle = overlay.color;
-        ctx.textAlign = "center";
+        const textAlign = overlay.textAlign ?? "center";
+        ctx.textAlign = textAlign;
         ctx.textBaseline = "middle";
         ctx.translate(px, py);
         ctx.rotate((rotation * Math.PI) / 180);
@@ -473,9 +474,19 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         const textToDraw = visibleText;
         const fullWidth = ctx.measureText(overlay.content).width;
         const visibleWidth = ctx.measureText(textToDraw).width;
-        const drawX = overlay.effects[0]?.type === "typewriter"
-          ? -fullWidth / 2 + visibleWidth / 2
+        const isTypewriter = overlay.effects[0]?.type === "typewriter";
+        const leftEdge =
+          textAlign === "left"
+            ? 0
+            : textAlign === "right"
+              ? -fullWidth
+              : -fullWidth / 2;
+        const drawX = isTypewriter
+          ? leftEdge
           : 0;
+        if (isTypewriter) {
+          ctx.textAlign = "left";
+        }
 
         if ((overlay.strokeWidth ?? 0) > 0 && textToDraw.length > 0) {
           ctx.strokeStyle = overlay.strokeColor ?? "#000000";
@@ -487,10 +498,10 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
           ctx.fillText(textToDraw, drawX, 0);
         }
 
-        if (showCursor && overlay.effects[0]?.type === "typewriter") {
+        if (showCursor && isTypewriter) {
           const cursorWidth = Math.max(2, overlay.fontSize * 0.08);
           const cursorHeight = overlay.fontSize;
-          const cursorX = -fullWidth / 2 + visibleWidth + 1;
+          const cursorX = leftEdge + visibleWidth + 1;
           const cursorY = -cursorHeight / 2;
           ctx.fillRect(cursorX, cursorY, cursorWidth, cursorHeight);
         }

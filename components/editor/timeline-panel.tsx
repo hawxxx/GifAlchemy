@@ -278,8 +278,12 @@ export function TimelinePanel() {
           ({currentFrameIndex + 1} / {frameCount})
         </span>
 
-        <div className="flex items-center gap-0.5 ml-2">
-          {([0.5, 1, 2] as const).map((rate) => (
+        <span className="text-xs text-muted-foreground/80 ml-2">
+          Speed {playbackRate}x
+        </span>
+
+        <div className="flex items-center gap-0.5">
+          {([0.5, 1, 1.5, 2] as const).map((rate) => (
             <Button
               key={rate}
               variant="ghost"

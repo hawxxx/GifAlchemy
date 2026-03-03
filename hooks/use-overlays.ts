@@ -13,13 +13,35 @@ import { useEditor } from "./use-editor";
 
 export function useOverlays() {
   const { state, dispatch } = useEditor();
-  const { overlays, frames, selectedOverlayId } = state;
+  const { overlays, frames, selectedOverlayId, metadata } = state;
   const frameCount = frames.length;
 
-  const addOverlay = useCallback(() => {
-    const overlay = createTextOverlay(frameCount);
+  const addOverlay = useCallback((
+    overrides?: Partial<
+      Pick<
+        Overlay,
+        | "content"
+        | "fontFamily"
+        | "fontSize"
+        | "color"
+        | "textAlign"
+        | "strokeWidth"
+        | "strokeColor"
+        | "fontWeight"
+        | "fontStyle"
+        | "visible"
+        | "locked"
+      >
+    >,
+    position?: { x: number; y: number }
+  ) => {
+    const overlay = createTextOverlay(frameCount, overrides);
+    if (position) {
+      overlay.keyframes = overlay.keyframes.map((k) => ({ ...k, x: position.x, y: position.y }));
+    }
     dispatch({ type: "ADD_OVERLAY", payload: overlay });
     // SELECT_OVERLAY dispatched automatically in reducer on ADD_OVERLAY
+    return overlay.id;
   }, [frameCount, dispatch]);
 
   const selectOverlay = useCallback(
@@ -40,6 +62,7 @@ export function useOverlays() {
           | "fontSize"
           | "fontWeight"
           | "fontStyle"
+          | "textAlign"
           | "color"
           | "strokeWidth"
           | "strokeColor"
@@ -82,16 +105,22 @@ export function useOverlays() {
       const overlay = overlays.find((o) => o.id === id);
       if (!overlay) return;
       const newId = `ol_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const offsetX = metadata?.width ? 16 / metadata.width : 0.03;
+      const offsetY = metadata?.height ? 16 / metadata.height : 0.03;
       const clone: Overlay = {
         ...overlay,
         id: newId,
-        keyframes: overlay.keyframes.map((k) => ({ ...k })),
+        keyframes: overlay.keyframes.map((k) => ({
+          ...k,
+          x: Math.max(0, Math.min(1, k.x + offsetX)),
+          y: Math.max(0, Math.min(1, k.y + offsetY)),
+        })),
         effects: overlay.effects.map((e) => ({ ...e })),
         locked: false,
       };
       dispatch({ type: "ADD_OVERLAY", payload: clone });
     },
-    [overlays, dispatch]
+    [overlays, metadata, dispatch]
   );
 
   const reorderOverlays = useCallback(
