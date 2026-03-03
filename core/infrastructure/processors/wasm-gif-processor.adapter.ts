@@ -193,9 +193,14 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
       const end = Math.min(frames.length - 1, trimEnd);
       frames = frames.slice(start, end + 1);
     }
+    if (options.cropRect) {
+      frames = await this.cropFramesToCanvas(frames, options.cropRect, signal);
+    }
     this.reportProgress("Decoded", 25);
-    const w = options.width ?? metadata.width;
-    const h = options.height ?? metadata.height;
+    const sourceW = options.cropRect ? Math.max(1, Math.round(options.cropRect.width)) : metadata.width;
+    const sourceH = options.cropRect ? Math.max(1, Math.round(options.cropRect.height)) : metadata.height;
+    const w = options.width ?? sourceW;
+    const h = options.height ?? sourceH;
     this.reportProgress("Resizing", 35);
     const resizedFrames = await this.resizeFramesToCanvas(frames, w, h, signal);
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
@@ -240,6 +245,42 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(temp, 0, 0, sw, sh, 0, 0, width, height);
       const out = ctx.getImageData(0, 0, width, height);
+      return { ...f, imageData: out };
+    });
+  }
+
+  private async cropFramesToCanvas(
+    frames: GifFrame[],
+    cropRect: { x: number; y: number; width: number; height: number },
+    signal?: AbortSignal
+  ): Promise<GifFrame[]> {
+    if (frames.length === 0) return frames;
+    const srcW = frames[0].imageData.width;
+    const srcH = frames[0].imageData.height;
+    const x = Math.max(0, Math.min(srcW - 1, Math.round(cropRect.x)));
+    const y = Math.max(0, Math.min(srcH - 1, Math.round(cropRect.y)));
+    const w = Math.max(1, Math.min(srcW - x, Math.round(cropRect.width)));
+    const h = Math.max(1, Math.min(srcH - y, Math.round(cropRect.height)));
+
+    const canvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+    if (!canvas) return frames;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return frames;
+
+    const temp = document.createElement("canvas");
+    temp.width = srcW;
+    temp.height = srcH;
+    const tctx = temp.getContext("2d");
+    if (!tctx) return frames;
+
+    return frames.map((f) => {
+      if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+      tctx.putImageData(f.imageData, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(temp, x, y, w, h, 0, 0, w, h);
+      const out = ctx.getImageData(0, 0, w, h);
       return { ...f, imageData: out };
     });
   }
@@ -426,8 +467,10 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         effects: o.effects.map((fx) => this.remapEffectForTrim(fx, start, trimmedLen)),
       }));
     }
-    const w = options?.width ?? metadata.width;
-    const h = options?.height ?? metadata.height;
+    const sourceW = options?.cropRect ? Math.max(1, Math.round(options.cropRect.width)) : metadata.width;
+    const sourceH = options?.cropRect ? Math.max(1, Math.round(options.cropRect.height)) : metadata.height;
+    const w = options?.width ?? sourceW;
+    const h = options?.height ?? sourceH;
     const outW = w;
     const outH = h;
 
@@ -513,9 +556,12 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     });
 
     this.reportProgress("Encoding", 65);
-    const resized = w !== metadata.width || h !== metadata.height
-      ? await this.resizeFramesToCanvas(composited, w, h, signal)
+    const cropped = options?.cropRect
+      ? await this.cropFramesToCanvas(composited, options.cropRect, signal)
       : composited;
+    const resized = w !== cropped[0].imageData.width || h !== cropped[0].imageData.height
+      ? await this.resizeFramesToCanvas(cropped, w, h, signal)
+      : cropped;
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
     const blob = await this.encodeFramesToGif(
       resized,

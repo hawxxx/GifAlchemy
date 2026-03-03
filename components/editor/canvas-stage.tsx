@@ -87,6 +87,12 @@ export function CanvasStage() {
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const cropDragRef = useRef<{
+    mode: "move" | "resize-se";
+    startX: number;
+    startY: number;
+    startCrop: { x: number; y: number; width: number; height: number };
+  } | null>(null);
   const zoomRef = useRef(zoom);
   const panRef = useRef(pan);
   const spacePressedRef = useRef(false);
@@ -200,6 +206,63 @@ export function CanvasStage() {
     setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, preset)));
   }, []);
 
+  const updateCrop = useCallback((next: { x: number; y: number; width: number; height: number }) => {
+    const meta = state.metadata;
+    if (!meta) return;
+    const x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
+    const y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
+    const width = Math.max(1, Math.min(meta.width - x, Math.round(next.width)));
+    const height = Math.max(1, Math.min(meta.height - y, Math.round(next.height)));
+    dispatch({
+      type: "UPDATE_OUTPUT_SETTINGS",
+      payload: { crop: { x, y, width, height } },
+    });
+  }, [dispatch, state.metadata]);
+
+  const handleCropPointerDown = useCallback(
+    (e: React.PointerEvent, mode: "move" | "resize-se") => {
+      if (state.activeTool !== "trim" || !state.outputSettings.crop) return;
+      e.preventDefault();
+      e.stopPropagation();
+      cropDragRef.current = {
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        startCrop: { ...state.outputSettings.crop },
+      };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [state.activeTool, state.outputSettings.crop]
+  );
+
+  const handleCropPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const drag = cropDragRef.current;
+      const meta = state.metadata;
+      if (!drag || !meta) return;
+      const dxPx = (e.clientX - drag.startX) / zoomRef.current;
+      const dyPx = (e.clientY - drag.startY) / zoomRef.current;
+      if (drag.mode === "move") {
+        updateCrop({
+          ...drag.startCrop,
+          x: drag.startCrop.x + dxPx,
+          y: drag.startCrop.y + dyPx,
+        });
+      } else {
+        updateCrop({
+          ...drag.startCrop,
+          width: drag.startCrop.width + dxPx,
+          height: drag.startCrop.height + dyPx,
+        });
+      }
+    },
+    [state.metadata, updateCrop]
+  );
+
+  const handleCropPointerUp = useCallback(() => {
+    cropDragRef.current = null;
+  }, []);
+
   useEffect(() => {
     if (state.status === "ready" && state.frames.length > 0 && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -296,9 +359,18 @@ export function CanvasStage() {
       ref={containerRef}
       className="flex items-center justify-center h-full bg-muted/20 rounded-xl overflow-hidden relative"
       onPointerDown={handlePanStart}
-      onPointerMove={handlePanMove}
-      onPointerUp={handlePanEnd}
-      onPointerLeave={handlePanEnd}
+      onPointerMove={(e) => {
+        handlePanMove(e);
+        handleCropPointerMove(e);
+      }}
+      onPointerUp={() => {
+        handlePanEnd();
+        handleCropPointerUp();
+      }}
+      onPointerLeave={() => {
+        handlePanEnd();
+        handleCropPointerUp();
+      }}
       onContextMenu={(e) => e.preventDefault()}
       style={{ cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : undefined }}
     >
@@ -347,6 +419,67 @@ export function CanvasStage() {
           className="block max-w-full max-h-full"
           style={{ width: w, height: h }}
         />
+        {state.activeTool === "trim" && state.outputSettings.crop && (
+          <>
+            <div
+              className="absolute bg-black/45 pointer-events-none"
+              style={{ left: 0, top: 0, width: w, height: state.outputSettings.crop.y, zIndex: 30 }}
+            />
+            <div
+              className="absolute bg-black/45 pointer-events-none"
+              style={{
+                left: 0,
+                top: state.outputSettings.crop.y + state.outputSettings.crop.height,
+                width: w,
+                height: h - (state.outputSettings.crop.y + state.outputSettings.crop.height),
+                zIndex: 30,
+              }}
+            />
+            <div
+              className="absolute bg-black/45 pointer-events-none"
+              style={{
+                left: 0,
+                top: state.outputSettings.crop.y,
+                width: state.outputSettings.crop.x,
+                height: state.outputSettings.crop.height,
+                zIndex: 30,
+              }}
+            />
+            <div
+              className="absolute bg-black/45 pointer-events-none"
+              style={{
+                left: state.outputSettings.crop.x + state.outputSettings.crop.width,
+                top: state.outputSettings.crop.y,
+                width: w - (state.outputSettings.crop.x + state.outputSettings.crop.width),
+                height: state.outputSettings.crop.height,
+                zIndex: 30,
+              }}
+            />
+            <div
+              className="absolute border-2 border-primary/90 bg-primary/10"
+              style={{
+                left: state.outputSettings.crop.x,
+                top: state.outputSettings.crop.y,
+                width: state.outputSettings.crop.width,
+                height: state.outputSettings.crop.height,
+                cursor: "move",
+                zIndex: 40,
+              }}
+              onPointerDown={(e) => handleCropPointerDown(e, "move")}
+            >
+              <div className="absolute -top-5 left-0 rounded bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
+                Crop
+              </div>
+              <button
+                type="button"
+                aria-label="Resize crop"
+                className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-sm bg-primary border border-primary-foreground/50"
+                style={{ cursor: "nwse-resize" }}
+                onPointerDown={(e) => handleCropPointerDown(e, "resize-se")}
+              />
+            </div>
+          </>
+        )}
         {frame && (
           <OverlayRenderer
             overlays={state.overlays}

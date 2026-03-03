@@ -16,6 +16,8 @@ export interface TransformOptions {
   trimStart?: number;
   /** Last frame index (inclusive) for trim. */
   trimEnd?: number;
+  /** Optional source-space crop rectangle applied before resize/encode. */
+  cropRect?: { x: number; y: number; width: number; height: number };
 }
 
 export interface IGifProcessor {

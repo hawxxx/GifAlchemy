@@ -130,6 +130,10 @@
   0%   { clip-path: inset(0 100% 0 0); }
   100% { clip-path: inset(0 0 0 0); }
 }
+@keyframes ef-typewriter-steps {
+  0%   { width: 0ch; }
+  100% { width: 2ch; }
+}
 
 /* Typewriter cursor: blink like a typing machine (on/off, not fade) */
 @keyframes typewriter-blink {

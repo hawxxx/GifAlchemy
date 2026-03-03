@@ -81,15 +81,24 @@ function EffectCard({
       )}
       {/* mini preview — typewriter needs overflow clip for clip-path */}
       <div className="flex h-8 w-full items-center justify-center overflow-hidden rounded-md bg-zinc-800">
-        <span
-          className={cn(
-            "text-sm font-bold text-white select-none",
-            isTypewriter && "block overflow-hidden"
-          )}
-          style={anim ? { animation: anim } : undefined}
-        >
-          Aa
-        </span>
+        {isTypewriter ? (
+          <span className="inline-flex items-end text-sm font-bold text-white select-none">
+            <span
+              className="inline-block overflow-hidden whitespace-nowrap"
+              style={{ width: "0ch", animation: "ef-typewriter-steps 1.8s steps(2, end) infinite" }}
+            >
+              Aa
+            </span>
+            <span className="inline-block w-[0.12em] min-w-[2px] h-[1em] ml-px align-baseline bg-current animate-typewriter-cursor" />
+          </span>
+        ) : (
+          <span
+            className="text-sm font-bold text-white select-none"
+            style={anim ? { animation: anim } : undefined}
+          >
+            Aa
+          </span>
+        )}
       </div>
       <span className={cn(
         "text-[10px] leading-none truncate w-full text-center",

@@ -32,6 +32,7 @@ export async function exportGif(
     signal,
     trimStart: trimStart > 0 || trimEnd < frameCount - 1 ? trimStart : undefined,
     trimEnd: trimStart > 0 || trimEnd < frameCount - 1 ? trimEnd : undefined,
+    cropRect: outputSettings.crop ?? undefined,
   };
   return processor.transform(file, options);
 }
@@ -57,6 +58,7 @@ export async function exportGifWithOverlays(
     signal,
     trimStart: trimStart > 0 || trimEnd < frameCount - 1 ? trimStart : undefined,
     trimEnd: trimStart > 0 || trimEnd < frameCount - 1 ? trimEnd : undefined,
+    cropRect: outputSettings.crop ?? undefined,
   };
   return processor.addTextOverlays(file, overlays, frameCount, options);
 }

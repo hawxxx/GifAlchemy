@@ -76,4 +76,16 @@ export interface OutputSettings {
   height: number;
   format: OutputFormat;
   quality: number;
+  crop?: CropRect | null;
+}
+
+export interface CropRect {
+  /** Pixel x offset in source frame coordinates. */
+  x: number;
+  /** Pixel y offset in source frame coordinates. */
+  y: number;
+  /** Pixel crop width in source frame coordinates. */
+  width: number;
+  /** Pixel crop height in source frame coordinates. */
+  height: number;
 }
