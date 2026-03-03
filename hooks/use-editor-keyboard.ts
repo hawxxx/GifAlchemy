@@ -46,19 +46,28 @@ export function useEditorKeyboard() {
     const nudgeSelected = (dxPx: number, dyPx: number) => {
       if (!state.selectedOverlayId || !state.metadata) return false;
       const selected = state.overlays.find((o) => o.id === state.selectedOverlayId);
-      if (!selected || selected.locked) return true;
+      if (!selected) return true;
+      const selectedIds = state.selectedOverlayIds.length > 0
+        ? state.selectedOverlayIds
+        : selected.groupId
+          ? state.overlays.filter((overlay) => overlay.groupId === selected.groupId).map((overlay) => overlay.id)
+          : [selected.id];
+      const selectedSet = new Set(selectedIds);
       const dx = dxPx / Math.max(1, state.metadata.width);
       const dy = dyPx / Math.max(1, state.metadata.height);
-      const keyframes = selected.keyframes.map((k) => ({
-        ...k,
-        x: Math.max(0, Math.min(1, k.x + dx)),
-        y: Math.max(0, Math.min(1, k.y + dy)),
-      }));
-      dispatch({
-        type: "UPDATE_OVERLAY",
-        payload: { id: selected.id, updates: { keyframes } },
+      const next = state.overlays.map((overlay) => {
+        if (!selectedSet.has(overlay.id) || overlay.locked) return overlay;
+        return {
+          ...overlay,
+          keyframes: overlay.keyframes.map((k) => ({
+            ...k,
+            x: Math.max(0, Math.min(1, k.x + dx)),
+            y: Math.max(0, Math.min(1, k.y + dy)),
+          })),
+        };
       });
-      return true;
+      dispatch({ type: "SET_OVERLAYS", payload: next });
+      return next.some((overlay, index) => overlay !== state.overlays[index]);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -110,7 +119,13 @@ export function useEditorKeyboard() {
       if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowDown") {
         if (state.activeTool === "text" && state.selectedOverlayId) {
           e.preventDefault();
-          const amount = e.shiftKey ? 10 : 1;
+          const amount = state.snapToGrid
+            ? e.shiftKey
+              ? 16
+              : 8
+            : e.shiftKey
+              ? 10
+              : 1;
           const dx = e.key === "ArrowRight" ? amount : e.key === "ArrowLeft" ? -amount : 0;
           const dy = e.key === "ArrowDown" ? amount : e.key === "ArrowUp" ? -amount : 0;
           const didNudge = nudgeSelected(dx, dy);
@@ -186,10 +201,12 @@ export function useEditorKeyboard() {
     state.isPlaying,
     state.frames.length,
     state.metadata,
+    state.snapToGrid,
     state.trimStart,
     state.trimEnd,
     state.currentFrameIndex,
     state.activeTool,
+    state.selectedOverlayIds,
     canUndo,
     canRedo,
     dispatch,

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Undo2, Redo2, Sparkles, CheckCircle2, Loader2, AlertCircle, History } from "lucide-react";
+import { Undo2, Redo2, Sparkles, CheckCircle2, Loader2, AlertCircle, History, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -57,7 +57,7 @@ export function EditorTopBar({
   onProjectNameChange,
   className,
 }: EditorTopBarProps) {
-  const { undo, redo, canUndo, canRedo, projectRepo, processor, dispatch } = useEditor();
+  const { undo, redo, canUndo, canRedo, undoHistory, redoHistory, projectRepo, processor, dispatch } = useEditor();
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(projectName);
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
@@ -202,6 +202,43 @@ export function EditorTopBar({
                 </div>
               </DropdownMenuItem>
             ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 rounded-lg gap-1.5 text-xs">
+            <Clock3 className="h-3.5 w-3.5" />
+            History
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuLabel>Undo / redo history</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {undoHistory.length === 0 && redoHistory.length === 0 && (
+            <DropdownMenuItem disabled>No history yet</DropdownMenuItem>
+          )}
+          {undoHistory.slice(-8).reverse().map((entry, idx) => (
+            <DropdownMenuItem key={`undo-${entry.id}-${idx}`} disabled className="opacity-80">
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate">Undo: {entry.label}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {new Date(entry.at).toLocaleTimeString()}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          ))}
+          {redoHistory.length > 0 && <DropdownMenuSeparator />}
+          {redoHistory.slice(0, 8).map((entry, idx) => (
+            <DropdownMenuItem key={`redo-${entry.id}-${idx}`} disabled className="opacity-70">
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate">Redo: {entry.label}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {new Date(entry.at).toLocaleTimeString()}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 

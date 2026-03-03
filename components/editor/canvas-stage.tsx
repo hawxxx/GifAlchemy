@@ -8,6 +8,7 @@ import { OverlayRenderer } from "./overlay-renderer";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
 import { ERROR_MESSAGES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import type { ProcessingProgress } from "@/core/domain/gif-types";
 
 function ExportProgressOverlay({
@@ -75,6 +76,8 @@ const CHECKERBOARD = "repeating-conic-gradient(#e5e5e5 0% 25%, #f5f5f5 0% 50%) 5
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_PRESETS = [0.5, 1, 2] as const;
+const RULER_SIZE = 18;
+type CropDragMode = "move" | "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
 
 export function CanvasStage() {
   const { state, dispatch, processor, processingAbortRef } = useEditor();
@@ -85,9 +88,11 @@ export function CanvasStage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [showRulers, setShowRulers] = useState(true);
+  const [showSafeArea, setShowSafeArea] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const cropDragRef = useRef<{
-    mode: "move" | "resize-se";
+    mode: CropDragMode;
     startX: number;
     startY: number;
     startCrop: { x: number; y: number; width: number; height: number };
@@ -205,73 +210,21 @@ export function CanvasStage() {
     setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, preset)));
   }, []);
 
-  const updateCrop = useCallback((
-    next: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      aspectRatioPreset?: CropAspectPreset;
-      rotation?: number;
-      flipX?: boolean;
-      flipY?: boolean;
-    },
-    changedKeys: string[] = []
-  ) => {
+  const updateCrop = useCallback((next: { x: number; y: number; width: number; height: number }) => {
     const meta = state.metadata;
     if (!meta) return;
-    const ratio = ratioFromPreset(next.aspectRatioPreset);
-    let width = Math.max(1, Math.round(next.width));
-    let height = Math.max(1, Math.round(next.height));
-
-    if (ratio) {
-      if (changedKeys.includes("width") && !changedKeys.includes("height")) {
-        height = Math.max(1, Math.round(width / ratio));
-      } else if (changedKeys.includes("height") && !changedKeys.includes("width")) {
-        width = Math.max(1, Math.round(height * ratio));
-      } else {
-        const hFromW = Math.max(1, Math.round(width / ratio));
-        const wFromH = Math.max(1, Math.round(height * ratio));
-        if (Math.abs(hFromW - height) <= Math.abs(wFromH - width)) height = hFromW;
-        else width = wFromH;
-      }
-    }
-
-    let x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
-    let y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
-    width = Math.max(1, Math.min(meta.width - x, width));
-    height = Math.max(1, Math.min(meta.height - y, height));
-
-    if (ratio) {
-      const maxWidthByHeight = Math.max(1, Math.floor(height * ratio));
-      const maxHeightByWidth = Math.max(1, Math.floor(width / ratio));
-      if (maxWidthByHeight <= width) width = maxWidthByHeight;
-      else height = maxHeightByWidth;
-      width = Math.max(1, Math.min(meta.width - x, width));
-      height = Math.max(1, Math.min(meta.height - y, height));
-      if (x + width > meta.width) x = Math.max(0, meta.width - width);
-      if (y + height > meta.height) y = Math.max(0, meta.height - height);
-    }
-
+    const x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
+    const y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
+    const width = Math.max(1, Math.min(meta.width - x, Math.round(next.width)));
+    const height = Math.max(1, Math.min(meta.height - y, Math.round(next.height)));
     dispatch({
       type: "UPDATE_OUTPUT_SETTINGS",
-      payload: {
-        crop: {
-          x,
-          y,
-          width,
-          height,
-          aspectRatioPreset: next.aspectRatioPreset ?? "free",
-          rotation: (((next.rotation ?? 0) % 360) + 360) % 360,
-          flipX: Boolean(next.flipX),
-          flipY: Boolean(next.flipY),
-        },
-      },
+      payload: { crop: { x, y, width, height } },
     });
   }, [dispatch, state.metadata]);
 
   const handleCropPointerDown = useCallback(
-    (e: React.PointerEvent, mode: "move" | "resize-se") => {
+    (e: React.PointerEvent, mode: CropDragMode) => {
       if (state.activeTool !== "trim" || !state.outputSettings.crop) return;
       e.preventDefault();
       e.stopPropagation();
@@ -293,19 +246,53 @@ export function CanvasStage() {
       if (!drag || !meta) return;
       const dxPx = (e.clientX - drag.startX) / zoomRef.current;
       const dyPx = (e.clientY - drag.startY) / zoomRef.current;
+      const minSize = 1;
+
       if (drag.mode === "move") {
+        const nextX = Math.max(
+          0,
+          Math.min(meta.width - drag.startCrop.width, drag.startCrop.x + dxPx)
+        );
+        const nextY = Math.max(
+          0,
+          Math.min(meta.height - drag.startCrop.height, drag.startCrop.y + dyPx)
+        );
         updateCrop({
           ...drag.startCrop,
-          x: drag.startCrop.x + dxPx,
-          y: drag.startCrop.y + dyPx,
+          x: nextX,
+          y: nextY,
         });
-      } else {
-        updateCrop({
-          ...drag.startCrop,
-          width: drag.startCrop.width + dxPx,
-          height: drag.startCrop.height + dyPx,
-        });
+        return;
       }
+
+      const startLeft = drag.startCrop.x;
+      const startTop = drag.startCrop.y;
+      const startRight = drag.startCrop.x + drag.startCrop.width;
+      const startBottom = drag.startCrop.y + drag.startCrop.height;
+      let left = startLeft;
+      let top = startTop;
+      let right = startRight;
+      let bottom = startBottom;
+
+      if (drag.mode.includes("w")) {
+        left = Math.max(0, Math.min(startRight - minSize, startLeft + dxPx));
+      }
+      if (drag.mode.includes("e")) {
+        right = Math.min(meta.width, Math.max(startLeft + minSize, startRight + dxPx));
+      }
+      if (drag.mode.includes("n")) {
+        top = Math.max(0, Math.min(startBottom - minSize, startTop + dyPx));
+      }
+      if (drag.mode.includes("s")) {
+        bottom = Math.min(meta.height, Math.max(startTop + minSize, startBottom + dyPx));
+      }
+
+      updateCrop({
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+      });
     },
     [state.metadata, updateCrop]
   );
@@ -404,6 +391,26 @@ export function CanvasStage() {
   const frame = state.frames[state.currentFrameIndex];
   const w = state.metadata?.width ?? 0;
   const h = state.metadata?.height ?? 0;
+  const lastFrame = Math.max(0, state.frames.length - 1);
+  const overlaysInRange = state.overlays.filter((overlay) => {
+    const inFrame = Math.max(0, Math.min(lastFrame, overlay.inFrame ?? 0));
+    const outFrame = Math.max(inFrame, Math.min(lastFrame, overlay.outFrame ?? lastFrame));
+    return state.currentFrameIndex >= inFrame && state.currentFrameIndex <= outFrame;
+  });
+  const crop = state.outputSettings.crop;
+
+  const cropHandleStyles: Array<{ mode: CropDragMode; cursor: string; className: string; ariaLabel: string }> = [
+    { mode: "nw", cursor: "nwse-resize", className: "-left-1.5 -top-1.5", ariaLabel: "Resize crop top left" },
+    { mode: "n", cursor: "ns-resize", className: "left-1/2 -translate-x-1/2 -top-1.5", ariaLabel: "Resize crop top edge" },
+    { mode: "ne", cursor: "nesw-resize", className: "-right-1.5 -top-1.5", ariaLabel: "Resize crop top right" },
+    { mode: "w", cursor: "ew-resize", className: "-left-1.5 top-1/2 -translate-y-1/2", ariaLabel: "Resize crop left edge" },
+    { mode: "e", cursor: "ew-resize", className: "-right-1.5 top-1/2 -translate-y-1/2", ariaLabel: "Resize crop right edge" },
+    { mode: "sw", cursor: "nesw-resize", className: "-left-1.5 -bottom-1.5", ariaLabel: "Resize crop bottom left" },
+    { mode: "s", cursor: "ns-resize", className: "left-1/2 -translate-x-1/2 -bottom-1.5", ariaLabel: "Resize crop bottom edge" },
+    { mode: "se", cursor: "nwse-resize", className: "-right-1.5 -bottom-1.5", ariaLabel: "Resize crop bottom right" },
+  ];
+  const horizontalTicks = Array.from({ length: Math.floor(w / 20) + 1 }, (_, i) => i * 20);
+  const verticalTicks = Array.from({ length: Math.floor(h / 20) + 1 }, (_, i) => i * 20);
 
   return (
     <div
@@ -434,6 +441,17 @@ export function CanvasStage() {
         }}
       >
         <div className="absolute -top-8 right-0 flex items-center gap-1">
+          <span
+            className={cn(
+              "h-7 inline-flex items-center rounded-lg px-2 text-[11px] border",
+              state.snapToGrid
+                ? "bg-primary text-primary-foreground border-primary/70"
+                : "bg-background/80 text-muted-foreground border-border/70"
+            )}
+            title="Arrow-key nudge snapping"
+          >
+            Snap {state.snapToGrid ? "8px" : "off"}
+          </span>
           <Button
             variant="secondary"
             size="sm"
@@ -461,6 +479,22 @@ export function CanvasStage() {
           >
             Reset view
           </Button>
+          <Button
+            variant={showRulers ? "default" : "secondary"}
+            size="sm"
+            className="h-7 text-xs rounded-lg"
+            onClick={() => setShowRulers((v) => !v)}
+          >
+            Rulers
+          </Button>
+          <Button
+            variant={showSafeArea ? "default" : "secondary"}
+            size="sm"
+            className="h-7 text-xs rounded-lg"
+            onClick={() => setShowSafeArea((v) => !v)}
+          >
+            Safe area
+          </Button>
           <span className="text-xs text-muted-foreground self-center tabular-nums">
             {Math.round(zoom * 100)}%
           </span>
@@ -470,19 +504,101 @@ export function CanvasStage() {
           className="block max-w-full max-h-full"
           style={{ width: w, height: h }}
         />
-        {state.activeTool === "trim" && state.outputSettings.crop && (
+        {showRulers && (
+          <>
+            <div
+              className="absolute left-0 bg-card/90 border-b border-border/70 pointer-events-none"
+              style={{ top: -RULER_SIZE, width: w, height: RULER_SIZE, zIndex: 35 }}
+            >
+              {horizontalTicks.map((tick) => {
+                const isMajor = tick % 100 === 0;
+                return (
+                  <div
+                    key={`x-${tick}`}
+                    className="absolute top-0"
+                    style={{ left: tick }}
+                  >
+                    <div
+                      className={cn("w-px bg-border/90", isMajor ? "h-4" : "h-2")}
+                    />
+                    {isMajor && (
+                      <span className="absolute top-[2px] left-1 text-[9px] leading-none text-muted-foreground/90">
+                        {tick}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              className="absolute top-0 bg-card/90 border-r border-border/70 pointer-events-none"
+              style={{ left: -RULER_SIZE, width: RULER_SIZE, height: h, zIndex: 35 }}
+            >
+              {verticalTicks.map((tick) => {
+                const isMajor = tick % 100 === 0;
+                return (
+                  <div
+                    key={`y-${tick}`}
+                    className="absolute left-0"
+                    style={{ top: tick }}
+                  >
+                    <div
+                      className={cn("h-px bg-border/90", isMajor ? "w-4" : "w-2")}
+                    />
+                    {isMajor && (
+                      <span
+                        className="absolute left-[2px] top-1 text-[9px] leading-none text-muted-foreground/90 [writing-mode:vertical-rl]"
+                      >
+                        {tick}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              className="absolute bg-card border border-border/70 pointer-events-none"
+              style={{ left: -RULER_SIZE, top: -RULER_SIZE, width: RULER_SIZE, height: RULER_SIZE, zIndex: 36 }}
+            />
+          </>
+        )}
+        {showSafeArea && (
+          <>
+            <div
+              className="absolute border border-amber-400/90 border-dashed pointer-events-none"
+              style={{
+                left: `${w * 0.05}px`,
+                top: `${h * 0.05}px`,
+                width: `${w * 0.9}px`,
+                height: `${h * 0.9}px`,
+                zIndex: 34,
+              }}
+            />
+            <div
+              className="absolute border border-emerald-400/90 border-dashed pointer-events-none"
+              style={{
+                left: `${w * 0.1}px`,
+                top: `${h * 0.1}px`,
+                width: `${w * 0.8}px`,
+                height: `${h * 0.8}px`,
+                zIndex: 34,
+              }}
+            />
+          </>
+        )}
+        {state.activeTool === "trim" && crop && (
           <>
             <div
               className="absolute bg-black/45 pointer-events-none"
-              style={{ left: 0, top: 0, width: w, height: state.outputSettings.crop.y, zIndex: 30 }}
+              style={{ left: 0, top: 0, width: w, height: crop.y, zIndex: 30 }}
             />
             <div
               className="absolute bg-black/45 pointer-events-none"
               style={{
                 left: 0,
-                top: state.outputSettings.crop.y + state.outputSettings.crop.height,
+                top: crop.y + crop.height,
                 width: w,
-                height: h - (state.outputSettings.crop.y + state.outputSettings.crop.height),
+                height: h - (crop.y + crop.height),
                 zIndex: 30,
               }}
             />
@@ -490,29 +606,29 @@ export function CanvasStage() {
               className="absolute bg-black/45 pointer-events-none"
               style={{
                 left: 0,
-                top: state.outputSettings.crop.y,
-                width: state.outputSettings.crop.x,
-                height: state.outputSettings.crop.height,
+                top: crop.y,
+                width: crop.x,
+                height: crop.height,
                 zIndex: 30,
               }}
             />
             <div
               className="absolute bg-black/45 pointer-events-none"
               style={{
-                left: state.outputSettings.crop.x + state.outputSettings.crop.width,
-                top: state.outputSettings.crop.y,
-                width: w - (state.outputSettings.crop.x + state.outputSettings.crop.width),
-                height: state.outputSettings.crop.height,
+                left: crop.x + crop.width,
+                top: crop.y,
+                width: w - (crop.x + crop.width),
+                height: crop.height,
                 zIndex: 30,
               }}
             />
             <div
               className="absolute border-2 border-primary/90 bg-primary/10"
               style={{
-                left: state.outputSettings.crop.x,
-                top: state.outputSettings.crop.y,
-                width: state.outputSettings.crop.width,
-                height: state.outputSettings.crop.height,
+                left: crop.x,
+                top: crop.y,
+                width: crop.width,
+                height: crop.height,
                 cursor: "move",
                 zIndex: 40,
               }}
@@ -521,19 +637,25 @@ export function CanvasStage() {
               <div className="absolute -top-5 left-0 rounded bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
                 Crop
               </div>
-              <button
-                type="button"
-                aria-label="Resize crop"
-                className="absolute -right-1.5 -bottom-1.5 h-3.5 w-3.5 rounded-sm bg-primary border border-primary-foreground/50"
-                style={{ cursor: "nwse-resize" }}
-                onPointerDown={(e) => handleCropPointerDown(e, "resize-se")}
-              />
+              {cropHandleStyles.map((handle) => (
+                <button
+                  key={handle.mode}
+                  type="button"
+                  aria-label={handle.ariaLabel}
+                  className={cn(
+                    "absolute h-3.5 w-3.5 rounded-sm bg-primary border border-primary-foreground/50",
+                    handle.className
+                  )}
+                  style={{ cursor: handle.cursor }}
+                  onPointerDown={(e) => handleCropPointerDown(e, handle.mode)}
+                />
+              ))}
             </div>
           </>
         )}
         {frame && (
           <OverlayRenderer
-            overlays={state.overlays}
+            overlays={overlaysInRange}
             currentFrameIndex={state.currentFrameIndex}
             frameCount={state.frames.length}
             width={w}

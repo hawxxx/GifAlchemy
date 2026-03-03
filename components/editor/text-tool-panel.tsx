@@ -16,7 +16,7 @@ import { Trash2, Plus, Type, Bold, Italic, Copy, Eye, EyeOff, Lock, Unlock } fro
 import { useOverlays } from "@/hooks/use-overlays";
 import { useEditor } from "@/hooks/use-editor";
 import { ANIMATION_PRESETS } from "@/core/domain/presets";
-import type { AnimationPresetType } from "@/core/domain/project";
+import type { AnimationPresetType, Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
 
 const FONT_OPTIONS = [
@@ -134,6 +134,13 @@ export function TextToolPanel() {
   const effectEnd = selected?.effects[0]?.endFrame ?? frameLast;
   const multiSelectedSet = useMemo(() => new Set(multiSelectedIds), [multiSelectedIds]);
   const hasMultiSelection = multiSelectedIds.length > 1;
+  const selectedLineHeight = selected?.lineHeight ?? 1.2;
+  const selectedLetterSpacing = selected?.letterSpacing ?? 0;
+
+  const updateSelectedOverlay = (updates: Partial<Overlay>) => {
+    if (!selected) return;
+    updateOverlay(selected.id, updates as never);
+  };
 
   useEffect(() => {
     // Drop stale ids when overlays are removed.
@@ -511,6 +518,36 @@ export function TextToolPanel() {
               step={1}
               disabled={selectedLocked}
               onValueChange={([v]) => updateOverlay(selected.id, { fontSize: v ?? 32 })}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs">Line height</Label>
+              <span className="text-xs text-muted-foreground tabular-nums">{selectedLineHeight.toFixed(2)}</span>
+            </div>
+            <Slider
+              value={[selectedLineHeight]}
+              min={0.8}
+              max={3}
+              step={0.05}
+              disabled={selectedLocked}
+              onValueChange={([v]) => updateSelectedOverlay({ lineHeight: Number((v ?? 1.2).toFixed(2)) })}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label className="text-xs">Letter spacing</Label>
+              <span className="text-xs text-muted-foreground tabular-nums">{selectedLetterSpacing.toFixed(1)}px</span>
+            </div>
+            <Slider
+              value={[selectedLetterSpacing]}
+              min={-8}
+              max={24}
+              step={0.5}
+              disabled={selectedLocked}
+              onValueChange={([v]) => updateSelectedOverlay({ letterSpacing: Number((v ?? 0).toFixed(1)) })}
             />
           </div>
 

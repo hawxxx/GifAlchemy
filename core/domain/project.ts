@@ -29,6 +29,10 @@ export interface Overlay {
   fontWeight: "normal" | "bold";
   fontStyle: "normal" | "italic";
   textAlign: "left" | "center" | "right";
+  /** CSS unitless line-height multiplier. */
+  lineHeight?: number;
+  /** CSS letter spacing in pixels. */
+  letterSpacing?: number;
   color: string;
   strokeWidth: number;
   strokeColor: string;
@@ -88,4 +92,14 @@ export interface CropRect {
   width: number;
   /** Pixel crop height in source frame coordinates. */
   height: number;
+  /** Optional locked aspect ratio preset ("free", "1:1", "4:5", "16:9"). */
+  aspectRatioPreset?: CropAspectPreset;
+  /** Optional rotation in degrees for crop output intent (currently non-destructive). */
+  rotation?: number;
+  /** Optional horizontal flip intent for crop output (currently non-destructive). */
+  flipX?: boolean;
+  /** Optional vertical flip intent for crop output (currently non-destructive). */
+  flipY?: boolean;
 }
+
+export type CropAspectPreset = "free" | "1:1" | "4:5" | "16:9";

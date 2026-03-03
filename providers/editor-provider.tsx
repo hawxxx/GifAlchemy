@@ -9,7 +9,15 @@ import type { ToolId } from "@/lib/constants";
 
 const UNDO_HISTORY_MAX = 50;
 
-type UndoableSnapshot = Pick<EditorState, "overlays" | "outputSettings" | "projectName" | "trimStart" | "trimEnd">;
+type UndoableSnapshot = Pick<
+  EditorState,
+  "overlays" | "outputSettings" | "projectName" | "trimStart" | "trimEnd" | "selectedOverlayIds" | "selectedOverlayId"
+>;
+export interface HistoryEntry {
+  id: string;
+  label: string;
+  at: number;
+}
 
 export type EditorStatus = "empty" | "loading" | "ready" | "processing" | "error";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -23,6 +31,8 @@ export interface EditorState {
   activeTool: ToolId | null;
   overlays: Overlay[];
   selectedOverlayId: string | null;
+  selectedOverlayIds: string[];
+  snapToGrid: boolean;
   outputSettings: OutputSettings;
   processorReady: boolean;
   processingProgress: ProcessingProgress | null;
@@ -54,6 +64,8 @@ const initialState: EditorState = {
   activeTool: null,
   overlays: [],
   selectedOverlayId: null,
+  selectedOverlayIds: [],
+  snapToGrid: false,
   outputSettings: defaultOutputSettings,
   processorReady: false,
   processingProgress: null,
@@ -76,6 +88,8 @@ export type EditorAction =
   | { type: "UPDATE_OVERLAY"; payload: { id: string; updates: Partial<Overlay> } }
   | { type: "REMOVE_OVERLAY"; payload: string }
   | { type: "SELECT_OVERLAY"; payload: string | null }
+  | { type: "SET_SELECTED_OVERLAYS"; payload: string[] }
+  | { type: "SET_SNAP_TO_GRID"; payload: boolean }
   | { type: "SET_FRAME"; payload: number }
   | { type: "PROCESSING_START" }
   | { type: "PROCESSING_PROGRESS"; payload: ProcessingProgress }
@@ -112,9 +126,39 @@ const UNDOABLE_ACTIONS = new Set<string>([
   "ADD_OVERLAY",
   "UPDATE_OVERLAY",
   "REMOVE_OVERLAY",
+  "SET_OVERLAYS",
   "SET_PROJECT_NAME",
   "SET_TRIM",
 ]);
+
+function createHistoryEntry(label: string): HistoryEntry {
+  return {
+    id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    label,
+    at: Date.now(),
+  };
+}
+
+function getActionLabel(action: EditorAction): string {
+  switch (action.type) {
+    case "ADD_OVERLAY":
+      return "Add layer";
+    case "REMOVE_OVERLAY":
+      return "Remove layer";
+    case "UPDATE_OVERLAY":
+      return "Edit layer";
+    case "SET_OVERLAYS":
+      return "Reorder/move layers";
+    case "UPDATE_OUTPUT_SETTINGS":
+      return "Update output settings";
+    case "SET_PROJECT_NAME":
+      return "Rename project";
+    case "SET_TRIM":
+      return "Adjust trim range";
+    default:
+      return "Edit";
+  }
+}
 
 function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
@@ -157,6 +201,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         ...state,
         overlays: [...state.overlays, overlay],
         selectedOverlayId: overlay.id,
+        selectedOverlayIds: [overlay.id],
       };
     }
     case "UPDATE_OVERLAY": {
@@ -172,9 +217,24 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         overlays: state.overlays.filter((o) => o.id !== action.payload),
         selectedOverlayId:
           state.selectedOverlayId === action.payload ? null : state.selectedOverlayId,
+        selectedOverlayIds: state.selectedOverlayIds.filter((id) => id !== action.payload),
       };
     case "SELECT_OVERLAY":
-      return { ...state, selectedOverlayId: action.payload };
+      return {
+        ...state,
+        selectedOverlayId: action.payload,
+        selectedOverlayIds: action.payload ? [action.payload] : [],
+      };
+    case "SET_SELECTED_OVERLAYS": {
+      const filtered = action.payload.filter((id, i, arr) => arr.indexOf(id) === i);
+      return {
+        ...state,
+        selectedOverlayIds: filtered,
+        selectedOverlayId: filtered[0] ?? null,
+      };
+    }
+    case "SET_SNAP_TO_GRID":
+      return { ...state, snapToGrid: action.payload };
     case "SET_FRAME":
       return {
         ...state,
@@ -195,7 +255,17 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case "SET_PROJECT_NAME":
       return { ...state, projectName: action.payload };
     case "SET_OVERLAYS":
-      return { ...state, overlays: action.payload };
+      return {
+        ...state,
+        overlays: action.payload,
+        selectedOverlayIds: state.selectedOverlayIds.filter((id) =>
+          action.payload.some((overlay) => overlay.id === id)
+        ),
+        selectedOverlayId:
+          state.selectedOverlayId && action.payload.some((o) => o.id === state.selectedOverlayId)
+            ? state.selectedOverlayId
+            : action.payload[0]?.id ?? null,
+      };
     case "SET_PLAYING":
       return { ...state, isPlaying: action.payload };
     case "SET_TRIM": {
@@ -222,10 +292,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         currentFrameIndex: 0,
         overlays: p.overlays,
         selectedOverlayId: p.overlays[0]?.id ?? null,
+        selectedOverlayIds: p.overlays[0]?.id ? [p.overlays[0].id] : [],
         outputSettings: p.outputSettings,
         projectName: p.projectName,
         trimStart: p.trimStart,
         trimEnd: p.trimEnd,
+        snapToGrid: state.snapToGrid,
         playbackRate: [0.5, 1, 1.5, 2].includes(p.playbackRate ?? 1) ? (p.playbackRate ?? 1) : 1,
         error: null,
         isPlaying: false,
@@ -241,6 +313,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
 export interface EditorHistoryState {
   past: UndoableSnapshot[];
   future: UndoableSnapshot[];
+  pastEntries: HistoryEntry[];
+  futureEntries: HistoryEntry[];
 }
 
 export interface EditorContextValue {
@@ -250,6 +324,8 @@ export interface EditorContextValue {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  undoHistory: HistoryEntry[];
+  redoHistory: HistoryEntry[];
   processor: IGifProcessor | null;
   projectRepo: IProjectRepository | null;
   processingAbortRef: React.MutableRefObject<AbortController | null>;
@@ -271,12 +347,19 @@ function snapshot(s: EditorState): UndoableSnapshot {
     projectName: s.projectName,
     trimStart: s.trimStart,
     trimEnd: s.trimEnd,
+    selectedOverlayId: s.selectedOverlayId,
+    selectedOverlayIds: [...s.selectedOverlayIds],
   };
 }
 
 export function EditorProvider({ children, processor, projectRepo }: EditorProviderProps) {
   const [state, dispatch] = useReducer(editorReducer, initialState);
-  const [history, setHistory] = React.useState<EditorHistoryState>({ past: [], future: [] });
+  const [history, setHistory] = React.useState<EditorHistoryState>({
+    past: [],
+    future: [],
+    pastEntries: [],
+    futureEntries: [],
+  });
   const processingAbortRef = React.useRef<AbortController | null>(null);
   const contentInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -285,9 +368,15 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       if (action.type === "UNDO") {
         if (history.past.length === 0) return;
         const prev = history.past[history.past.length - 1];
+        const prevEntry = history.pastEntries[history.pastEntries.length - 1];
         setHistory({
           past: history.past.slice(0, -1),
           future: [snapshot(state), ...history.future].slice(0, UNDO_HISTORY_MAX),
+          pastEntries: history.pastEntries.slice(0, -1),
+          futureEntries: [
+            createHistoryEntry(prevEntry?.label ?? "Undo step"),
+            ...history.futureEntries,
+          ].slice(0, UNDO_HISTORY_MAX),
         });
         dispatch({ type: "RESTORE_SNAPSHOT", payload: prev });
         return;
@@ -295,22 +384,34 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       if (action.type === "REDO") {
         if (history.future.length === 0) return;
         const next = history.future[0];
+        const nextEntry = history.futureEntries[0];
         setHistory({
           past: [...history.past, snapshot(state)].slice(-UNDO_HISTORY_MAX),
           future: history.future.slice(1),
+          pastEntries: [
+            ...history.pastEntries,
+            createHistoryEntry(nextEntry?.label ?? "Redo step"),
+          ].slice(-UNDO_HISTORY_MAX),
+          futureEntries: history.futureEntries.slice(1),
         });
         dispatch({ type: "RESTORE_SNAPSHOT", payload: next });
         return;
       }
-      if (action.type === "RESET") setHistory({ past: [], future: [] });
+      if (action.type === "RESET") {
+        setHistory({ past: [], future: [], pastEntries: [], futureEntries: [] });
+      }
       else if (UNDOABLE_ACTIONS.has(action.type))
         setHistory((h) => ({
           past: [...h.past, snapshot(state)].slice(-UNDO_HISTORY_MAX),
           future: [],
+          pastEntries: [...h.pastEntries, createHistoryEntry(getActionLabel(action))].slice(
+            -UNDO_HISTORY_MAX
+          ),
+          futureEntries: [],
         }));
       dispatch(action);
     },
-    [state, history.past, history.future]
+    [state, history.past, history.future, history.pastEntries, history.futureEntries]
   );
 
   const undo = useCallback(() => stableDispatch({ type: "UNDO" }), [stableDispatch]);
@@ -324,12 +425,25 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       redo,
       canUndo: history.past.length > 0,
       canRedo: history.future.length > 0,
+      undoHistory: history.pastEntries,
+      redoHistory: history.futureEntries,
       processor,
       projectRepo,
       processingAbortRef,
       contentInputRef,
     }),
-    [state, history.past.length, history.future.length, stableDispatch, undo, redo, processor, projectRepo]
+    [
+      state,
+      history.past.length,
+      history.future.length,
+      history.pastEntries,
+      history.futureEntries,
+      stableDispatch,
+      undo,
+      redo,
+      processor,
+      projectRepo,
+    ]
   );
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 }

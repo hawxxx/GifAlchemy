@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useMemo, useState } from "react";
-import { Play, Pause, Square, Plus, Type, Trash2, Copy, Lock } from "lucide-react";
+import { Play, Pause, Square, Plus, Type, Trash2, Copy, Lock, ClipboardPaste, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
 import { usePlayback } from "@/hooks/use-playback";
@@ -52,6 +52,19 @@ function rulerTickInterval(frameCount: number) {
   return 50;
 }
 
+type SegmentEasing = "linear" | "ease-in" | "ease-out" | "ease-in-out";
+type KeyframeWithSegmentEasing = Overlay["keyframes"][number] & {
+  easingToNext?: SegmentEasing;
+};
+
+const EASING_CYCLE: SegmentEasing[] = ["linear", "ease-in", "ease-out", "ease-in-out"];
+const EASING_LABEL: Record<SegmentEasing, string> = {
+  linear: "L",
+  "ease-in": "In",
+  "ease-out": "Out",
+  "ease-in-out": "InOut",
+};
+
 // ─── Playhead ────────────────────────────────────────────────────────────────
 
 interface PlayheadProps {
@@ -78,7 +91,7 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
 export function TimelinePanel() {
   const { state, dispatch } = useEditor();
   const { togglePlay, stop } = usePlayback();
-  const { addOverlay, removeOverlay, duplicateOverlay } = useOverlays();
+  const { addOverlay, removeOverlay, duplicateOverlay, setSelectedOverlays, toggleOverlaySelection } = useOverlays();
 
   const {
     frames,
@@ -86,12 +99,14 @@ export function TimelinePanel() {
     overlays,
     isPlaying,
     selectedOverlayId,
+    selectedOverlayIds,
     trimStart,
     trimEnd,
     playbackRate = 1,
   } = state;
   const frameCount = frames.length;
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [copiedKeyframe, setCopiedKeyframe] = useState<KeyframeWithSegmentEasing | null>(null);
   const lastFrame = Math.max(0, frameCount - 1);
   const trimEndClamped = Math.min(lastFrame, Math.max(trimStart, trimEnd));
   const trimStartClamped = Math.max(0, Math.min(trimEndClamped, trimStart));
@@ -109,8 +124,21 @@ export function TimelinePanel() {
 
   const thumbnails = useFrameThumbnails(frames);
   const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId) ?? null;
+  const selectedSet = useMemo(() => new Set(selectedOverlayIds), [selectedOverlayIds]);
+
+  const handleOverlaySelect = useCallback(
+    (overlayId: string, multiSelect: boolean) => {
+      if (!multiSelect) {
+        dispatch({ type: "SELECT_OVERLAY", payload: overlayId });
+        return;
+      }
+      toggleOverlaySelection(overlayId);
+    },
+    [dispatch, toggleOverlaySelection]
+  );
 
   // ── Track area ref (used for x → frame calculations) ─────────────────────
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
   const xToFrame = useCallback(
@@ -148,11 +176,41 @@ export function TimelinePanel() {
     isScrubbing.current = false;
   }, []);
 
+  const applyTimelineZoom = useCallback(
+    (nextZoom: number) => {
+      const clamped = Math.max(1, Math.min(4, nextZoom));
+      setTimelineZoom(clamped);
+    },
+    []
+  );
+
+  const fitTimelineZoom = useCallback(() => {
+    const viewportW = scrollViewportRef.current?.clientWidth ?? 0;
+    const spanFrames = Math.max(1, trimEndClamped - trimStartClamped + 1);
+    if (viewportW <= 0 || frameCount <= 1) {
+      applyTimelineZoom(1);
+      return;
+    }
+    const targetPxPerFrame = 18;
+    const zoomFromSpan = (spanFrames * targetPxPerFrame) / viewportW;
+    const fitZoom = Math.max(1, Math.min(4, zoomFromSpan));
+    applyTimelineZoom(fitZoom);
+    requestAnimationFrame(() => {
+      const viewport = scrollViewportRef.current;
+      const track = trackRef.current;
+      if (!viewport || !track) return;
+      const trackW = track.getBoundingClientRect().width;
+      const startX = (trimStartClamped / Math.max(1, frameCount - 1)) * trackW;
+      viewport.scrollLeft = Math.max(0, startX - 16);
+    });
+  }, [applyTimelineZoom, trimStartClamped, trimEndClamped, frameCount]);
+
   // ── Overlay bar drag ──────────────────────────────────────────────────────
   const barDrag = useRef<{
     overlayId: string;
+    movingOverlayIds: string[];
     startClientX: number;
-    baseKeyframes: Overlay["keyframes"];
+    baseKeyframesById: Record<string, Overlay["keyframes"]>;
   } | null>(null);
 
   const handleBarDown = useCallback(
@@ -160,15 +218,28 @@ export function TimelinePanel() {
       if (overlay.locked) return;
       e.stopPropagation();
       dispatch({ type: "SET_FRAME", payload: xToFrame(e.clientX) });
-      dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
+      const inCurrentSelection = selectedSet.has(overlay.id);
+      if (!inCurrentSelection) {
+        setSelectedOverlays([overlay.id]);
+      }
+      const movingOverlays = overlay.groupId
+        ? overlays.filter((o) => o.groupId === overlay.groupId && !o.locked)
+        : overlays.filter((o) =>
+            selectedSet.size > 1 && inCurrentSelection
+              ? selectedSet.has(o.id) && !o.locked
+              : o.id === overlay.id && !o.locked
+          );
       barDrag.current = {
         overlayId: overlay.id,
+        movingOverlayIds: movingOverlays.map((o) => o.id),
         startClientX: e.clientX,
-        baseKeyframes: overlay.keyframes.map((k) => ({ ...k })),
+        baseKeyframesById: Object.fromEntries(
+          movingOverlays.map((o) => [o.id, o.keyframes.map((k) => ({ ...k }))])
+        ),
       };
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [xToFrame, dispatch]
+    [xToFrame, dispatch, overlays, selectedSet, setSelectedOverlays]
   );
 
   const handleBarMove = useCallback(
@@ -182,18 +253,22 @@ export function TimelinePanel() {
 
       const dx = e.clientX - drag.startClientX;
       const frameDelta = Math.round((dx / rect.width) * (frameCount - 1));
-
-      const newKfs: Overlay["keyframes"] = drag.baseKeyframes.map((k) => ({
-        ...k,
-        frameIndex: Math.max(0, Math.min(frameCount - 1, k.frameIndex + frameDelta)),
-      }));
-
-      dispatch({
-        type: "UPDATE_OVERLAY",
-        payload: { id: overlay.id, updates: { keyframes: newKfs } },
+      const movingSet = new Set(drag.movingOverlayIds);
+      const next = overlays.map((current) => {
+        if (!movingSet.has(current.id)) return current;
+        const baseKfs = drag.baseKeyframesById[current.id];
+        if (!baseKfs) return current;
+        return {
+          ...current,
+          keyframes: baseKfs.map((k) => ({
+            ...k,
+            frameIndex: Math.max(0, Math.min(frameCount - 1, k.frameIndex + frameDelta)),
+          })),
+        };
       });
+      dispatch({ type: "SET_OVERLAYS", payload: next });
     },
-    [frameCount, dispatch]
+    [frameCount, dispatch, overlays]
   );
 
   const handleBarUp = useCallback(() => {
@@ -231,6 +306,55 @@ export function TimelinePanel() {
   const handleTrimUp = useCallback(() => {
     trimHandleRef.current = null;
   }, []);
+
+  const selectedFrameKeyframe = useMemo(() => {
+    if (!selectedOverlay) return null;
+    return (
+      selectedOverlay.keyframes.find((kf) => kf.frameIndex === currentFrameIndex) ?? null
+    );
+  }, [selectedOverlay, currentFrameIndex]);
+
+  const copyKeyframeAtCurrentFrame = useCallback(() => {
+    if (!selectedFrameKeyframe || !selectedOverlay || selectedOverlay.locked) return;
+    setCopiedKeyframe({ ...(selectedFrameKeyframe as KeyframeWithSegmentEasing) });
+  }, [selectedFrameKeyframe, selectedOverlay]);
+
+  const pasteKeyframeAtCurrentFrame = useCallback(() => {
+    if (!selectedOverlay || selectedOverlay.locked || !copiedKeyframe) return;
+    const current = selectedOverlay.keyframes;
+    const withPatched = current.some((kf) => kf.frameIndex === currentFrameIndex)
+      ? current.map((kf) =>
+          kf.frameIndex === currentFrameIndex
+            ? { ...kf, ...copiedKeyframe, frameIndex: currentFrameIndex }
+            : kf
+        )
+      : [...current, { ...copiedKeyframe, frameIndex: currentFrameIndex }];
+    const sorted = [...withPatched].sort((a, b) => a.frameIndex - b.frameIndex);
+    dispatch({
+      type: "UPDATE_OVERLAY",
+      payload: { id: selectedOverlay.id, updates: { keyframes: sorted } },
+    });
+  }, [selectedOverlay, copiedKeyframe, currentFrameIndex, dispatch]);
+
+  const cycleSegmentEasing = useCallback(
+    (overlay: Overlay, segmentStartFrame: number) => {
+      if (overlay.locked) return;
+      const sorted = [...overlay.keyframes].sort((a, b) => a.frameIndex - b.frameIndex);
+      const nextKfs = sorted.map((kf) => {
+        if (kf.frameIndex !== segmentStartFrame) return kf;
+        const start = kf as KeyframeWithSegmentEasing;
+        const currentEasing = start.easingToNext ?? "linear";
+        const idx = EASING_CYCLE.indexOf(currentEasing);
+        const nextEasing = EASING_CYCLE[(idx + 1) % EASING_CYCLE.length];
+        return { ...start, easingToNext: nextEasing };
+      });
+      dispatch({
+        type: "UPDATE_OVERLAY",
+        payload: { id: overlay.id, updates: { keyframes: nextKfs } },
+      });
+    },
+    [dispatch]
+  );
 
   // ── Playhead position as percent ──────────────────────────────────────────
   const playheadPct = frameCount > 1 ? (currentFrameIndex / (frameCount - 1)) * 100 : 0;
@@ -302,26 +426,26 @@ export function TimelinePanel() {
           ))}
         </div>
         <div className="flex items-center gap-1 ml-2">
+          {[1, 2, 4].map((preset) => (
+            <Button
+              key={preset}
+              variant={Math.abs(timelineZoom - preset) < 0.01 ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 rounded px-2 text-[10px] tabular-nums"
+              onClick={() => applyTimelineZoom(preset)}
+              title={`Timeline zoom ${preset}x`}
+            >
+              {preset}x
+            </Button>
+          ))}
           <Button
             variant="ghost"
-            size="icon"
-            className="h-6 w-6 rounded"
-            onClick={() => setTimelineZoom((z) => Math.max(1, Math.round((z - 0.25) * 4) / 4))}
-            title="Zoom timeline out"
+            size="sm"
+            className="h-6 rounded px-2 text-[10px]"
+            onClick={fitTimelineZoom}
+            title="Fit timeline to trimmed range"
           >
-            <span className="text-xs">-</span>
-          </Button>
-          <span className="text-[10px] w-10 text-center text-muted-foreground tabular-nums">
-            {timelineZoom.toFixed(2)}x
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 rounded"
-            onClick={() => setTimelineZoom((z) => Math.min(3, Math.round((z + 0.25) * 4) / 4))}
-            title="Zoom timeline in"
-          >
-            <span className="text-xs">+</span>
+            fit
           </Button>
         </div>
 
@@ -329,6 +453,28 @@ export function TimelinePanel() {
 
         {selectedOverlay && (
           <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-lg text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={copyKeyframeAtCurrentFrame}
+              disabled={!selectedFrameKeyframe || selectedOverlay.locked}
+              title="Copy keyframe at current frame"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Copy KF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-lg text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={pasteKeyframeAtCurrentFrame}
+              disabled={!copiedKeyframe || selectedOverlay.locked}
+              title="Paste copied keyframe to current frame"
+            >
+              <ClipboardPaste className="h-3.5 w-3.5" />
+              Paste KF
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -386,7 +532,7 @@ export function TimelinePanel() {
           {/* Per-overlay labels */}
           {overlays.map((overlay, i) => {
             const c = color(i);
-            const isSelected = selectedOverlayId === overlay.id;
+            const isSelected = selectedSet.has(overlay.id);
             const isHidden = overlay.visible === false;
             const isLocked = overlay.locked === true;
             return (
@@ -399,13 +545,21 @@ export function TimelinePanel() {
                   isLocked && "bg-amber-500/5"
                 )}
                 style={{ height: TRACK_H }}
-                onClick={() => dispatch({ type: "SELECT_OVERLAY", payload: overlay.id })}
+                onClick={(e) => handleOverlaySelect(overlay.id, e.metaKey || e.ctrlKey)}
               >
                 <span className={cn("w-2 h-2 rounded-full shrink-0", c.dot)} />
                 <Type className="h-3 w-3 shrink-0 text-muted-foreground" />
                 <span className="text-xs truncate text-foreground leading-none">
                   {overlay.content || "Text"}
                 </span>
+                {overlay.groupId && (
+                  <span
+                    className="inline-flex items-center rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground"
+                    title={`Grouped layer (${overlay.groupId})`}
+                  >
+                    <Folder className="h-2.5 w-2.5" />
+                  </span>
+                )}
                 {isLocked && <Lock className="h-3 w-3 shrink-0 text-amber-600" />}
                 <button
                   type="button"
@@ -432,7 +586,7 @@ export function TimelinePanel() {
         </div>
 
         {/* Track area — ruler + tracks stacked, playhead absolute over both */}
-        <div className="relative flex-1 min-w-0 overflow-auto">
+        <div ref={scrollViewportRef} className="relative flex-1 min-w-0 overflow-auto">
           <div
             ref={trackRef}
             className="relative min-h-full cursor-crosshair"
@@ -526,7 +680,7 @@ export function TimelinePanel() {
           {/* Overlay tracks */}
           {overlays.map((overlay, i) => {
             const c = color(i);
-            const isSelected = selectedOverlayId === overlay.id;
+            const isSelected = selectedSet.has(overlay.id);
             const isLocked = overlay.locked === true;
             const { start, end } = overlayRange(overlay, frameCount);
             const leftPct = (start / Math.max(1, frameCount - 1)) * 100;
@@ -543,7 +697,7 @@ export function TimelinePanel() {
                   isSelected ? "bg-accent/20" : "hover:bg-muted/20"
                 )}
                 style={{ height: TRACK_H }}
-                onClick={() => dispatch({ type: "SELECT_OVERLAY", payload: overlay.id })}
+                onClick={(e) => handleOverlaySelect(overlay.id, e.metaKey || e.ctrlKey)}
               >
                 {/* Overlay duration bar */}
                 <div
@@ -581,7 +735,9 @@ export function TimelinePanel() {
                   </button>
 
                   {/* Keyframe diamonds */}
-                  {overlay.keyframes.map((kf) => {
+                  {[...overlay.keyframes]
+                    .sort((a, b) => a.frameIndex - b.frameIndex)
+                    .map((kf) => {
                     const range = end - start;
                     const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
                     return (
@@ -593,6 +749,38 @@ export function TimelinePanel() {
                       />
                     );
                   })}
+                  {/* Segment easing toggles (start keyframe controls its segment to next keyframe) */}
+                  {[...overlay.keyframes]
+                    .sort((a, b) => a.frameIndex - b.frameIndex)
+                    .slice(0, -1)
+                    .map((startKf, idx, sorted) => {
+                      const endKf = sorted[idx + 1];
+                      const range = end - start;
+                      const midFrame = (startKf.frameIndex + endKf.frameIndex) / 2;
+                      const midPct = range > 0 ? ((midFrame - start) / range) * 100 : 50;
+                      const easing = (startKf as KeyframeWithSegmentEasing).easingToNext ?? "linear";
+                      return (
+                        <button
+                          key={`${overlay.id}-${startKf.frameIndex}-${endKf.frameIndex}`}
+                          type="button"
+                          className={cn(
+                            "absolute top-[3px] -translate-x-1/2 rounded-sm px-1 py-px text-[8px] leading-none border",
+                            "bg-black/35 text-white/95 border-white/30 hover:bg-black/55",
+                            overlay.locked && "cursor-not-allowed opacity-60"
+                          )}
+                          style={{ left: `${midPct}%` }}
+                          title={`Segment ${startKf.frameIndex}→${endKf.frameIndex}: ${easing}. Click to cycle.`}
+                          disabled={overlay.locked}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cycleSegmentEasing(overlay, startKf.frameIndex);
+                          }}
+                        >
+                          {EASING_LABEL[easing]}
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             );
