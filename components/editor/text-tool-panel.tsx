@@ -355,7 +355,7 @@ export function TextToolPanel() {
         variant="outline"
         size="sm"
         className="w-full rounded-lg gap-2"
-        onClick={addOverlay}
+        onClick={() => addOverlay()}
         disabled={state.frames.length === 0}
       >
         <Plus className="h-3.5 w-3.5" />

@@ -373,7 +373,8 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
           <div
             key={overlay.id}
             className={cn(
-              "absolute origin-center select-none whitespace-pre-wrap pointer-events-auto",
+              "absolute origin-center select-none whitespace-pre-wrap",
+              isTextMode ? "pointer-events-auto" : "pointer-events-none",
               overlay.locked
                 ? "cursor-not-allowed"
                 : isTextMode
