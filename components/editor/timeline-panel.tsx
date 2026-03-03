@@ -735,9 +735,15 @@ export function TimelinePanel() {
                   </button>
 
                   {/* Keyframe diamonds */}
-                  {[...overlay.keyframes]
-                    .sort((a, b) => a.frameIndex - b.frameIndex)
-                    .map((kf) => {
+                  {(() => {
+                    const validSortedKeyframes = (Array.isArray(overlay.keyframes) ? overlay.keyframes : [])
+                      .filter(
+                        (kf): kf is Overlay["keyframes"][number] =>
+                          Boolean(kf) && Number.isFinite(kf.frameIndex)
+                      )
+                      .sort((a, b) => a.frameIndex - b.frameIndex);
+
+                    return validSortedKeyframes.map((kf) => {
                     const range = end - start;
                     const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
                     return (
@@ -748,17 +754,27 @@ export function TimelinePanel() {
                         style={{ left: `calc(${kfPct}% - 3.5px)` }}
                       />
                     );
-                  })}
+                  });
+                  })()}
                   {/* Segment easing toggles (start keyframe controls its segment to next keyframe) */}
-                  {[...overlay.keyframes]
-                    .sort((a, b) => a.frameIndex - b.frameIndex)
-                    .slice(0, -1)
-                    .map((startKf, idx, sorted) => {
-                      const endKf = sorted[idx + 1];
+                  {(() => {
+                    const validSortedKeyframes = (Array.isArray(overlay.keyframes) ? overlay.keyframes : [])
+                      .filter(
+                        (kf): kf is Overlay["keyframes"][number] =>
+                          Boolean(kf) && Number.isFinite(kf.frameIndex)
+                      )
+                      .sort((a, b) => a.frameIndex - b.frameIndex);
+
+                    return validSortedKeyframes.slice(0, -1).map((startKf, idx) => {
+                      const endKf = validSortedKeyframes[idx + 1];
+                      if (!endKf) return null;
+
                       const range = end - start;
                       const midFrame = (startKf.frameIndex + endKf.frameIndex) / 2;
                       const midPct = range > 0 ? ((midFrame - start) / range) * 100 : 50;
-                      const easing = (startKf as KeyframeWithSegmentEasing).easingToNext ?? "linear";
+                      const easingValue = (startKf as KeyframeWithSegmentEasing).easingToNext;
+                      const easing =
+                        easingValue && easingValue in EASING_LABEL ? easingValue : "linear";
                       return (
                         <button
                           key={`${overlay.id}-${startKf.frameIndex}-${endKf.frameIndex}`}
@@ -780,7 +796,8 @@ export function TimelinePanel() {
                           {EASING_LABEL[easing]}
                         </button>
                       );
-                    })}
+                    });
+                  })()}
                 </div>
               </div>
             );
