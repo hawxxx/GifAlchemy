@@ -96,6 +96,12 @@ export function useEditorKeyboard() {
         return;
       }
 
+      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("gifalchemy:open-shortcuts"));
+        return;
+      }
+
       if (state.activeTool === "trim" && (e.code === "BracketLeft" || e.code === "BracketRight")) {
         if (state.frames.length === 0) return;
         e.preventDefault();

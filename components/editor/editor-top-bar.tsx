@@ -2,7 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Undo2, Redo2, Sparkles, CheckCircle2, Loader2, AlertCircle, History, Clock3 } from "lucide-react";
+import {
+  Undo2,
+  Redo2,
+  Sparkles,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  History,
+  Clock3,
+  Keyboard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +27,7 @@ import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { ProjectSummary } from "@/core/application/repositories/project-repository.port";
+import { EDITOR_LABELS } from "@/lib/i18n/editor-labels";
 
 export interface EditorTopBarProps {
   projectName: string;
@@ -28,23 +39,23 @@ export interface EditorTopBarProps {
 function SaveIndicator({ status }: { status: EditorTopBarProps["saveStatus"] }) {
   if (status === "idle") return null;
   return (
-    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+    <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
       {status === "saving" && (
         <>
           <Loader2 className="h-3 w-3 animate-spin" />
-          Saving…
+          {EDITOR_LABELS.save.saving}
         </>
       )}
       {status === "saved" && (
         <>
           <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-          Saved
+          {EDITOR_LABELS.save.saved}
         </>
       )}
       {status === "error" && (
         <>
           <AlertCircle className="h-3 w-3 text-destructive" />
-          Save failed
+          {EDITOR_LABELS.save.error}
         </>
       )}
     </span>
@@ -89,7 +100,7 @@ export function EditorTopBar({
     try {
       const loaded = await projectRepo.load(id);
       if (!loaded?.project || !loaded.fileBlob) {
-        toast.error("Could not load this project file");
+        toast.error(EDITOR_LABELS.topBar.openFailed);
         return;
       }
       const { project, fileBlob } = loaded;
@@ -110,9 +121,9 @@ export function EditorTopBar({
           playbackRate: project.playbackRate ?? 1,
         },
       });
-      toast.success(`Opened: ${project.name}`);
+      toast.success(`${EDITOR_LABELS.topBar.openedToast} ${project.name}`);
     } catch {
-      toast.error("Failed to open project");
+      toast.error(EDITOR_LABELS.topBar.openError);
     }
   };
 
@@ -130,6 +141,10 @@ export function EditorTopBar({
     onProjectNameChange?.(trimmed);
   };
 
+  const openShortcuts = () => {
+    window.dispatchEvent(new CustomEvent("gifalchemy:open-shortcuts"));
+  };
+
   return (
     <header
       className={cn(
@@ -137,9 +152,9 @@ export function EditorTopBar({
         className
       )}
     >
-      {/* Logo */}
       <Link
         href="/"
+        aria-label={EDITOR_LABELS.topBar.logo}
         className="flex items-center gap-1.5 text-foreground hover:opacity-80 transition-opacity shrink-0"
       >
         <Sparkles className="h-4 w-4 text-primary" />
@@ -148,11 +163,11 @@ export function EditorTopBar({
 
       <div className="w-px h-5 bg-border/60 shrink-0" />
 
-      {/* Project name — editable */}
       {editing ? (
         <input
           ref={inputRef}
           value={draftName}
+          aria-label={EDITOR_LABELS.topBar.renameInput}
           onChange={(e) => setDraftName(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={(e) => {
@@ -165,8 +180,8 @@ export function EditorTopBar({
       ) : (
         <button
           onClick={startEdit}
-          title="Click to rename"
-          className="text-sm font-medium text-foreground truncate max-w-[220px] hover:bg-muted/40 rounded-lg px-2 py-0.5 transition-colors"
+          title={EDITOR_LABELS.topBar.rename}
+          className="text-sm font-medium text-foreground truncate max-w-[220px] hover:bg-muted/40 rounded-lg px-2 py-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {projectName}
         </button>
@@ -174,22 +189,31 @@ export function EditorTopBar({
 
       <SaveIndicator status={saveStatus} />
 
-      {/* Spacer */}
       <div className="flex-1" />
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 rounded-lg gap-1.5 text-xs focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={openShortcuts}
+      >
+        <Keyboard className="h-3.5 w-3.5" />
+        {EDITOR_LABELS.shortcuts.button}
+      </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 rounded-lg gap-1.5 text-xs">
             <History className="h-3.5 w-3.5" />
-            Recent
+            {EDITOR_LABELS.topBar.recent}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel>Recent projects</DropdownMenuLabel>
+          <DropdownMenuLabel>{EDITOR_LABELS.topBar.recentTitle}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {loadingRecent && <DropdownMenuItem disabled>Loading…</DropdownMenuItem>}
+          {loadingRecent && <DropdownMenuItem disabled>{EDITOR_LABELS.topBar.loading}</DropdownMenuItem>}
           {!loadingRecent && recentProjects.length === 0 && (
-            <DropdownMenuItem disabled>No saved projects yet</DropdownMenuItem>
+            <DropdownMenuItem disabled>{EDITOR_LABELS.topBar.noRecent}</DropdownMenuItem>
           )}
           {!loadingRecent &&
             recentProjects.map((p) => (
@@ -209,14 +233,14 @@ export function EditorTopBar({
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-8 rounded-lg gap-1.5 text-xs">
             <Clock3 className="h-3.5 w-3.5" />
-            History
+            {EDITOR_LABELS.topBar.history}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
-          <DropdownMenuLabel>Undo / redo history</DropdownMenuLabel>
+          <DropdownMenuLabel>{EDITOR_LABELS.topBar.historyTitle}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {undoHistory.length === 0 && redoHistory.length === 0 && (
-            <DropdownMenuItem disabled>No history yet</DropdownMenuItem>
+            <DropdownMenuItem disabled>{EDITOR_LABELS.topBar.noHistory}</DropdownMenuItem>
           )}
           {undoHistory.slice(-8).reverse().map((entry, idx) => (
             <DropdownMenuItem key={`undo-${entry.id}-${idx}`} disabled className="opacity-80">
@@ -242,12 +266,11 @@ export function EditorTopBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Undo / Redo */}
       <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg"
+          className="h-8 w-8 rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
           disabled={!canUndo}
           onClick={undo}
           aria-label="Undo"
@@ -258,7 +281,7 @@ export function EditorTopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg"
+          className="h-8 w-8 rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
           disabled={!canRedo}
           onClick={redo}
           aria-label="Redo"
@@ -268,7 +291,6 @@ export function EditorTopBar({
         </Button>
       </div>
 
-      {/* Export */}
       <ExportButton />
     </header>
   );
