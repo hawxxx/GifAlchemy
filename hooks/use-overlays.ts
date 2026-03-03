@@ -45,9 +45,22 @@ export function useOverlays() {
           | "strokeColor"
           | "keyframes"
           | "effects"
+          | "visible"
+          | "locked"
         >
       >
     ) => {
+      const current = overlays.find((o) => o.id === id);
+      if (!current) return;
+
+      const isLocked = current.locked === true;
+      if (isLocked) {
+        const editableKeys = Object.keys(updates).filter(
+          (key) => key !== "locked" && key !== "visible"
+        );
+        if (editableKeys.length > 0) return;
+      }
+
       const next = updateOverlayCmd(overlays, id, updates);
       const updated = next.find((o) => o.id === id);
       if (updated) dispatch({ type: "UPDATE_OVERLAY", payload: { id, updates: updated } });
@@ -57,15 +70,48 @@ export function useOverlays() {
 
   const removeOverlay = useCallback(
     (id: string) => {
+      const overlay = overlays.find((o) => o.id === id);
+      if (overlay?.locked) return;
       dispatch({ type: "REMOVE_OVERLAY", payload: id });
     },
-    [dispatch]
+    [dispatch, overlays]
+  );
+
+  const duplicateOverlay = useCallback(
+    (id: string) => {
+      const overlay = overlays.find((o) => o.id === id);
+      if (!overlay) return;
+      const newId = `ol_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const clone: Overlay = {
+        ...overlay,
+        id: newId,
+        keyframes: overlay.keyframes.map((k) => ({ ...k })),
+        effects: overlay.effects.map((e) => ({ ...e })),
+        locked: false,
+      };
+      dispatch({ type: "ADD_OVERLAY", payload: clone });
+    },
+    [overlays, dispatch]
+  );
+
+  const reorderOverlays = useCallback(
+    (fromId: string, toId: string) => {
+      if (fromId === toId) return;
+      const fromIndex = overlays.findIndex((o) => o.id === fromId);
+      const toIndex = overlays.findIndex((o) => o.id === toId);
+      if (fromIndex === -1 || toIndex === -1) return;
+      const next = [...overlays];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      dispatch({ type: "SET_OVERLAYS", payload: next });
+    },
+    [overlays, dispatch]
   );
 
   const addKeyframe = useCallback(
     (overlayId: string, frameIndex: number) => {
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay) return;
+      if (!overlay || overlay.locked) return;
       const updated = addKeyframeCmd(overlay, frameIndex);
       dispatch({
         type: "UPDATE_OVERLAY",
@@ -82,7 +128,7 @@ export function useOverlays() {
   const shiftPosition = useCallback(
     (overlayId: string, dx: number, dy: number) => {
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay) return;
+      if (!overlay || overlay.locked) return;
       const keyframes = overlay.keyframes.map((k) => ({
         ...k,
         x: Math.max(0, Math.min(1, k.x + dx)),
@@ -100,7 +146,7 @@ export function useOverlays() {
   const setPosition = useCallback(
     (overlayId: string, frameIndex: number, x: number, y: number) => {
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay) return;
+      if (!overlay || overlay.locked) return;
 
       const existing = overlay.keyframes.find((k) => k.frameIndex === frameIndex);
       if (existing) {
@@ -127,7 +173,7 @@ export function useOverlays() {
       endFrame: number
     ) => {
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay) return;
+      if (!overlay || overlay.locked) return;
       const updated = bakeEffectToKeyframes(overlay, effectType, startFrame, endFrame);
       dispatch({
         type: "UPDATE_OVERLAY",
@@ -143,7 +189,7 @@ export function useOverlays() {
   const clearEffect = useCallback(
     (overlayId: string) => {
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay) return;
+      if (!overlay || overlay.locked) return;
       const updated = clearEffectCmd(overlay, frameCount);
       dispatch({
         type: "UPDATE_OVERLAY",
@@ -163,6 +209,8 @@ export function useOverlays() {
     selectOverlay,
     updateOverlay,
     removeOverlay,
+    duplicateOverlay,
+    reorderOverlays,
     addKeyframe,
     setPosition,
     shiftPosition,

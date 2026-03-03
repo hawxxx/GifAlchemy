@@ -8,7 +8,7 @@ import type {
   ProcessingProgress,
   ProcessingResult,
 } from "@/core/domain/gif-types";
-import type { Overlay } from "@/core/domain/project";
+import type { Effect, Overlay } from "@/core/domain/project";
 
 type GifuctPatch = typeof import("gifuct-js");
 
@@ -182,8 +182,17 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     if (!this._ready || !this._gifuct) await this.initialize();
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
     this.reportProgress("Decoding", 5);
-    const { frames, metadata } = await this.decode(file, signal);
+    const decoded = await this.decode(file, signal);
+    let frames = decoded.frames;
+    const metadata = decoded.metadata;
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+    const trimStart = options.trimStart ?? 0;
+    const trimEnd = options.trimEnd ?? frames.length - 1;
+    if (trimStart > 0 || trimEnd < frames.length - 1) {
+      const start = Math.max(0, trimStart);
+      const end = Math.min(frames.length - 1, trimEnd);
+      frames = frames.slice(start, end + 1);
+    }
     this.reportProgress("Decoded", 25);
     const w = options.width ?? metadata.width;
     const h = options.height ?? metadata.height;
@@ -325,6 +334,67 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     };
   }
 
+  private splitGraphemes(text: string): string[] {
+    if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+      const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(segmenter.segment(text), (part) => part.segment);
+    }
+    return Array.from(text);
+  }
+
+  private getFrameStartTimes(frames: GifFrame[]): number[] {
+    const starts: number[] = new Array(frames.length);
+    let elapsed = 0;
+    for (let i = 0; i < frames.length; i++) {
+      starts[i] = elapsed;
+      elapsed += Math.max(10, frames[i]?.delay ?? 100);
+    }
+    return starts;
+  }
+
+  private getTypewriterState(
+    overlay: Overlay,
+    frameIndex: number,
+    frameStartsMs: number[],
+    frames: GifFrame[]
+  ): { visibleText: string; showCursor: boolean } {
+    const effect = overlay.effects[0];
+    if (effect?.type !== "typewriter") {
+      return { visibleText: overlay.content, showCursor: false };
+    }
+
+    const graphemes = this.splitGraphemes(overlay.content);
+    if (graphemes.length === 0) return { visibleText: "", showCursor: false };
+
+    const startFrame = Math.max(0, Math.min(frames.length - 1, effect.startFrame));
+    const endFrame = Math.max(startFrame, Math.min(frames.length - 1, effect.endFrame));
+
+    if (frameIndex <= startFrame) return { visibleText: "", showCursor: true };
+    if (frameIndex >= endFrame) return { visibleText: overlay.content, showCursor: false };
+
+    const startMs = frameStartsMs[startFrame] ?? 0;
+    const endMs = (frameStartsMs[endFrame] ?? startMs) + Math.max(10, frames[endFrame]?.delay ?? 100);
+    const currentMs = frameStartsMs[frameIndex] ?? startMs;
+    const durationMs = Math.max(1, endMs - startMs);
+    const t = Math.max(0, Math.min(1, (currentMs - startMs) / durationMs));
+    const visibleCount = Math.max(0, Math.min(graphemes.length, Math.floor(t * graphemes.length)));
+    const visibleText = graphemes.slice(0, visibleCount).join("");
+
+    const blinkWindowMs = 500;
+    const blinkOn = Math.floor((currentMs - startMs) / blinkWindowMs) % 2 === 0;
+    const showCursor = visibleCount < graphemes.length && blinkOn;
+
+    return { visibleText, showCursor };
+  }
+
+  private remapEffectForTrim(effect: Effect, trimStart: number, trimmedLen: number): Effect {
+    return {
+      ...effect,
+      startFrame: Math.max(0, Math.min(trimmedLen - 1, effect.startFrame - trimStart)),
+      endFrame: Math.max(0, Math.min(trimmedLen - 1, effect.endFrame - trimStart)),
+    };
+  }
+
   async addTextOverlays(
     file: File,
     overlays: Overlay[],
@@ -335,8 +405,27 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     if (!this._ready || !this._gifuct) await this.initialize();
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
     this.reportProgress("Decoding", 5);
-    const { frames, metadata } = await this.decode(file, signal);
+    const decoded = await this.decode(file, signal);
+    let frames = decoded.frames;
+    const metadata = decoded.metadata;
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+    const trimStart = options?.trimStart ?? 0;
+    const trimEnd = options?.trimEnd ?? frames.length - 1;
+    let overlaysToUse = overlays;
+    if (trimStart > 0 || trimEnd < frames.length - 1) {
+      const start = Math.max(0, trimStart);
+      const end = Math.min(frames.length - 1, trimEnd);
+      frames = frames.slice(start, end + 1);
+      const trimmedLen = frames.length;
+      overlaysToUse = overlays.map((o) => ({
+        ...o,
+        keyframes: o.keyframes.map((k) => ({
+          ...k,
+          frameIndex: Math.max(0, Math.min(trimmedLen - 1, k.frameIndex - start)),
+        })),
+        effects: o.effects.map((fx) => this.remapEffectForTrim(fx, start, trimmedLen)),
+      }));
+    }
     const w = options?.width ?? metadata.width;
     const h = options?.height ?? metadata.height;
     const outW = w;
@@ -360,12 +449,13 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     if (!tctx) return { blob: new Blob(), format: "gif", width: outW, height: outH, sizeBytes: 0 };
 
     const total = frames.length;
+    const frameStartsMs = this.getFrameStartTimes(frames);
     const composited: GifFrame[] = frames.map((frame, i) => {
       if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
       tctx.putImageData(frame.imageData, 0, 0);
       ctx.drawImage(temp, 0, 0);
-      for (const overlay of overlays) {
-        if (overlay.type !== "text" || !overlay.content.trim()) continue;
+      for (const overlay of overlaysToUse) {
+        if (overlay.type !== "text" || overlay.visible === false || !overlay.content.trim()) continue;
         const { x, y, scale, rotation, opacity } = this.interpolateOverlay(overlay, i);
         const px = x * metadata.width;
         const py = y * metadata.height;
@@ -378,13 +468,32 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         ctx.translate(px, py);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(scale, scale);
-        if ((overlay.strokeWidth ?? 0) > 0) {
+
+        const { visibleText, showCursor } = this.getTypewriterState(overlay, i, frameStartsMs, frames);
+        const textToDraw = visibleText;
+        const fullWidth = ctx.measureText(overlay.content).width;
+        const visibleWidth = ctx.measureText(textToDraw).width;
+        const drawX = overlay.effects[0]?.type === "typewriter"
+          ? -fullWidth / 2 + visibleWidth / 2
+          : 0;
+
+        if ((overlay.strokeWidth ?? 0) > 0 && textToDraw.length > 0) {
           ctx.strokeStyle = overlay.strokeColor ?? "#000000";
           ctx.lineWidth = (overlay.strokeWidth ?? 0) * 2;
           ctx.lineJoin = "round";
-          ctx.strokeText(overlay.content, 0, 0);
+          ctx.strokeText(textToDraw, drawX, 0);
         }
-        ctx.fillText(overlay.content, 0, 0);
+        if (textToDraw.length > 0) {
+          ctx.fillText(textToDraw, drawX, 0);
+        }
+
+        if (showCursor && overlay.effects[0]?.type === "typewriter") {
+          const cursorWidth = Math.max(2, overlay.fontSize * 0.08);
+          const cursorHeight = overlay.fontSize;
+          const cursorX = -fullWidth / 2 + visibleWidth + 1;
+          const cursorY = -cursorHeight / 2;
+          ctx.fillRect(cursorX, cursorY, cursorWidth, cursorHeight);
+        }
         ctx.restore();
       }
       if (total > 0) this.reportProgress("Compositing", 15 + Math.round(((i + 1) / total) * 45));

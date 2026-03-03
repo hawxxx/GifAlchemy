@@ -12,6 +12,10 @@ export interface TransformOptions {
   quality?: number;
   format?: "gif" | "mp4" | "webm" | "apng";
   signal?: AbortSignal;
+  /** First frame index (inclusive) for trim. When set with trimEnd, only this range is exported. */
+  trimStart?: number;
+  /** Last frame index (inclusive) for trim. */
+  trimEnd?: number;
 }
 
 export interface IGifProcessor {

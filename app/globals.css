@@ -113,3 +113,12 @@
   0%   { clip-path: inset(0 100% 0 0); }
   100% { clip-path: inset(0 0 0 0); }
 }
+
+/* Typewriter cursor: blink like a typing machine (on/off, not fade) */
+@keyframes typewriter-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.animate-typewriter-cursor {
+  animation: typewriter-blink 1s step-end infinite;
+}

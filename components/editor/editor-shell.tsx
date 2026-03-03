@@ -8,11 +8,16 @@ import { TimelinePanel } from "./timeline-panel";
 import { NextStepsMenu } from "./next-steps-menu";
 import { useEditor } from "@/hooks/use-editor";
 import { useAutosave } from "@/hooks/use-autosave";
+import { useRestoreProject } from "@/hooks/use-restore-project";
+import { useEditorKeyboard } from "@/hooks/use-editor-keyboard";
 import { cn } from "@/lib/utils";
 
 export function EditorShell({ className }: { className?: string }) {
   const { state, dispatch } = useEditor();
   const { saveStatus } = useAutosave();
+
+  useRestoreProject();
+  useEditorKeyboard();
 
   return (
     <div

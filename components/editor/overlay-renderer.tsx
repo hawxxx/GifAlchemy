@@ -1,10 +1,18 @@
 "use client";
 
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback, type MouseEvent } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { useOverlays } from "@/hooks/use-overlays";
 import type { Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
+
+function splitGraphemes(text: string): string[] {
+  if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(segmenter.segment(text), (part) => part.segment);
+  }
+  return Array.from(text);
+}
 
 // ─── Keyframe interpolation ───────────────────────────────────────────────────
 
@@ -66,12 +74,22 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     [overlays, currentFrameIndex]
   );
 
+  /** For typewriter effect: progress 0..1 over effect range for stepped, per-character reveal. */
+  const getTypewriterProgress = useCallback((overlay: Overlay) => {
+    const effect = overlay.effects[0];
+    if (effect?.type !== "typewriter") return null;
+    const duration = effect.endFrame - effect.startFrame;
+    if (duration <= 0) return 1;
+    const t = (currentFrameIndex - effect.startFrame) / duration;
+    return Math.max(0, Math.min(1, t));
+  }, [currentFrameIndex]);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
       e.stopPropagation();
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
       dispatch({ type: "SET_TOOL", payload: "text" });
-      if (isTextMode) {
+      if (isTextMode && overlay.locked !== true) {
         dragState.current = {
           overlayId: overlay.id,
           lastClientX: e.clientX,
@@ -86,7 +104,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
   const handlePointerMove = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
       const drag = dragState.current;
-      if (!drag || drag.overlayId !== overlay.id) return;
+      if (!drag || drag.overlayId !== overlay.id || overlay.locked === true) return;
 
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect || rect.width === 0 || rect.height === 0) return;
@@ -109,29 +127,65 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     dragState.current = null;
   }, []);
 
+  const focusContentInput = useCallback(() => {
+    // Retry focus a few frames because the text panel/input mounts after tool switch.
+    let tries = 0;
+    const tryFocus = () => {
+      const input = contentInputRef.current;
+      if (input) {
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+        return;
+      }
+      tries += 1;
+      if (tries < 6) requestAnimationFrame(tryFocus);
+    };
+    requestAnimationFrame(tryFocus);
+  }, [contentInputRef]);
+
   const handleDoubleClick = useCallback(
-    (overlay: Overlay) => {
+    (e: MouseEvent, overlay: Overlay) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragState.current = null;
       dispatch({ type: "SET_TOOL", payload: "text" });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
-      requestAnimationFrame(() => contentInputRef.current?.focus());
+      focusContentInput();
     },
-    [dispatch, contentInputRef]
+    [dispatch, focusContentInput]
   );
 
-  if (overlays.length === 0) return null;
+  const visibleOverlays = interpolated.filter(({ overlay }) => overlay.visible !== false);
+  if (visibleOverlays.length === 0) return null;
 
   return (
     // absolute inset-0 fills the canvas container exactly; no explicit w/h needed
     <div ref={containerRef} className="absolute inset-0 overflow-visible">
-      {interpolated.map(({ overlay, x, y, scale, rotation, opacity }) => {
+      {visibleOverlays.map(({ overlay, x, y, scale, rotation, opacity }) => {
         const isSelected = selectedOverlayId === overlay.id;
+        const typewriterT = getTypewriterProgress(overlay);
+        const isTypewriter = typewriterT !== null;
+        const content = overlay.content || " ";
+        const graphemes = splitGraphemes(content);
+        const typedChars = isTypewriter
+          ? Math.floor(typewriterT * graphemes.length)
+          : graphemes.length;
+        const visibleContent = isTypewriter
+          ? graphemes.slice(0, typedChars).join("")
+          : content;
+        const showCursor = isTypewriter && typewriterT < 1;
 
         return (
           <div
             key={overlay.id}
             className={cn(
               "absolute origin-center select-none whitespace-pre-wrap pointer-events-auto",
-              isTextMode ? "cursor-move" : "cursor-pointer",
+              overlay.locked
+                ? "cursor-not-allowed"
+                : isTextMode
+                  ? "cursor-move"
+                  : "cursor-pointer",
               isSelected && isTextMode
                 ? "outline outline-2 outline-offset-2 outline-blue-400/80 rounded-sm"
                 : ""
@@ -154,9 +208,25 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
             onPointerDown={(e) => handlePointerDown(e, overlay)}
             onPointerMove={(e) => handlePointerMove(e, overlay)}
             onPointerUp={handlePointerUp}
-            onDoubleClick={() => handleDoubleClick(overlay)}
+            onDoubleClick={(e) => handleDoubleClick(e, overlay)}
           >
-            {overlay.content || " "}
+            {isTypewriter ? (
+              <span className="relative inline-block whitespace-pre">
+                {/* Reserve full-width box so text does not "drift" while typing. */}
+                <span className="invisible">{content}</span>
+                <span className="absolute inset-0 whitespace-pre">
+                  {visibleContent || " "}
+                  {showCursor && (
+                    <span
+                      className="inline-block w-[0.12em] min-w-[2px] h-[1em] ml-px align-baseline bg-current animate-typewriter-cursor"
+                      aria-hidden
+                    />
+                  )}
+                </span>
+              </span>
+            ) : (
+              content
+            )}
           </div>
         );
       })}

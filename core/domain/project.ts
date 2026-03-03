@@ -6,6 +6,8 @@ export interface Project {
   sourceFile: { name: string; size: number; type: string };
   timeline: Timeline;
   outputSettings: OutputSettings;
+  trimStart: number;
+  trimEnd: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -29,6 +31,10 @@ export interface Overlay {
   strokeColor: string;
   keyframes: Keyframe[];
   effects: Effect[];
+  /** When false, layer is hidden on canvas and in export. Default true. */
+  visible?: boolean;
+  /** When true, layer edits/movement/removal are blocked until unlocked. */
+  locked?: boolean;
 }
 
 export interface Keyframe {

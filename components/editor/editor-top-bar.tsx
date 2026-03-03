@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Undo2, Redo2, Sparkles, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Undo2, Redo2, Sparkles, CheckCircle2, Loader2, AlertCircle, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ExportButton } from "./export-button";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import type { ProjectSummary } from "@/core/application/repositories/project-repository.port";
 
 export interface EditorTopBarProps {
   projectName: string;
@@ -47,10 +57,63 @@ export function EditorTopBar({
   onProjectNameChange,
   className,
 }: EditorTopBarProps) {
-  const { undo, redo, canUndo, canRedo } = useEditor();
+  const { undo, redo, canUndo, canRedo, projectRepo, processor, dispatch } = useEditor();
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(projectName);
+  const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!projectRepo) {
+      setRecentProjects([]);
+      return;
+    }
+    setLoadingRecent(true);
+    projectRepo
+      .list()
+      .then((items) => {
+        if (active) setRecentProjects(items.slice(0, 8));
+      })
+      .finally(() => {
+        if (active) setLoadingRecent(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectRepo]);
+
+  const openRecentProject = async (id: string) => {
+    if (!projectRepo || !processor) return;
+    try {
+      const loaded = await projectRepo.load(id);
+      if (!loaded?.project || !loaded.fileBlob) {
+        toast.error("Could not load this project file");
+        return;
+      }
+      const { project, fileBlob } = loaded;
+      const file = new File([fileBlob], project.sourceFile.name, { type: project.sourceFile.type });
+      if (!processor.isReady) await processor.initialize();
+      const { frames, metadata } = await processor.decode(file);
+      dispatch({
+        type: "RESTORE_PROJECT",
+        payload: {
+          file,
+          frames,
+          metadata,
+          overlays: project.timeline.overlays,
+          outputSettings: project.outputSettings,
+          projectName: project.name,
+          trimStart: project.trimStart ?? 0,
+          trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
+        },
+      });
+      toast.success(`Opened: ${project.name}`);
+    } catch {
+      toast.error("Failed to open project");
+    }
+  };
 
   const startEdit = () => {
     setDraftName(projectName);
@@ -113,6 +176,34 @@ export function EditorTopBar({
       {/* Spacer */}
       <div className="flex-1" />
 
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 rounded-lg gap-1.5 text-xs">
+            <History className="h-3.5 w-3.5" />
+            Recent
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuLabel>Recent projects</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {loadingRecent && <DropdownMenuItem disabled>Loading…</DropdownMenuItem>}
+          {!loadingRecent && recentProjects.length === 0 && (
+            <DropdownMenuItem disabled>No saved projects yet</DropdownMenuItem>
+          )}
+          {!loadingRecent &&
+            recentProjects.map((p) => (
+              <DropdownMenuItem key={p.id} onClick={() => openRecentProject(p.id)}>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(p.updatedAt).toLocaleString()}
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       {/* Undo / Redo */}
       <div className="flex items-center gap-0.5">
         <Button
@@ -122,6 +213,7 @@ export function EditorTopBar({
           disabled={!canUndo}
           onClick={undo}
           aria-label="Undo"
+          title="Undo (Ctrl/Cmd+Z)"
         >
           <Undo2 className="h-4 w-4" />
         </Button>
@@ -132,6 +224,7 @@ export function EditorTopBar({
           disabled={!canRedo}
           onClick={redo}
           aria-label="Redo"
+          title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)"
         >
           <Redo2 className="h-4 w-4" />
         </Button>

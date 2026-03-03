@@ -2,6 +2,7 @@
 
 import { Separator } from "@/components/ui/separator";
 import { ResizeToolPanel } from "./resize-tool-panel";
+import { TrimToolPanel } from "./trim-tool-panel";
 import { TextToolPanel } from "./text-tool-panel";
 import type { GifMetadata } from "@/core/domain/gif-types";
 import type { OutputSettings } from "@/core/domain/project";
@@ -58,8 +59,9 @@ export function PropertiesPanel({
             onOutputSettingsChange={onOutputSettingsChange}
           />
         )}
+        {activeTool === "trim" && <TrimToolPanel />}
         {activeTool === "text" && <TextToolPanel />}
-        {activeTool !== "resize" && activeTool !== "text" && (
+        {activeTool !== "resize" && activeTool !== "trim" && activeTool !== "text" && (
           <p className="text-xs text-muted-foreground">Select a tool from the left</p>
         )}
       </section>

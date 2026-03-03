@@ -19,6 +19,7 @@ A browser-based GIF editor for adding animated text overlays, resizing, and expo
 
 ### Text overlays
 - **Multiple text layers** — add, reorder, and edit in the properties panel
+- **Layer controls** — hide/show and lock/unlock individual layers
 - **Position** text by dragging on the canvas (keyframes interpolated across the timeline)
 - **Double-click** any text on the canvas to jump into editing the content
 - **Fonts**: System, Georgia, Arial, Times New Roman, Courier, Impact, Verdana, Comic Sans — with **live preview** in the font dropdown
@@ -35,6 +36,16 @@ A browser-based GIF editor for adding animated text overlays, resizing, and expo
 ### Export
 - **GIF export** with progress bar, ETA, and **Cancel**
 - Export uses the current output size (from Resize tool) and composites all text overlays with their keyframe animations
+
+### Keyboard shortcuts
+- **Undo/redo**: `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+Y`
+- **Duplicate selected layer**: `Ctrl/Cmd+D`
+- **Delete selected layer**: `Delete` / `Backspace` (blocked when layer is locked)
+- **Play/pause**: `Space`
+- **Stop and reset playhead**: `K`
+- **Frame step**: `Left` / `Right`
+- **Switch tool**: `1` Resize, `2` Trim, `3` Text
+- **Export**: `Ctrl/Cmd+Enter`
 
 ---
 
@@ -69,6 +80,13 @@ npm install
 npm run dev
 ```
 Runs the app with Turbopack at [http://localhost:3000](http://localhost:3000). Use **Open editor** to go to `/editor`.
+
+### WSL-first workflow (recommended on Windows)
+```bash
+wsl
+cd /mnt/c/Users/hawxxx/GifAlchemy
+npm run dev
+```
 
 ### Build & run
 ```bash

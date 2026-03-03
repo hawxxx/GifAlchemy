@@ -15,8 +15,8 @@ export type AutosaveListener = (state: AutosaveServiceState) => void;
 export function createAutosaveService(
   repo: IProjectRepository
 ): {
-  scheduleSave: (project: Project) => void;
-  saveNow: (project: Project) => Promise<void>;
+  scheduleSave: (project: Project, file?: File | null) => void;
+  saveNow: (project: Project, file?: File | null) => Promise<void>;
   subscribe: (listener: AutosaveListener) => () => void;
   getState: () => AutosaveServiceState;
 } {
@@ -26,28 +26,32 @@ export function createAutosaveService(
   };
   const listeners = new Set<AutosaveListener>();
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  let pendingProject: Project | null = null;
+  let pending: { project: Project; file: File | null } | null = null;
 
   function setState(next: Partial<AutosaveServiceState>) {
     state = { ...state, ...next };
     listeners.forEach((l) => l(state));
   }
 
-  function scheduleSave(project: Project) {
-    pendingProject = project;
+  function scheduleSave(project: Project, file?: File | null) {
+    pending = { project, file: file ?? null };
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
-      const toSave = pendingProject;
-      pendingProject = null;
-      if (toSave) saveNow(toSave);
+      const toSave = pending;
+      pending = null;
+      if (toSave) saveNow(toSave.project, toSave.file);
     }, DEBOUNCE_MS);
   }
 
-  async function saveNow(project: Project) {
+  async function saveNow(project: Project, file?: File | null) {
     setState({ saveStatus: "saving" });
     try {
-      await repo.save(project);
+      let fileBlob: ArrayBuffer | undefined;
+      if (file) {
+        fileBlob = await file.arrayBuffer();
+      }
+      await repo.save(project, fileBlob);
       setState({
         saveStatus: "saved",
         lastSavedAt: Date.now(),
@@ -68,25 +72,25 @@ export function createAutosaveService(
 
   if (typeof document !== "undefined") {
     const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && pendingProject) {
-        const toSave = pendingProject;
-        pendingProject = null;
+      if (document.visibilityState === "hidden" && pending) {
+        const toSave = pending;
+        pending = null;
         if (debounceTimer) {
           clearTimeout(debounceTimer);
           debounceTimer = null;
         }
-        saveNow(toSave);
+        saveNow(toSave.project, toSave.file);
       }
     };
     const onPageHide = () => {
-      if (pendingProject) {
-        const toSave = pendingProject;
-        pendingProject = null;
+      if (pending) {
+        const toSave = pending;
+        pending = null;
         if (debounceTimer) {
           clearTimeout(debounceTimer);
           debounceTimer = null;
         }
-        saveNow(toSave);
+        saveNow(toSave.project, toSave.file);
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);

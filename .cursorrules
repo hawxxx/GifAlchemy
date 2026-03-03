@@ -1,0 +1,16 @@
+# GifAlchemy – Cursor rules
+
+## Proactive UX and improvements
+When you work on this codebase:
+- **Fix UX issues you notice**: If you touch a component and see missing feedback (buttons without hover/active/focus states, no loading or disabled feedback), add clear visual feedback (transitions, `active:scale`, focus rings, hover states).
+- **Improve consistency**: Use the same patterns for similar UI (e.g. all icon toggles get the same transition and active state; all dropdowns use the same z-index and opaque background).
+- **Implement “obvious” gaps**: If the app has a “coming soon” tool or a feature that’s half-done (e.g. an effect that behaves like a different effect), prefer implementing or fixing it rather than only documenting it, unless the user asks otherwise.
+- **Don’t wait to be asked**: When editing a file, briefly consider: Are there nearby buttons/controls that need better feedback? Is this effect or feature misleading? Suggest or apply small improvements in the same change set when they’re closely related.
+
+## Tech preferences
+- Prefer the existing UI primitives (`components/ui/*`, Radix) and editor state (editor-provider, useOverlays) rather than introducing new state libraries or UI frameworks.
+- Keep overlay/keyframe/effect logic in `core/application/commands` and `core/infrastructure/processors`; avoid putting frame-index or export logic in components.
+
+## Operational rules
+- Prefer WSL/Linux shell commands and POSIX-style paths for day-to-day development on Windows.
+- Keep behavior and documentation in sync: when features, shortcuts, or workflows change, update `README.md` and relevant rule files in the same task.

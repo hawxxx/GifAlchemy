@@ -19,7 +19,19 @@ function generateId(): string {
 export function createTextOverlay(
   frameCount: number,
   overrides?: Partial<
-    Pick<Overlay, "content" | "fontFamily" | "fontSize" | "color" | "strokeWidth" | "strokeColor" | "fontWeight" | "fontStyle">
+    Pick<
+      Overlay,
+      | "content"
+      | "fontFamily"
+      | "fontSize"
+      | "color"
+      | "strokeWidth"
+      | "strokeColor"
+      | "fontWeight"
+      | "fontStyle"
+      | "visible"
+      | "locked"
+    >
   >
 ): Overlay {
   const first: Keyframe = { ...DEFAULT_KEYFRAME, frameIndex: 0 };
@@ -40,6 +52,8 @@ export function createTextOverlay(
     strokeColor: overrides?.strokeColor ?? "#000000",
     keyframes: [first, last],
     effects: [],
+    visible: overrides?.visible ?? true,
+    locked: overrides?.locked ?? false,
   };
 }
 
@@ -59,6 +73,8 @@ export function updateOverlay(
       | "strokeColor"
       | "keyframes"
       | "effects"
+      | "visible"
+      | "locked"
     >
   >
 ): Overlay[] {
@@ -151,13 +167,11 @@ export function bakeEffectToKeyframes(
       rotation = wiggleRot(t);
     } else if (effectType === "pulse") {
       scale = pulseScale(t);
-    } else if (effectType === "typewriter") {
-      opacity = t < 0.8 ? ease(t / 0.8) : 1;
     }
     const existingIdx = keyframes.findIndex((k) => k.frameIndex === f);
     const base = keyframes.find((k) => k.frameIndex <= f);
     const baseKf = base ?? keyframes[0];
-    const applyOpacity = ["fade-in", "fade-out", "typewriter"].includes(effectType);
+    const applyOpacity = ["fade-in", "fade-out"].includes(effectType);
     const applyY = ["slide-up", "slide-down"].includes(effectType);
     const applyScale = ["pop", "bounce", "pulse"].includes(effectType);
     const applyX = effectType === "shake";

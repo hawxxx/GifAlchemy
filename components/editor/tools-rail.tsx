@@ -40,7 +40,7 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
     <TooltipProvider delayDuration={300}>
       <aside
         className={cn(
-          "flex flex-col items-center py-2 gap-1 border-r border-border/50 bg-muted/30 rounded-r-xl",
+          "flex flex-col items-center py-3 gap-2 border-r border-border/50 bg-muted/20 rounded-r-xl",
           className
         )}
       >
@@ -54,11 +54,14 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
               onClick={() => !isComingSoon && onSelectTool(isActive ? null : id)}
               disabled={isComingSoon}
               aria-label={isComingSoon ? `${id} (coming soon)` : id}
+              title={isComingSoon ? "Coming soon" : `${id.charAt(0).toUpperCase() + id.slice(1)} (click to ${isActive ? "deselect" : "select"})`}
               className={cn(
-                "flex items-center justify-center w-10 h-10 rounded-lg transition-colors duration-120 ease-out",
-                isComingSoon && "cursor-not-allowed opacity-60",
-                isActive && "bg-accent text-accent-foreground",
-                !isActive && !isComingSoon && "hover:bg-accent/70"
+                "flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200 ease-out",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "active:scale-95",
+                isComingSoon && "cursor-not-allowed opacity-50",
+                isActive && "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30",
+                !isActive && !isComingSoon && "hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
               )}
             >
               {Icon && <Icon className="h-5 w-5" />}

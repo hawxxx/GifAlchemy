@@ -16,6 +16,9 @@ export async function exportGif(
   processor: IGifProcessor,
   file: File,
   outputSettings: OutputSettings,
+  frameCount: number,
+  trimStart: number,
+  trimEnd: number,
   signal?: AbortSignal
 ): Promise<ProcessingResult> {
   if (!processor.isReady) {
@@ -27,6 +30,8 @@ export async function exportGif(
     quality: outputSettings.quality,
     format: outputSettings.format,
     signal,
+    trimStart: trimStart > 0 || trimEnd < frameCount - 1 ? trimStart : undefined,
+    trimEnd: trimStart > 0 || trimEnd < frameCount - 1 ? trimEnd : undefined,
   };
   return processor.transform(file, options);
 }
@@ -37,6 +42,8 @@ export async function exportGifWithOverlays(
   outputSettings: OutputSettings,
   overlays: Overlay[],
   frameCount: number,
+  trimStart: number,
+  trimEnd: number,
   signal?: AbortSignal
 ): Promise<ProcessingResult> {
   if (!processor.isReady) {
@@ -48,6 +55,8 @@ export async function exportGifWithOverlays(
     quality: outputSettings.quality,
     format: outputSettings.format,
     signal,
+    trimStart: trimStart > 0 || trimEnd < frameCount - 1 ? trimStart : undefined,
+    trimEnd: trimStart > 0 || trimEnd < frameCount - 1 ? trimEnd : undefined,
   };
   return processor.addTextOverlays(file, overlays, frameCount, options);
 }

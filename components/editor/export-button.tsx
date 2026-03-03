@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ export function ExportButton() {
 
   const canExport = state.file && state.metadata && processor && state.status === "ready";
 
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     if (!state.file || !processor || !state.metadata) return;
     setExporting(true);
     const controller = new AbortController();
@@ -28,17 +28,28 @@ export function ExportButton() {
       processor.onProgress((p) =>
         dispatch({ type: "PROCESSING_PROGRESS", payload: p })
       );
+      const visibleOverlays = state.overlays.filter((o) => o.visible !== false);
       const result =
-        state.overlays.length > 0
+        visibleOverlays.length > 0
           ? await exportGifWithOverlays(
               processor,
               state.file,
               state.outputSettings,
-              state.overlays,
+              visibleOverlays,
               state.frames.length,
+              state.trimStart,
+              state.trimEnd,
               controller.signal
             )
-          : await exportGif(processor, state.file, state.outputSettings, controller.signal);
+          : await exportGif(
+              processor,
+              state.file,
+              state.outputSettings,
+              state.frames.length,
+              state.trimStart,
+              state.trimEnd,
+              controller.signal
+            );
       dispatch({ type: "PROCESSING_DONE" });
       const name = state.file.name.replace(/\.[^.]+$/, "") + "-export." + result.format;
       triggerDownload(result.blob, name);
@@ -59,7 +70,16 @@ export function ExportButton() {
       processingAbortRef.current = null;
       setExporting(false);
     }
-  };
+  }, [dispatch, processingAbortRef, processor, state.file, state.frames.length, state.metadata, state.outputSettings, state.overlays, state.trimEnd, state.trimStart]);
+
+  useEffect(() => {
+    const onExportRequest = () => {
+      if (!canExport || exporting) return;
+      void handleExport();
+    };
+    window.addEventListener("gifalchemy:export-request", onExportRequest);
+    return () => window.removeEventListener("gifalchemy:export-request", onExportRequest);
+  }, [canExport, exporting, handleExport]);
 
   return (
     <Button

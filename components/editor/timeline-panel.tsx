@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useCallback, useMemo } from "react";
-import { Play, Pause, Square, Plus, Type } from "lucide-react";
+import { useRef, useCallback, useMemo, useState } from "react";
+import { Play, Pause, Square, Plus, Type, Trash2, Copy, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
 import { usePlayback } from "@/hooks/use-playback";
@@ -78,10 +78,23 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
 export function TimelinePanel() {
   const { state, dispatch } = useEditor();
   const { togglePlay, stop } = usePlayback();
-  const { addOverlay } = useOverlays();
+  const { addOverlay, removeOverlay, duplicateOverlay } = useOverlays();
 
-  const { frames, currentFrameIndex, overlays, isPlaying, selectedOverlayId } = state;
+  const {
+    frames,
+    currentFrameIndex,
+    overlays,
+    isPlaying,
+    selectedOverlayId,
+    trimStart,
+    trimEnd,
+    playbackRate = 1,
+  } = state;
   const frameCount = frames.length;
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const lastFrame = Math.max(0, frameCount - 1);
+  const trimEndClamped = Math.min(lastFrame, Math.max(trimStart, trimEnd));
+  const trimStartClamped = Math.max(0, Math.min(trimEndClamped, trimStart));
 
   const avgDelay =
     frameCount > 0 ? frames.reduce((s, f) => s + f.delay, 0) / frameCount : 100;
@@ -95,6 +108,7 @@ export function TimelinePanel() {
   }, [frameCount, interval]);
 
   const thumbnails = useFrameThumbnails(frames);
+  const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId) ?? null;
 
   // ── Track area ref (used for x → frame calculations) ─────────────────────
   const trackRef = useRef<HTMLDivElement>(null);
@@ -143,6 +157,7 @@ export function TimelinePanel() {
 
   const handleBarDown = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
+      if (overlay.locked) return;
       e.stopPropagation();
       dispatch({ type: "SET_FRAME", payload: xToFrame(e.clientX) });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
@@ -158,6 +173,7 @@ export function TimelinePanel() {
 
   const handleBarMove = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
+      if (overlay.locked) return;
       const drag = barDrag.current;
       if (!drag || drag.overlayId !== overlay.id || frameCount <= 1) return;
 
@@ -184,8 +200,42 @@ export function TimelinePanel() {
     barDrag.current = null;
   }, []);
 
+  // ── Trim handles (draggable on thumbnail row) ──────────────────────────────
+  const trimHandleRef = useRef<"start" | "end" | null>(null);
+
+  const handleTrimHandleDown = useCallback(
+    (e: React.PointerEvent, which: "start" | "end") => {
+      e.stopPropagation();
+      trimHandleRef.current = which;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    []
+  );
+
+  const handleTrimMove = useCallback(
+    (e: React.PointerEvent) => {
+      const which = trimHandleRef.current;
+      if (which === null || frameCount === 0) return;
+      const frame = xToFrame(e.clientX);
+      if (which === "start") {
+        const newStart = Math.max(0, Math.min(frame, trimEndClamped));
+        dispatch({ type: "SET_TRIM", payload: { trimStart: newStart, trimEnd: trimEndClamped } });
+      } else {
+        const newEnd = Math.max(trimStartClamped, Math.min(lastFrame, frame));
+        dispatch({ type: "SET_TRIM", payload: { trimStart: trimStartClamped, trimEnd: newEnd } });
+      }
+    },
+    [frameCount, xToFrame, trimStartClamped, trimEndClamped, lastFrame, dispatch]
+  );
+
+  const handleTrimUp = useCallback(() => {
+    trimHandleRef.current = null;
+  }, []);
+
   // ── Playhead position as percent ──────────────────────────────────────────
   const playheadPct = frameCount > 1 ? (currentFrameIndex / (frameCount - 1)) * 100 : 0;
+  const trimStartPct = frameCount > 1 ? (trimStartClamped / (frameCount - 1)) * 100 : 0;
+  const trimEndPct = frameCount > 1 ? (trimEndClamped / (frameCount - 1)) * 100 : 100;
 
   // ─── Empty state ─────────────────────────────────────────────────────────
   if (frameCount === 0) {
@@ -228,7 +278,76 @@ export function TimelinePanel() {
           ({currentFrameIndex + 1} / {frameCount})
         </span>
 
+        <div className="flex items-center gap-0.5 ml-2">
+          {([0.5, 1, 2] as const).map((rate) => (
+            <Button
+              key={rate}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-6 min-w-7 rounded text-xs tabular-nums",
+                playbackRate === rate
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: rate })}
+              title={`Playback speed ${rate}×`}
+            >
+              {rate}×
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 ml-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded"
+            onClick={() => setTimelineZoom((z) => Math.max(1, Math.round((z - 0.25) * 4) / 4))}
+            title="Zoom timeline out"
+          >
+            <span className="text-xs">-</span>
+          </Button>
+          <span className="text-[10px] w-10 text-center text-muted-foreground tabular-nums">
+            {timelineZoom.toFixed(2)}x
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded"
+            onClick={() => setTimelineZoom((z) => Math.min(3, Math.round((z + 0.25) * 4) / 4))}
+            title="Zoom timeline in"
+          >
+            <span className="text-xs">+</span>
+          </Button>
+        </div>
+
         <div className="flex-1" />
+
+        {selectedOverlay && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-lg text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={() => duplicateOverlay(selectedOverlay.id)}
+              title="Duplicate selected layer"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Duplicate
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 rounded-lg text-xs gap-1.5 text-destructive hover:text-destructive"
+              onClick={() => removeOverlay(selectedOverlay.id)}
+              disabled={selectedOverlay.locked}
+              title="Remove selected layer"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Remove
+            </Button>
+          </>
+        )}
 
         <Button
           variant="ghost"
@@ -236,6 +355,7 @@ export function TimelinePanel() {
           className="h-7 rounded-lg text-xs gap-1.5 text-muted-foreground hover:text-foreground"
           onClick={addOverlay}
           disabled={frameCount === 0}
+          title="Add text layer"
         >
           <Plus className="h-3.5 w-3.5" />
           Add text
@@ -263,12 +383,16 @@ export function TimelinePanel() {
           {overlays.map((overlay, i) => {
             const c = color(i);
             const isSelected = selectedOverlayId === overlay.id;
+            const isHidden = overlay.visible === false;
+            const isLocked = overlay.locked === true;
             return (
               <div
                 key={overlay.id}
                 className={cn(
-                  "flex items-center gap-2 px-2.5 cursor-pointer border-b border-border/25 transition-colors duration-100",
-                  isSelected ? "bg-accent/40" : "hover:bg-muted/40"
+                  "group flex items-center gap-2 px-2.5 cursor-pointer border-b border-border/25 transition-colors duration-100",
+                  isSelected ? "bg-accent/40" : "hover:bg-muted/40",
+                  isHidden && "opacity-55",
+                  isLocked && "bg-amber-500/5"
                 )}
                 style={{ height: TRACK_H }}
                 onClick={() => dispatch({ type: "SELECT_OVERLAY", payload: overlay.id })}
@@ -278,23 +402,48 @@ export function TimelinePanel() {
                 <span className="text-xs truncate text-foreground leading-none">
                   {overlay.content || "Text"}
                 </span>
+                {isLocked && <Lock className="h-3 w-3 shrink-0 text-amber-600" />}
+                <button
+                  type="button"
+                  className={cn(
+                    "ml-auto rounded p-1 transition-all",
+                    isLocked
+                      ? "cursor-not-allowed text-muted-foreground/40 opacity-100"
+                      : "opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                  )}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeOverlay(overlay.id);
+                  }}
+                  disabled={isLocked}
+                  aria-label="Remove layer"
+                  title={isLocked ? "Unlock layer to remove" : "Remove layer from timeline"}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
               </div>
             );
           })}
         </div>
 
         {/* Track area — ruler + tracks stacked, playhead absolute over both */}
-        <div
-          ref={trackRef}
-          className="relative flex-1 min-w-0 overflow-hidden cursor-crosshair"
-          onPointerDown={handleTrackDown}
-          onPointerMove={handleTrackMove}
-          onPointerUp={handleTrackUp}
-        >
-          {/* Frame thumbnails — click to seek */}
+        <div className="relative flex-1 min-w-0 overflow-auto">
+          <div
+            ref={trackRef}
+            className="relative min-h-full cursor-crosshair"
+            style={{ width: `${timelineZoom * 100}%`, minWidth: "100%" }}
+            onPointerDown={handleTrackDown}
+            onPointerMove={handleTrackMove}
+            onPointerUp={handleTrackUp}
+          >
+          {/* Frame thumbnails — click to seek; trim range dimmed, draggable handles */}
           <div
             className="relative border-b border-border/40 bg-muted/20 flex overflow-hidden shrink-0"
             style={{ height: THUMB_ROW_H }}
+            onPointerMove={handleTrimMove}
+            onPointerUp={handleTrimUp}
+            onPointerLeave={handleTrimUp}
           >
             {thumbnails.map(({ frameIndex, dataUrl }) => (
               <button
@@ -315,6 +464,37 @@ export function TimelinePanel() {
                 title={`Frame ${frameIndex + 1}`}
               />
             ))}
+            {/* Dimmed overlay for frames outside trim range */}
+            {frameCount > 1 && (trimStartClamped > 0 || trimEndClamped < lastFrame) && (
+              <>
+                <div
+                  className="absolute inset-y-0 left-0 bg-black/50 pointer-events-none z-10"
+                  style={{ width: `${trimStartPct}%` }}
+                />
+                <div
+                  className="absolute inset-y-0 right-0 bg-black/50 pointer-events-none z-10"
+                  style={{ width: `${100 - trimEndPct}%` }}
+                />
+              </>
+            )}
+            {/* Draggable trim start handle */}
+            {frameCount > 1 && (
+              <div
+                className="absolute top-0 bottom-0 w-1.5 z-20 cursor-ew-resize bg-primary border-x border-primary-foreground/30 hover:w-2 hover:bg-primary/90"
+                style={{ left: `${trimStartPct}%`, transform: "translateX(-50%)" }}
+                onPointerDown={(e) => handleTrimHandleDown(e, "start")}
+                title="Trim start — drag to adjust"
+              />
+            )}
+            {/* Draggable trim end handle */}
+            {frameCount > 1 && (
+              <div
+                className="absolute top-0 bottom-0 w-1.5 z-20 cursor-ew-resize bg-primary border-x border-primary-foreground/30 hover:w-2 hover:bg-primary/90"
+                style={{ left: `${trimEndPct}%`, transform: "translateX(-50%)" }}
+                onPointerDown={(e) => handleTrimHandleDown(e, "end")}
+                title="Trim end — drag to adjust"
+              />
+            )}
           </div>
 
           {/* Ruler */}
@@ -343,6 +523,7 @@ export function TimelinePanel() {
           {overlays.map((overlay, i) => {
             const c = color(i);
             const isSelected = selectedOverlayId === overlay.id;
+            const isLocked = overlay.locked === true;
             const { start, end } = overlayRange(overlay, frameCount);
             const leftPct = (start / Math.max(1, frameCount - 1)) * 100;
             const widthPct = Math.max(
@@ -364,6 +545,7 @@ export function TimelinePanel() {
                 <div
                   className={cn(
                     "absolute top-[5px] bottom-[5px] rounded-md border flex items-center px-1.5 overflow-hidden cursor-grab active:cursor-grabbing",
+                    isLocked && "cursor-not-allowed active:cursor-not-allowed",
                     c.bar
                   )}
                   style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
@@ -371,9 +553,28 @@ export function TimelinePanel() {
                   onPointerMove={(e) => handleBarMove(e, overlay)}
                   onPointerUp={handleBarUp}
                 >
-                  <span className={cn("text-[10px] font-medium truncate leading-none select-none", c.text)}>
+                  <span className={cn("text-[10px] font-medium truncate leading-none select-none pr-5", c.text)}>
                     {overlay.content || "Text"}
                   </span>
+                  <button
+                    type="button"
+                    className={cn(
+                      "absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 transition-colors",
+                      isLocked
+                        ? "cursor-not-allowed text-white/40"
+                        : "text-white/85 hover:text-white hover:bg-black/25"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeOverlay(overlay.id);
+                    }}
+                    disabled={isLocked}
+                    aria-label="Remove layer"
+                    title={isLocked ? "Unlock layer to remove" : "Remove layer"}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
 
                   {/* Keyframe diamonds */}
                   {overlay.keyframes.map((kf) => {
@@ -393,8 +594,9 @@ export function TimelinePanel() {
             );
           })}
 
-          {/* Playhead */}
-          <Playhead pct={playheadPct} totalRows={overlays.length} />
+            {/* Playhead */}
+            <Playhead pct={playheadPct} totalRows={overlays.length} />
+          </div>
         </div>
       </div>
     </div>

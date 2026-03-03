@@ -9,7 +9,7 @@ import type { ToolId } from "@/lib/constants";
 
 const UNDO_HISTORY_MAX = 50;
 
-type UndoableSnapshot = Pick<EditorState, "overlays" | "outputSettings" | "projectName">;
+type UndoableSnapshot = Pick<EditorState, "overlays" | "outputSettings" | "projectName" | "trimStart" | "trimEnd">;
 
 export type EditorStatus = "empty" | "loading" | "ready" | "processing" | "error";
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -30,6 +30,12 @@ export interface EditorState {
   saveStatus: SaveStatus;
   projectName: string;
   isPlaying: boolean;
+  /** First frame (inclusive) for export trim. */
+  trimStart: number;
+  /** Last frame (inclusive) for export trim. */
+  trimEnd: number;
+  /** Playback speed multiplier (0.5, 1, 2). */
+  playbackRate: number;
 }
 
 const defaultOutputSettings: OutputSettings = {
@@ -55,6 +61,9 @@ const initialState: EditorState = {
   saveStatus: "idle",
   projectName: "Untitled",
   isPlaying: false,
+  trimStart: 0,
+  trimEnd: 0,
+  playbackRate: 1,
 };
 
 export type EditorAction =
@@ -77,9 +86,24 @@ export type EditorAction =
   | { type: "SET_PROJECT_NAME"; payload: string }
   | { type: "SET_OVERLAYS"; payload: Overlay[] }
   | { type: "SET_PLAYING"; payload: boolean }
+  | { type: "SET_TRIM"; payload: { trimStart: number; trimEnd: number } }
+  | { type: "SET_PLAYBACK_RATE"; payload: number }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "RESTORE_SNAPSHOT"; payload: UndoableSnapshot }
+  | {
+      type: "RESTORE_PROJECT";
+      payload: {
+        file: File;
+        frames: GifFrame[];
+        metadata: GifMetadata;
+        overlays: Overlay[];
+        outputSettings: OutputSettings;
+        projectName: string;
+        trimStart: number;
+        trimEnd: number;
+      };
+    }
   | { type: "RESET" };
 
 const UNDOABLE_ACTIONS = new Set<string>([
@@ -88,6 +112,7 @@ const UNDOABLE_ACTIONS = new Set<string>([
   "UPDATE_OVERLAY",
   "REMOVE_OVERLAY",
   "SET_PROJECT_NAME",
+  "SET_TRIM",
 ]);
 
 function editorReducer(state: EditorState, action: EditorAction): EditorState {
@@ -96,6 +121,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, status: "loading", error: null };
     case "UPLOAD_SUCCESS": {
       const { file, frames, metadata } = action.payload;
+      const lastFrame = Math.max(0, frames.length - 1);
       return {
         ...state,
         status: "ready",
@@ -114,6 +140,8 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
           state.projectName === "Untitled"
             ? file.name.replace(/\.[^.]+$/, "") || "Untitled"
             : state.projectName,
+        trimStart: 0,
+        trimEnd: lastFrame,
       };
     }
     case "UPLOAD_ERROR":
@@ -169,8 +197,38 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, overlays: action.payload };
     case "SET_PLAYING":
       return { ...state, isPlaying: action.payload };
+    case "SET_TRIM": {
+      const last = Math.max(0, state.frames.length - 1);
+      let start = Math.max(0, Math.min(last, action.payload.trimStart));
+      let end = Math.max(0, Math.min(last, action.payload.trimEnd));
+      if (end < start) end = start;
+      return { ...state, trimStart: start, trimEnd: end };
+    }
+    case "SET_PLAYBACK_RATE": {
+      const rate = [0.5, 1, 2].includes(action.payload) ? action.payload : 1;
+      return { ...state, playbackRate: rate };
+    }
     case "RESTORE_SNAPSHOT":
       return { ...state, ...action.payload };
+    case "RESTORE_PROJECT": {
+      const p = action.payload;
+      return {
+        ...state,
+        status: "ready",
+        file: p.file,
+        frames: p.frames,
+        metadata: p.metadata,
+        currentFrameIndex: 0,
+        overlays: p.overlays,
+        selectedOverlayId: p.overlays[0]?.id ?? null,
+        outputSettings: p.outputSettings,
+        projectName: p.projectName,
+        trimStart: p.trimStart,
+        trimEnd: p.trimEnd,
+        error: null,
+        isPlaying: false,
+      };
+    }
     case "RESET":
       return { ...initialState, projectName: state.projectName };
     default:
@@ -209,6 +267,8 @@ function snapshot(s: EditorState): UndoableSnapshot {
     overlays: s.overlays.map((o) => ({ ...o, keyframes: o.keyframes.map((k) => ({ ...k })) })),
     outputSettings: { ...s.outputSettings },
     projectName: s.projectName,
+    trimStart: s.trimStart,
+    trimEnd: s.trimEnd,
   };
 }
 
