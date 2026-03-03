@@ -79,6 +79,33 @@ function clampCropToMetadata(
   };
 }
 
+function findOpaqueBounds(imageData: ImageData): { x: number; y: number; width: number; height: number } | null {
+  const { data, width, height } = imageData;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const alpha = data[(y * width + x) * 4 + 3];
+      if (alpha === 0) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+
+  if (maxX < minX || maxY < minY) return null;
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
 export function TrimToolPanel() {
   const { state, dispatch } = useEditor();
   const frameCount = state.frames.length;
@@ -120,20 +147,60 @@ export function TrimToolPanel() {
     });
   };
 
-  const updateCrop = (updates: Partial<NonNullable<typeof crop>>) => {
+  const applyCrop = (nextCrop: NonNullable<typeof crop>, changedKeys: string[] = []) => {
     if (!metadata || !crop) return;
-    const next = {
-      ...crop,
-      ...updates,
-    };
-    const x = Math.max(0, Math.min(metadata.width - 1, Math.round(next.x)));
-    const y = Math.max(0, Math.min(metadata.height - 1, Math.round(next.y)));
-    const width = Math.max(1, Math.min(metadata.width - x, Math.round(next.width)));
-    const height = Math.max(1, Math.min(metadata.height - y, Math.round(next.height)));
+    const normalized = clampCropToMetadata(nextCrop, metadata, changedKeys);
     dispatch({
       type: "UPDATE_OUTPUT_SETTINGS",
-      payload: { crop: { x, y, width, height }, width, height },
+      payload: {
+        crop: normalized,
+        width: normalized.width,
+        height: normalized.height,
+      },
     });
+  };
+
+  const updateCrop = (updates: Partial<NonNullable<typeof crop>>) => {
+    if (!metadata || !crop) return;
+    applyCrop({ ...crop, ...updates }, Object.keys(updates));
+  };
+
+  const setCropAspectPreset = (preset: CropAspectPreset) => {
+    if (!metadata || !crop) return;
+    applyCrop({ ...crop, aspectRatioPreset: preset }, ["aspectRatioPreset"]);
+  };
+
+  const rotateCrop = (delta: number) => {
+    if (!metadata || !crop) return;
+    applyCrop({ ...crop, rotation: (crop.rotation ?? 0) + delta }, ["rotation"]);
+  };
+
+  const resetCrop = () => {
+    if (!metadata || !crop) return;
+    applyCrop(
+      {
+        x: 0,
+        y: 0,
+        width: metadata.width,
+        height: metadata.height,
+        aspectRatioPreset: "free",
+        rotation: 0,
+        flipX: false,
+        flipY: false,
+      },
+      ["x", "y", "width", "height", "aspectRatioPreset", "rotation", "flipX", "flipY"]
+    );
+  };
+
+  const fitCropToContent = () => {
+    if (!metadata || !crop) return;
+    const frame = state.frames[state.currentFrameIndex];
+    const bounds = frame ? findOpaqueBounds(frame.imageData) : null;
+    if (!bounds) {
+      resetCrop();
+      return;
+    }
+    applyCrop({ ...crop, ...bounds }, ["x", "y", "width", "height"]);
   };
 
   return (
