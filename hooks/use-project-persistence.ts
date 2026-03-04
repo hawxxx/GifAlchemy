@@ -53,8 +53,10 @@ export function useProjectPersistence() {
     if (state.status !== "ready" || state.frames.length === 0) return;
     if (!state.file) return;
 
-    // Derive a stable ID that matches the autosave service convention.
-    const projectId = `local-${state.file.name}-${state.file.lastModified}`;
+    const params = new URLSearchParams(window.location.search);
+    const explicitProjectId = params.get("project");
+    // Fallback to autosave convention for brand-new sessions before explicit identity is set.
+    const projectId = explicitProjectId || `local-${state.file.name}-${state.file.lastModified}`;
     const previewDataUrl = capturePreviewDataUrl(state.frames[0]);
 
     upsertProject({

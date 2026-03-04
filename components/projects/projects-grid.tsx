@@ -21,7 +21,7 @@ export function ProjectsGrid({ projects, view = "grid", onDelete, onRename }: Pr
           <div
             key={project.id}
             className="group flex items-center gap-4 px-4 py-3 bg-[var(--card)] hover:bg-[var(--muted)] transition-colors cursor-pointer"
-            onClick={() => router.push(`/editor?project=${project.id}`)}
+            onClick={() => router.push(`/editor?project=${encodeURIComponent(project.id)}`)}
           >
             <div className="h-10 w-16 shrink-0 rounded-md overflow-hidden bg-[var(--muted)]">
               {project.previewDataUrl ? (
@@ -58,7 +58,7 @@ export function ProjectsGrid({ projects, view = "grid", onDelete, onRename }: Pr
         <ProjectCard
           key={project.id}
           project={project}
-          onOpen={() => router.push(`/editor?project=${project.id}`)}
+          onOpen={() => router.push(`/editor?project=${encodeURIComponent(project.id)}`)}
           onDelete={() => onDelete(project.id)}
           onRename={(name) => onRename(project.id, name)}
         />

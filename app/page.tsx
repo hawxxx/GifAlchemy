@@ -84,7 +84,7 @@ export default function HomePage() {
             </span>
           </div>
           <Button asChild size="sm">
-            <Link href="/editor">
+            <Link href="/editor?intent=new">
               <Plus className="h-4 w-4" />
               New Project
             </Link>
@@ -121,7 +121,7 @@ export default function HomePage() {
               size="lg"
               className="shadow-lg shadow-[var(--primary)]/30 ring-1 ring-[var(--primary)]/20 hover:shadow-[var(--primary)]/40 transition-all duration-200"
             >
-              <Link href="/editor">
+              <Link href="/editor?intent=new">
                 <Plus className="h-4 w-4" />
                 Start New Project
               </Link>
@@ -142,7 +142,7 @@ export default function HomePage() {
             </div>
             {mounted && projects.length > 0 && (
               <Link
-                href="/editor"
+                href="/editor?intent=new"
                 className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
               >
                 New project →
@@ -188,7 +188,7 @@ export default function HomePage() {
               action={
                 search
                   ? undefined
-                  : { label: "Create First Project", onClick: () => router.push("/editor") }
+                  : { label: "Create First Project", onClick: () => router.push("/editor?intent=new") }
               }
             />
           )}

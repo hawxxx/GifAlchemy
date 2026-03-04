@@ -104,7 +104,14 @@ export function EditorTopBar({
         return;
       }
       const { project, fileBlob } = loaded;
-      const file = new File([fileBlob], project.sourceFile.name, { type: project.sourceFile.type });
+      const idSuffixMatch = /-(\d+)$/.exec(project.id);
+      const inferredLastModified = idSuffixMatch ? Number(idSuffixMatch[1]) : Date.now();
+      const file = new File([fileBlob], project.sourceFile.name, {
+        type: project.sourceFile.type,
+        lastModified: Number.isFinite(inferredLastModified)
+          ? inferredLastModified
+          : Date.now(),
+      });
       if (!processor.isReady) await processor.initialize();
       const { frames, metadata } = await processor.decode(file);
       dispatch({
@@ -121,6 +128,10 @@ export function EditorTopBar({
           playbackRate: project.playbackRate ?? 1,
         },
       });
+      const url = new URL(window.location.href);
+      url.searchParams.set("project", project.id);
+      url.searchParams.delete("intent");
+      window.history.replaceState({}, "", url.toString());
       toast.success(`${EDITOR_LABELS.topBar.openedToast} ${project.name}`);
     } catch {
       toast.error(EDITOR_LABELS.topBar.openError);

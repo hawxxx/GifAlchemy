@@ -27,17 +27,33 @@ export function useRestoreProject() {
 
     (async () => {
       try {
-        const list = await projectRepo.list();
-        if (cancelled || list.length === 0) return;
+        const params = new URLSearchParams(window.location.search);
+        const intent = params.get("intent");
+        if (intent === "new") return;
 
-        const latest = list[0];
-        const loaded = await projectRepo.load(latest.id);
+        const explicitProjectId = params.get("project");
+        const targetId =
+          explicitProjectId ||
+          (await projectRepo.list().then((list) => (list.length > 0 ? list[0].id : null)));
+        if (cancelled || !targetId) return;
+
+        const loaded = await projectRepo.load(targetId);
         if (cancelled || !loaded?.project || !loaded.fileBlob) return;
 
         const { project, fileBlob } = loaded;
+        const idSuffixMatch = /-(\d+)$/.exec(project.id);
+        const inferredLastModified = idSuffixMatch ? Number(idSuffixMatch[1]) : Date.now();
         const file = new File([fileBlob], project.sourceFile.name, {
           type: project.sourceFile.type,
+          lastModified: Number.isFinite(inferredLastModified)
+            ? inferredLastModified
+            : Date.now(),
         });
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("project", project.id);
+        url.searchParams.delete("intent");
+        window.history.replaceState({}, "", url.toString());
 
         if (!processor.isReady) await processor.initialize();
         if (cancelled) return;
