@@ -118,12 +118,14 @@ export interface OverlayRendererProps {
   frameCount: number;
   width: number;
   height: number;
+  previewMode?: boolean;
 }
 
-export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRendererProps) {
+export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = false }: OverlayRendererProps) {
   const { state, dispatch } = useEditor();
   const { activeTool, selectedOverlayId } = state;
   const isTextMode = activeTool === "text";
+  const overlayInteractionEnabled = !previewMode && activeTool !== "trim";
 
   // Container ref — used to convert pixel deltas to normalised coordinates
   const containerRef = useRef<HTMLDivElement>(null);
@@ -246,6 +248,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
+      if (!overlayInteractionEnabled) return;
       e.stopPropagation();
       if (editingOverlayId === overlay.id) return;
       clickStateRef.current = {
@@ -270,7 +273,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       }
     },
-    [dispatch, currentFrameIndex, editingOverlayId]
+    [dispatch, currentFrameIndex, editingOverlayId, overlayInteractionEnabled]
   );
 
   const handlePointerMove = useCallback(
@@ -351,18 +354,19 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
 
   const handleClick = useCallback(
     (e: MouseEvent, overlay: Overlay) => {
+      if (!overlayInteractionEnabled) return;
       e.stopPropagation();
       const click = clickStateRef.current;
       if (!click || click.overlayId !== overlay.id) return;
       clickStateRef.current = null;
       if (click.moved || overlay.locked) return;
 
-      // First click selects, second click starts inline edit.
-      if (selectedOverlayId === overlay.id) {
-        setEditingOverlayId(overlay.id);
-      }
+      // Preserve selection/drag intent while making click-to-edit work from any tool.
+      dispatch({ type: "SET_TOOL", payload: "text" });
+      dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
+      if (selectedOverlayId === overlay.id || activeTool !== "text") setEditingOverlayId(overlay.id);
     },
-    [selectedOverlayId]
+    [activeTool, dispatch, overlayInteractionEnabled, selectedOverlayId]
   );
 
   // ─── Resize handle handlers ─────────────────────────────────────────────────
@@ -557,7 +561,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
             key={overlay.id}
             className={cn(
               "absolute origin-center select-none whitespace-pre-wrap",
-              isTextMode ? "pointer-events-auto" : "pointer-events-none",
+              overlayInteractionEnabled ? "pointer-events-auto" : "pointer-events-none",
               overlay.locked
                 ? "cursor-not-allowed"
                 : isTextMode

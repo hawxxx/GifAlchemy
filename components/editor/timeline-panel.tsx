@@ -347,6 +347,57 @@ export function TimelinePanel() {
     barDrag.current = null;
   }, []);
 
+  // ── Overlay bar trim handles ──────────────────────────────────────────────
+  const barTrimDrag = useRef<{
+    overlayId: string;
+    side: "start" | "end";
+    startClientX: number;
+    baseRange: { inFrame: number; outFrame: number };
+  } | null>(null);
+
+  const handleBarTrimDown = useCallback(
+    (e: React.PointerEvent, overlay: Overlay, side: "start" | "end") => {
+      if (overlay.locked) return;
+      e.stopPropagation();
+      const range = overlayRange(overlay, frameCount);
+      barTrimDrag.current = {
+        overlayId: overlay.id,
+        side,
+        startClientX: e.clientX,
+        baseRange: { inFrame: range.start, outFrame: range.end },
+      };
+      dispatch({ type: "SET_FRAME", payload: xToFrame(e.clientX) });
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [dispatch, frameCount, xToFrame]
+  );
+
+  const handleBarTrimMove = useCallback(
+    (e: React.PointerEvent, overlay: Overlay) => {
+      if (overlay.locked) return;
+      const drag = barTrimDrag.current;
+      if (!drag || drag.overlayId !== overlay.id || frameCount <= 1) return;
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const dx = e.clientX - drag.startClientX;
+      const frameDelta = Math.round((dx / rect.width) * (frameCount - 1));
+
+      if (drag.side === "start") {
+        const nextStart = Math.min(drag.baseRange.outFrame, drag.baseRange.inFrame + frameDelta);
+        updateOverlayFrameRange(overlay, nextStart, drag.baseRange.outFrame);
+      } else {
+        const nextEnd = Math.max(drag.baseRange.inFrame, drag.baseRange.outFrame + frameDelta);
+        updateOverlayFrameRange(overlay, drag.baseRange.inFrame, nextEnd);
+      }
+    },
+    [frameCount, updateOverlayFrameRange]
+  );
+
+  const handleBarTrimUp = useCallback(() => {
+    barTrimDrag.current = null;
+  }, []);
+
   // ── Trim handles (draggable on thumbnail row) ──────────────────────────────
   const trimHandleRef = useRef<"start" | "end" | null>(null);
 
@@ -497,19 +548,25 @@ export function TimelinePanel() {
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-1 ml-2">
-          {[1, 2, 4].map((preset) => (
-            <Button
-              key={preset}
-              variant={Math.abs(timelineZoom - preset) < 0.01 ? "secondary" : "ghost"}
-              size="sm"
-              className="h-6 rounded px-2 text-[10px] tabular-nums"
-              onClick={() => applyTimelineZoom(preset)}
-              title={`Timeline zoom ${preset}x`}
-            >
-              {preset}x
-            </Button>
-          ))}
+        <div className="flex items-center gap-1.5 ml-2">
+          <input
+            type="range"
+            min={1}
+            max={4}
+            step={0.05}
+            value={timelineZoom}
+            onChange={(e) => {
+              const next = Number.parseFloat(e.target.value);
+              if (!Number.isFinite(next)) return;
+              applyTimelineZoom(next);
+            }}
+            className="h-6 w-24 accent-primary"
+            title="Timeline zoom"
+            aria-label="Timeline zoom"
+          />
+          <span className="min-w-10 text-[10px] tabular-nums text-muted-foreground">
+            {Math.round(timelineZoom * 100)}%
+          </span>
           <Button
             variant="ghost"
             size="sm"
@@ -624,45 +681,6 @@ export function TimelinePanel() {
                 <span className="text-xs truncate text-foreground leading-none">
                   {overlay.content || "Text"}
                 </span>
-                <div className="ml-auto flex items-center gap-1">
-                  <input
-                    type="number"
-                    min={0}
-                    max={lastFrame}
-                    value={overlayRange(overlay, frameCount).start}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const start = Number.parseInt(e.target.value, 10);
-                      if (!Number.isFinite(start)) return;
-                      const { end } = overlayRange(overlay, frameCount);
-                      updateOverlayFrameRange(overlay, start, end);
-                    }}
-                    disabled={isLocked}
-                    className="h-5 w-10 rounded border border-border/60 bg-background/85 px-1 text-[10px] leading-none tabular-nums"
-                    title="Layer start frame"
-                    aria-label="Layer start frame"
-                  />
-                  <span className="text-[10px] text-muted-foreground">-</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={lastFrame}
-                    value={overlayRange(overlay, frameCount).end}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const end = Number.parseInt(e.target.value, 10);
-                      if (!Number.isFinite(end)) return;
-                      const { start } = overlayRange(overlay, frameCount);
-                      updateOverlayFrameRange(overlay, start, end);
-                    }}
-                    disabled={isLocked}
-                    className="h-5 w-10 rounded border border-border/60 bg-background/85 px-1 text-[10px] leading-none tabular-nums"
-                    title="Layer end frame"
-                    aria-label="Layer end frame"
-                  />
-                </div>
                 <div className="flex items-center gap-0.5 rounded-full border border-border/60 bg-background/85 p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   <button
                     type="button"
@@ -896,6 +914,24 @@ export function TimelinePanel() {
                   onPointerMove={(e) => handleBarMove(e, overlay)}
                   onPointerUp={handleBarUp}
                 >
+                  {!isLocked && (
+                    <>
+                      <div
+                        className="absolute left-0 top-0 bottom-0 z-10 w-2 cursor-ew-resize border-r border-white/35 bg-black/20 hover:bg-black/30"
+                        onPointerDown={(e) => handleBarTrimDown(e, overlay, "start")}
+                        onPointerMove={(e) => handleBarTrimMove(e, overlay)}
+                        onPointerUp={handleBarTrimUp}
+                        title="Trim layer start"
+                      />
+                      <div
+                        className="absolute right-0 top-0 bottom-0 z-10 w-2 cursor-ew-resize border-l border-white/35 bg-black/20 hover:bg-black/30"
+                        onPointerDown={(e) => handleBarTrimDown(e, overlay, "end")}
+                        onPointerMove={(e) => handleBarTrimMove(e, overlay)}
+                        onPointerUp={handleBarTrimUp}
+                        title="Trim layer end"
+                      />
+                    </>
+                  )}
                   <span className={cn("text-[10px] font-medium truncate leading-none select-none pr-5", c.text)}>
                     {overlay.content || "Text"}
                   </span>
