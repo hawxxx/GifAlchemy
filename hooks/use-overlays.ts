@@ -82,11 +82,15 @@ export function useOverlays() {
         | "fontStyle"
         | "visible"
         | "locked"
+        | "inFrame"
+        | "outFrame"
       >
     >,
     position?: { x: number; y: number }
   ) => {
     const overlay = createTextOverlay(frameCount, overrides);
+    overlay.inFrame = 0;
+    overlay.outFrame = Math.max(0, frameCount - 1);
     if (position) {
       overlay.keyframes = overlay.keyframes.map((k) => ({ ...k, x: position.x, y: position.y }));
     }
@@ -136,6 +140,8 @@ export function useOverlays() {
           | "effects"
           | "visible"
           | "locked"
+          | "inFrame"
+          | "outFrame"
         >
       >
     ) => {
@@ -183,10 +189,12 @@ export function useOverlays() {
         })),
         effects: overlay.effects.map((e) => ({ ...e })),
         locked: false,
+        inFrame: overlay.inFrame ?? 0,
+        outFrame: overlay.outFrame ?? Math.max(0, frameCount - 1),
       };
       dispatch({ type: "ADD_OVERLAY", payload: clone });
     },
-    [overlays, metadata, dispatch]
+    [overlays, metadata, frameCount, dispatch]
   );
 
   const reorderOverlays = useCallback(

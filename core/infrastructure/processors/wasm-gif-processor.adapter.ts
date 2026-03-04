@@ -8,7 +8,11 @@ import type {
   ProcessingProgress,
   ProcessingResult,
 } from "@/core/domain/gif-types";
-import type { Effect, Overlay } from "@/core/domain/project";
+import {
+  getOverlayFrameRange,
+  type Effect,
+  type Overlay,
+} from "@/core/domain/project";
 
 type GifuctPatch = typeof import("gifuct-js");
 
@@ -436,6 +440,16 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     };
   }
 
+  private remapOverlayRangeForTrim(overlay: Overlay, trimStart: number, trimmedLen: number): Pick<Overlay, "inFrame" | "outFrame"> {
+    if (!Number.isFinite(overlay.inFrame) && !Number.isFinite(overlay.outFrame)) {
+      return { inFrame: overlay.inFrame, outFrame: overlay.outFrame };
+    }
+    const range = getOverlayFrameRange(overlay, trimmedLen + trimStart);
+    const inFrame = Math.max(0, Math.min(trimmedLen - 1, range.inFrame - trimStart));
+    const outFrame = Math.max(inFrame, Math.min(trimmedLen - 1, range.outFrame - trimStart));
+    return { inFrame, outFrame };
+  }
+
   async addTextOverlays(
     file: File,
     overlays: Overlay[],
@@ -465,6 +479,7 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
           frameIndex: Math.max(0, Math.min(trimmedLen - 1, k.frameIndex - start)),
         })),
         effects: o.effects.map((fx) => this.remapEffectForTrim(fx, start, trimmedLen)),
+        ...this.remapOverlayRangeForTrim(o, start, trimmedLen),
       }));
     }
     const sourceW = options?.cropRect ? Math.max(1, Math.round(options.cropRect.width)) : metadata.width;
@@ -499,6 +514,8 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
       ctx.drawImage(temp, 0, 0);
       for (const overlay of overlaysToUse) {
         if (overlay.type !== "text" || overlay.visible === false || !overlay.content.trim()) continue;
+        const range = getOverlayFrameRange(overlay, frames.length);
+        if (i < range.inFrame || i > range.outFrame) continue;
         const { x, y, scale, rotation, opacity } = this.interpolateOverlay(overlay, i);
         const px = x * metadata.width;
         const py = y * metadata.height;

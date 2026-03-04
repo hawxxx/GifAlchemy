@@ -1,18 +1,38 @@
 "use client";
 
 import { useRef, useCallback, useMemo, useState } from "react";
-import { Play, Pause, Square, Plus, Type, Trash2, Copy, Lock, ClipboardPaste, Folder } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Square,
+  Plus,
+  Type,
+  Trash2,
+  Copy,
+  Lock,
+  ClipboardPaste,
+  Folder,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
 import { usePlayback } from "@/hooks/use-playback";
 import { useOverlays } from "@/hooks/use-overlays";
 import { useFrameThumbnails } from "@/hooks/use-frame-thumbnails";
 import { cn } from "@/lib/utils";
-import type { Overlay } from "@/core/domain/project";
+import {
+  clampOverlayFrameRange,
+  getOverlayFrameRange,
+  shiftOverlayFrameRange,
+  type Overlay,
+} from "@/core/domain/project";
 
 // ─── Layout constants ───────────────────────────────────────────────────────
 
-const LABEL_W = 148;
+const LABEL_W = 236;
 const RULER_H = 22;
 const THUMB_ROW_H = 36;
 const TRACK_H = 34;
@@ -32,9 +52,15 @@ const color = (i: number) => COLORS[i % COLORS.length];
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function overlayRange(overlay: Overlay, frameCount: number) {
-  if (!overlay.keyframes.length) return { start: 0, end: Math.max(0, frameCount - 1) };
-  const indices = overlay.keyframes.map((k) => k.frameIndex);
-  return { start: Math.min(...indices), end: Math.max(...indices) };
+  if (Number.isFinite(overlay.inFrame) || Number.isFinite(overlay.outFrame)) {
+    const range = getOverlayFrameRange(overlay, frameCount);
+    return { start: range.inFrame, end: range.outFrame };
+  }
+  if (overlay.keyframes.length > 0) {
+    const indices = overlay.keyframes.map((k) => k.frameIndex);
+    return clampOverlayFrameRange(Math.min(...indices), Math.max(...indices), frameCount);
+  }
+  return { start: 0, end: Math.max(0, frameCount - 1) };
 }
 
 function formatTime(frameIndex: number, avgDelayMs: number): string {
@@ -91,7 +117,15 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
 export function TimelinePanel() {
   const { state, dispatch } = useEditor();
   const { togglePlay, stop } = usePlayback();
-  const { addOverlay, removeOverlay, duplicateOverlay, setSelectedOverlays, toggleOverlaySelection } = useOverlays();
+  const {
+    addOverlay,
+    removeOverlay,
+    duplicateOverlay,
+    reorderOverlays,
+    updateOverlay,
+    setSelectedOverlays,
+    toggleOverlaySelection,
+  } = useOverlays();
 
   const {
     frames,
@@ -211,6 +245,7 @@ export function TimelinePanel() {
     movingOverlayIds: string[];
     startClientX: number;
     baseKeyframesById: Record<string, Overlay["keyframes"]>;
+    baseRangeById: Record<string, { inFrame: number; outFrame: number }>;
   } | null>(null);
 
   const handleBarDown = useCallback(
@@ -236,10 +271,16 @@ export function TimelinePanel() {
         baseKeyframesById: Object.fromEntries(
           movingOverlays.map((o) => [o.id, o.keyframes.map((k) => ({ ...k }))])
         ),
+        baseRangeById: Object.fromEntries(
+          movingOverlays.map((o) => {
+            const range = overlayRange(o, frameCount);
+            return [o.id, { inFrame: range.start, outFrame: range.end }];
+          })
+        ),
       };
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [xToFrame, dispatch, overlays, selectedSet, setSelectedOverlays]
+    [xToFrame, dispatch, overlays, selectedSet, setSelectedOverlays, frameCount]
   );
 
   const handleBarMove = useCallback(
@@ -257,18 +298,49 @@ export function TimelinePanel() {
       const next = overlays.map((current) => {
         if (!movingSet.has(current.id)) return current;
         const baseKfs = drag.baseKeyframesById[current.id];
+        const baseRange = drag.baseRangeById[current.id];
         if (!baseKfs) return current;
+        const shiftedRange = shiftOverlayFrameRange(
+          baseRange ?? { inFrame: 0, outFrame: Math.max(0, frameCount - 1) },
+          frameDelta,
+          frameCount
+        );
         return {
           ...current,
           keyframes: baseKfs.map((k) => ({
             ...k,
             frameIndex: Math.max(0, Math.min(frameCount - 1, k.frameIndex + frameDelta)),
           })),
+          inFrame: shiftedRange.inFrame,
+          outFrame: shiftedRange.outFrame,
         };
       });
       dispatch({ type: "SET_OVERLAYS", payload: next });
     },
     [frameCount, dispatch, overlays]
+  );
+
+  const updateOverlayFrameRange = useCallback(
+    (overlay: Overlay, nextInFrame: number, nextOutFrame: number) => {
+      if (overlay.locked) return;
+      const range = clampOverlayFrameRange(nextInFrame, nextOutFrame, frameCount);
+      updateOverlay(overlay.id, { inFrame: range.inFrame, outFrame: range.outFrame });
+    },
+    [frameCount, updateOverlay]
+  );
+
+  const moveOverlayByStep = useCallback(
+    (overlay: Overlay, step: -1 | 1) => {
+      if (overlay.locked) return;
+      const index = overlays.findIndex((item) => item.id === overlay.id);
+      if (index === -1) return;
+      const targetIndex = index + step;
+      if (targetIndex < 0 || targetIndex >= overlays.length) return;
+      const target = overlays[targetIndex];
+      if (!target) return;
+      reorderOverlays(overlay.id, target.id);
+    },
+    [overlays, reorderOverlays]
   );
 
   const handleBarUp = useCallback(() => {
@@ -552,6 +624,138 @@ export function TimelinePanel() {
                 <span className="text-xs truncate text-foreground leading-none">
                   {overlay.content || "Text"}
                 </span>
+                <div className="ml-auto flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={lastFrame}
+                    value={overlayRange(overlay, frameCount).start}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const start = Number.parseInt(e.target.value, 10);
+                      if (!Number.isFinite(start)) return;
+                      const { end } = overlayRange(overlay, frameCount);
+                      updateOverlayFrameRange(overlay, start, end);
+                    }}
+                    disabled={isLocked}
+                    className="h-5 w-10 rounded border border-border/60 bg-background/85 px-1 text-[10px] leading-none tabular-nums"
+                    title="Layer start frame"
+                    aria-label="Layer start frame"
+                  />
+                  <span className="text-[10px] text-muted-foreground">-</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={lastFrame}
+                    value={overlayRange(overlay, frameCount).end}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const end = Number.parseInt(e.target.value, 10);
+                      if (!Number.isFinite(end)) return;
+                      const { start } = overlayRange(overlay, frameCount);
+                      updateOverlayFrameRange(overlay, start, end);
+                    }}
+                    disabled={isLocked}
+                    className="h-5 w-10 rounded border border-border/60 bg-background/85 px-1 text-[10px] leading-none tabular-nums"
+                    title="Layer end frame"
+                    aria-label="Layer end frame"
+                  />
+                </div>
+                <div className="flex items-center gap-0.5 rounded-full border border-border/60 bg-background/85 p-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded p-1 transition-colors",
+                      isLocked ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-muted"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOverlay(overlay.id, { visible: overlay.visible === false });
+                    }}
+                    disabled={isLocked}
+                    aria-label={overlay.visible === false ? "Show layer" : "Hide layer"}
+                    title={overlay.visible === false ? "Show layer" : "Hide layer"}
+                  >
+                    {overlay.visible === false ? (
+                      <EyeOff className="h-3 w-3" />
+                    ) : (
+                      <Eye className="h-3 w-3" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded p-1 transition-colors",
+                      isLocked ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-muted"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      duplicateOverlay(overlay.id);
+                    }}
+                    disabled={isLocked}
+                    aria-label="Duplicate layer"
+                    title="Duplicate layer"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded p-1 transition-colors",
+                      isLocked ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-muted"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveOverlayByStep(overlay, -1);
+                    }}
+                    disabled={isLocked || i === 0}
+                    aria-label="Move layer up"
+                    title="Move layer up"
+                  >
+                    <ArrowUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded p-1 transition-colors",
+                      isLocked ? "cursor-not-allowed text-muted-foreground/40" : "hover:bg-muted"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveOverlayByStep(overlay, 1);
+                    }}
+                    disabled={isLocked || i === overlays.length - 1}
+                    aria-label="Move layer down"
+                    title="Move layer down"
+                  >
+                    <ArrowDown className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "rounded p-1 transition-colors",
+                      isLocked
+                        ? "cursor-not-allowed text-muted-foreground/40"
+                        : "hover:bg-destructive/10 hover:text-destructive"
+                    )}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeOverlay(overlay.id);
+                    }}
+                    disabled={isLocked}
+                    aria-label="Remove layer"
+                    title={isLocked ? "Unlock layer to remove" : "Remove layer from timeline"}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
                 {overlay.groupId && (
                   <span
                     className="inline-flex items-center rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground"
@@ -561,25 +765,6 @@ export function TimelinePanel() {
                   </span>
                 )}
                 {isLocked && <Lock className="h-3 w-3 shrink-0 text-amber-600" />}
-                <button
-                  type="button"
-                  className={cn(
-                    "ml-auto rounded p-1 transition-all",
-                    isLocked
-                      ? "cursor-not-allowed text-muted-foreground/40 opacity-100"
-                      : "opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                  )}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeOverlay(overlay.id);
-                  }}
-                  disabled={isLocked}
-                  aria-label="Remove layer"
-                  title={isLocked ? "Unlock layer to remove" : "Remove layer from timeline"}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
               </div>
             );
           })}
@@ -743,18 +928,18 @@ export function TimelinePanel() {
                       )
                       .sort((a, b) => a.frameIndex - b.frameIndex);
 
-                    return validSortedKeyframes.map((kf) => {
-                    const range = end - start;
-                    const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
-                    return (
-                      <div
-                        key={`${overlay.id}-kf-${kf.frameIndex}`}
-                        title={`Frame ${kf.frameIndex}`}
-                        className="absolute top-1/2 -translate-y-1/2 w-[7px] h-[7px] rotate-45 bg-white/90 border border-white/40 pointer-events-none"
-                        style={{ left: `calc(${kfPct}% - 3.5px)` }}
-                      />
-                    );
-                  });
+                    return validSortedKeyframes.map((kf, idx) => {
+                      const range = end - start;
+                      const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
+                      return (
+                        <div
+                          key={`${overlay.id}-kf-${kf.frameIndex}-${idx}`}
+                          title={`Frame ${kf.frameIndex}`}
+                          className="absolute top-1/2 -translate-y-1/2 w-[7px] h-[7px] rotate-45 bg-white/90 border border-white/40 pointer-events-none"
+                          style={{ left: `calc(${kfPct}% - 3.5px)` }}
+                        />
+                      );
+                    });
                   })()}
                   {/* Segment easing toggles (start keyframe controls its segment to next keyframe) */}
                   {(() => {
@@ -777,7 +962,7 @@ export function TimelinePanel() {
                         easingValue && easingValue in EASING_LABEL ? easingValue : "linear";
                       return (
                         <button
-                          key={`${overlay.id}-${startKf.frameIndex}-${endKf.frameIndex}`}
+                          key={`${overlay.id}-${startKf.frameIndex}-${endKf.frameIndex}-${idx}`}
                           type="button"
                           className={cn(
                             "absolute top-[3px] -translate-x-1/2 rounded-sm px-1 py-px text-[8px] leading-none border",

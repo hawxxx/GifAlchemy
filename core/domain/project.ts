@@ -84,6 +84,14 @@ export interface Overlay {
   strokeColor: string;
   keyframes: Keyframe[];
   effects: Effect[];
+  /** Inclusive timeline start frame for overlay visibility. Default 0. */
+  inFrame?: number;
+  /** Inclusive timeline end frame for overlay visibility. Default last frame. */
+  outFrame?: number;
+  /** Optional group id for grouped timeline/canvas operations. */
+  groupId?: string;
+  /** Optional text transform for preview/export rendering. */
+  textTransform?: "none" | "uppercase" | "lowercase";
   /** When false, layer is hidden on canvas and in export. Default true. */
   visible?: boolean;
   /** When true, layer edits/movement/removal are blocked until unlocked. */
@@ -104,7 +112,13 @@ export interface Effect {
   startFrame: number;
   endFrame: number;
   easing: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+  /** Typewriter cursor visual style. */
+  cursorStyle?: TypewriterCursorStyle;
+  /** Optional typewriter speed override in chars/second. */
+  charsPerSecond?: number;
 }
+
+export type TypewriterCursorStyle = "bar" | "block" | "underscore";
 
 export type AnimationPresetType =
   | "fade-in"
@@ -152,3 +166,60 @@ export interface CropRect {
 }
 
 export type CropAspectPreset = "free" | "1:1" | "4:5" | "16:9";
+
+export interface OverlayFrameRange {
+  inFrame: number;
+  outFrame: number;
+}
+
+export function clampOverlayFrameRange(
+  inFrame: number,
+  outFrame: number,
+  frameCount: number
+): OverlayFrameRange {
+  const lastFrame = Math.max(0, frameCount - 1);
+  const clampedIn = Math.max(0, Math.min(lastFrame, Math.round(inFrame)));
+  const clampedOut = Math.max(clampedIn, Math.min(lastFrame, Math.round(outFrame)));
+  return { inFrame: clampedIn, outFrame: clampedOut };
+}
+
+export function getOverlayFrameRange(
+  overlay: Pick<Overlay, "inFrame" | "outFrame">,
+  frameCount: number
+): OverlayFrameRange {
+  const lastFrame = Math.max(0, frameCount - 1);
+  return clampOverlayFrameRange(overlay.inFrame ?? 0, overlay.outFrame ?? lastFrame, frameCount);
+}
+
+export function shiftOverlayFrameRange(
+  range: OverlayFrameRange,
+  frameDelta: number,
+  frameCount: number
+): OverlayFrameRange {
+  const lastFrame = Math.max(0, frameCount - 1);
+  if (lastFrame === 0 || frameDelta === 0) {
+    return clampOverlayFrameRange(range.inFrame, range.outFrame, frameCount);
+  }
+
+  let nextIn = range.inFrame + frameDelta;
+  let nextOut = range.outFrame + frameDelta;
+  if (nextIn < 0) {
+    nextOut += -nextIn;
+    nextIn = 0;
+  }
+  if (nextOut > lastFrame) {
+    const overflow = nextOut - lastFrame;
+    nextIn -= overflow;
+    nextOut = lastFrame;
+  }
+  return clampOverlayFrameRange(nextIn, nextOut, frameCount);
+}
+
+export function isFrameWithinOverlayRange(
+  overlay: Pick<Overlay, "inFrame" | "outFrame">,
+  frameIndex: number,
+  frameCount: number
+): boolean {
+  const range = getOverlayFrameRange(overlay, frameCount);
+  return frameIndex >= range.inFrame && frameIndex <= range.outFrame;
+}
