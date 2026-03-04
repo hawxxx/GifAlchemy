@@ -55,14 +55,14 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
     <TooltipProvider delayDuration={300}>
       <aside
         className={cn(
-          "flex flex-col py-3 border-r border-border/40 bg-card rounded-r-xl",
+          "flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-card/90 px-2 py-4 shadow-sm ring-1 ring-black/[0.03] backdrop-blur supports-[backdrop-filter]:bg-card/80 dark:ring-white/[0.04]",
           className
         )}
       >
         {TOOL_GROUPS.map((group, gi) => (
-          <div key={gi}>
+          <div key={gi} className="px-1.5">
             {gi > 0 && (
-              <div className="my-2 mx-3 border-t border-border/30" />
+              <div className="mx-1 my-2.5 border-t border-border/50" />
             )}
             {group.map((id) => {
               const isActive = activeTool === id;
@@ -70,10 +70,10 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
               return (
                 <div
                   key={id}
-                  className="relative flex items-center justify-center py-0.5"
+                  className="relative flex items-center justify-center py-1"
                 >
                   {isActive && (
-                    <span className="absolute left-0 h-5 w-[2px] rounded-r-full bg-primary" />
+                    <span className="absolute -left-[7px] h-5 w-0.5 rounded-r-full bg-primary" />
                   )}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -82,18 +82,18 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                         onClick={() => onSelectTool(isActive ? null : id)}
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
-                          "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-150 ease-out",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                          "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150 ease-out",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                           "active:scale-[0.97]",
                           isActive
-                            ? "bg-primary/15 text-primary"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-primary/12 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.22)]"
+                            : "text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground"
                         )}
                       >
-                        {Icon && <Icon className="h-[18px] w-[18px]" />}
+                        {Icon && <Icon className="h-[17px] w-[17px]" />}
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="rounded-lg">
+                    <TooltipContent side="right" className="rounded-md border-border/60">
                       {TOOL_LABELS[id]}
                     </TooltipContent>
                   </Tooltip>

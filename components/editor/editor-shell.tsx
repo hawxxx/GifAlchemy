@@ -68,7 +68,7 @@ export function EditorShell({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "h-screen flex flex-col bg-background text-foreground overflow-hidden",
+        "h-screen flex flex-col overflow-hidden bg-background text-foreground",
         className
       )}
     >
@@ -79,9 +79,9 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <div
-        className="grid flex-1 min-h-0 overflow-hidden border-t border-border/40"
+        className="grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-border/45 bg-muted/20 px-3 py-3"
         style={{
-          gridTemplateColumns: "52px 1fr 280px",
+          gridTemplateColumns: "56px minmax(0, 1fr) 304px",
           gridTemplateRows: "1fr",
         }}
       >
@@ -90,7 +90,7 @@ export function EditorShell({ className }: { className?: string }) {
           onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
         />
 
-        <div className="min-h-0 overflow-hidden">
+        <div className="min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
           <CanvasStage />
         </div>
 
@@ -104,8 +104,12 @@ export function EditorShell({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="shrink-0 border-t border-border/40 bg-card/50" style={{ height: 170 }}>
-        <TimelinePanel />
+      <div
+        className="shrink-0 border-t border-border/45 bg-muted/20 px-3 pb-3 pt-2"
+      >
+        <div className="h-[170px] overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
+          <TimelinePanel />
+        </div>
       </div>
 
       <NextStepsMenu />

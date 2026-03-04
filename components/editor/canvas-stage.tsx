@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Eye, X } from "lucide-react";
+import { Eye, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { UploadZone } from "./upload-zone";
 import { SkeletonLoader } from "./skeleton-loader";
 import { OverlayRenderer } from "./overlay-renderer";
@@ -76,7 +77,7 @@ function ExportProgressOverlay({
 const CHECKERBOARD = "repeating-conic-gradient(#1a1a1e 0% 25%, #242428 0% 50%) 50% / 16px 16px";
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
-const ZOOM_PRESETS = [0.5, 1, 2] as const;
+const ZOOM_STEP = 0.05;
 const RULER_SIZE = 18;
 type CropDragMode = "move" | "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
 
@@ -216,9 +217,17 @@ export function CanvasStage() {
     setPan({ x: 0, y: 0 });
   }, [state.metadata]);
 
-  const setZoomPreset = useCallback((preset: number) => {
-    setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, preset)));
+  const clampZoom = useCallback((nextZoom: number) => {
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
   }, []);
+
+  const setZoomLevel = useCallback((nextZoom: number) => {
+    setZoom(clampZoom(nextZoom));
+  }, [clampZoom]);
+
+  const adjustZoom = useCallback((delta: number) => {
+    setZoom((prev) => clampZoom(prev + delta));
+  }, [clampZoom]);
 
   const updateCrop = useCallback((next: { x: number; y: number; width: number; height: number }) => {
     const meta = state.metadata;
@@ -655,85 +664,106 @@ export function CanvasStage() {
       {/* Floating zoom bar — outside the transform div so it never pans/scales */}
       <div
         className={cn(
-          "absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-full bg-card/95 backdrop-blur-md border border-border/40 shadow-2xl px-3 py-1.5 z-[100]",
+          "absolute bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[min(96vw,900px)] rounded-2xl border border-border/50 bg-card/95 px-2.5 py-2 shadow-2xl backdrop-blur-md",
           isPreviewMode && "opacity-60"
         )}
       >
-        <span
-          className={cn(
-            "h-6 inline-flex items-center rounded-full px-2 text-[10px] border",
-            state.snapToGrid
-              ? "bg-primary text-primary-foreground border-primary/70"
-              : "bg-background/80 text-muted-foreground border-border/70"
-          )}
-          title="Arrow-key nudge snapping"
-        >
-          Snap {state.snapToGrid ? "8px" : "off"}
-        </span>
-        <span className="w-px h-4 bg-border/50 mx-0.5" />
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-6 px-2 text-[10px] rounded-full"
-          onClick={fitToView}
-        >
-          Fit
-        </Button>
-        {ZOOM_PRESETS.map((preset) => (
-          <Button
-            key={preset}
-            variant={Math.abs(zoom - preset) < 0.01 ? "default" : "secondary"}
-            size="sm"
-            className="h-6 px-2 text-[10px] rounded-full"
-            onClick={() => setZoomPreset(preset)}
-          >
-            {Math.round(preset * 100)}%
-          </Button>
-        ))}
-        <Button
-          variant="secondary"
-          size="sm"
-          className="h-6 px-2 text-[10px] rounded-full"
-          onClick={resetView}
-        >
-          Reset view
-        </Button>
-        <span className="w-px h-4 bg-border/50 mx-0.5" />
-        <Button
-          variant={showRulers ? "default" : "secondary"}
-          size="sm"
-          className="h-6 px-2 text-[10px] rounded-full"
-          onClick={() => setShowRulers((v) => !v)}
-        >
-          Rulers
-        </Button>
-        <Button
-          variant={showSafeArea ? "default" : "secondary"}
-          size="sm"
-          className="h-6 px-2 text-[10px] rounded-full"
-          onClick={() => setShowSafeArea((v) => !v)}
-        >
-          Safe area
-        </Button>
-        <span className="w-px h-4 bg-border/50 mx-0.5" />
-        <span
-          className={cn(
-            "text-[10px] self-center tabular-nums px-1 font-medium",
-            Math.abs(zoom - 1) < 0.01 ? "text-muted-foreground" : "text-primary"
-          )}
-        >
-          {Math.round(zoom * 100)}%
-        </span>
-        <span className="w-px h-4 bg-border/50 mx-0.5" />
-        <Button
-          variant={isPreviewMode ? "default" : "secondary"}
-          size="sm"
-          className="h-6 px-2 text-[10px] rounded-full gap-1"
-          onClick={() => setIsPreviewMode((v) => !v)}
-        >
-          <Eye className="h-3 w-3" />
-          {isPreviewMode ? "Exit" : "Preview"}
-        </Button>
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-1.5 py-1">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 rounded-lg"
+              aria-label="Zoom out"
+              onClick={() => adjustZoom(-ZOOM_STEP)}
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </Button>
+            <div className="w-28 px-1 sm:w-40">
+              <Slider
+                aria-label="Canvas zoom"
+                min={MIN_ZOOM}
+                max={MAX_ZOOM}
+                step={ZOOM_STEP}
+                value={[zoom]}
+                onValueChange={([nextZoom]) => setZoomLevel(nextZoom)}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 rounded-lg"
+              aria-label="Zoom in"
+              onClick={() => adjustZoom(ZOOM_STEP)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+            <span
+              className={cn(
+                "w-12 text-center text-[11px] font-semibold tabular-nums",
+                Math.abs(zoom - 1) < 0.01 ? "text-muted-foreground" : "text-primary"
+              )}
+            >
+              {Math.round(zoom * 100)}%
+            </span>
+            <span className="mx-0.5 h-5 w-px bg-border/50" />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 rounded-lg px-2 text-[11px]"
+              onClick={fitToView}
+            >
+              Fit
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-7 rounded-lg px-2 text-[11px]"
+              onClick={resetView}
+            >
+              Reset
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-1.5 py-1">
+            <Button
+              variant={showRulers ? "default" : "secondary"}
+              size="sm"
+              className="h-7 rounded-lg px-2 text-[11px]"
+              onClick={() => setShowRulers((v) => !v)}
+            >
+              Rulers
+            </Button>
+            <Button
+              variant={showSafeArea ? "default" : "secondary"}
+              size="sm"
+              className="h-7 rounded-lg px-2 text-[11px]"
+              onClick={() => setShowSafeArea((v) => !v)}
+            >
+              Safe area
+            </Button>
+            <Button
+              variant={isPreviewMode ? "default" : "secondary"}
+              size="sm"
+              className="h-7 rounded-lg gap-1 px-2 text-[11px]"
+              onClick={() => setIsPreviewMode((v) => !v)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {isPreviewMode ? "Exit preview" : "Preview"}
+            </Button>
+            <span
+              className={cn(
+                "ml-0.5 inline-flex h-7 items-center rounded-lg border px-2 text-[11px]",
+                state.snapToGrid
+                  ? "border-primary/70 bg-primary text-primary-foreground"
+                  : "border-border/70 bg-background/80 text-muted-foreground"
+              )}
+              title="Arrow-key nudge snapping"
+            >
+              Snap {state.snapToGrid ? "8px" : "off"}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
