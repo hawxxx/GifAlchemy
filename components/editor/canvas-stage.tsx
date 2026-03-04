@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { UploadZone } from "./upload-zone";
 import { SkeletonLoader } from "./skeleton-loader";
 import { OverlayRenderer } from "./overlay-renderer";
+import { FloatingTextToolbar } from "./floating-text-toolbar";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
 import { ERROR_MESSAGES } from "@/lib/constants";
@@ -886,6 +887,8 @@ export function CanvasStage() {
           </div>
         </div>
       </div>
+
+      {!isPreviewMode && <FloatingTextToolbar />}
     </div>
   );
 }

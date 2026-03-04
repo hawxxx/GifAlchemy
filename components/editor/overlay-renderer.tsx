@@ -4,7 +4,6 @@ import { useMemo, useRef, useCallback, useState, type MouseEvent, type CSSProper
 import { useEditor } from "@/hooks/use-editor";
 import type { Overlay, TypewriterCursorStyle } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
-import { FloatingTextToolbar } from "./floating-text-toolbar";
 
 function splitGraphemes(text: string): string[] {
   if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
@@ -741,8 +740,6 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
         );
       })}
 
-      {/* FloatingTextToolbar renders with position:fixed so it floats above the canvas */}
-      <FloatingTextToolbar />
     </div>
   );
 }
