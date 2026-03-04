@@ -6,6 +6,7 @@ import {
   Pause,
   Square,
   Plus,
+  Minus,
   Type,
   Trash2,
   Copy,
@@ -16,6 +17,7 @@ import {
   EyeOff,
   ArrowUp,
   ArrowDown,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
@@ -29,6 +31,7 @@ import {
   shiftOverlayFrameRange,
   type Overlay,
 } from "@/core/domain/project";
+import { generateTweenedKeyframes, type TweenEasing } from "@/lib/tween-utils";
 
 // ─── Layout constants ───────────────────────────────────────────────────────
 
@@ -91,6 +94,13 @@ const EASING_LABEL: Record<SegmentEasing, string> = {
   "ease-in-out": "InOut",
 };
 
+const TWEEN_EASING_OPTIONS: { value: TweenEasing; label: string }[] = [
+  { value: "linear", label: "Linear" },
+  { value: "ease-in", label: "Ease In" },
+  { value: "ease-out", label: "Ease Out" },
+  { value: "ease-in-out", label: "Ease In-Out" },
+];
+
 // ─── Playhead ────────────────────────────────────────────────────────────────
 
 interface PlayheadProps {
@@ -141,6 +151,26 @@ export function TimelinePanel() {
   const frameCount = frames.length;
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [copiedKeyframe, setCopiedKeyframe] = useState<KeyframeWithSegmentEasing | null>(null);
+
+  // ── Keyframe drag state ───────────────────────────────────────────────────
+  const kfDragRef = useRef<{
+    overlayId: string;
+    originalFrame: number;
+    currentTargetFrame: number;
+  } | null>(null);
+  const [kfDragIndicator, setKfDragIndicator] = useState<{
+    overlayId: string;
+    originalFrame: number;
+    targetFrame: number;
+  } | null>(null);
+
+  // ── Tween popover state ───────────────────────────────────────────────────
+  const [tweenPopover, setTweenPopover] = useState<{
+    overlayId: string;
+    easing: TweenEasing;
+    rect: { top: number; left: number };
+  } | null>(null);
+
   const lastFrame = Math.max(0, frameCount - 1);
   const trimEndClamped = Math.min(lastFrame, Math.max(trimStart, trimEnd));
   const trimStartClamped = Math.max(0, Math.min(trimEndClamped, trimStart));
@@ -479,6 +509,88 @@ export function TimelinePanel() {
     [dispatch]
   );
 
+  // ── Keyframe drag handlers ────────────────────────────────────────────────
+  const handleKfPointerDown = useCallback(
+    (e: React.PointerEvent, overlay: Overlay, kfFrame: number) => {
+      if (overlay.locked) return;
+      e.stopPropagation();
+      kfDragRef.current = { overlayId: overlay.id, originalFrame: kfFrame, currentTargetFrame: kfFrame };
+      setKfDragIndicator({ overlayId: overlay.id, originalFrame: kfFrame, targetFrame: kfFrame });
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    []
+  );
+
+  const handleKfPointerMove = useCallback(
+    (e: React.PointerEvent, overlay: Overlay) => {
+      e.stopPropagation();
+      const drag = kfDragRef.current;
+      if (!drag || drag.overlayId !== overlay.id) return;
+      const frame = xToFrame(e.clientX);
+      const taken = overlay.keyframes.some(
+        (kf) => kf.frameIndex === frame && kf.frameIndex !== drag.originalFrame
+      );
+      if (!taken) {
+        drag.currentTargetFrame = frame;
+        setKfDragIndicator({ overlayId: overlay.id, originalFrame: drag.originalFrame, targetFrame: frame });
+      }
+    },
+    [xToFrame]
+  );
+
+  const handleKfPointerUp = useCallback(
+    (overlay: Overlay) => {
+      const drag = kfDragRef.current;
+      if (!drag || drag.overlayId !== overlay.id) {
+        kfDragRef.current = null;
+        setKfDragIndicator(null);
+        return;
+      }
+      const targetFrame = drag.currentTargetFrame;
+      if (targetFrame !== drag.originalFrame) {
+        const newKeyframes = overlay.keyframes
+          .map((kf) =>
+            kf.frameIndex === drag.originalFrame ? { ...kf, frameIndex: targetFrame } : kf
+          )
+          .sort((a, b) => a.frameIndex - b.frameIndex);
+        dispatch({
+          type: "UPDATE_OVERLAY",
+          payload: { id: overlay.id, updates: { keyframes: newKeyframes } },
+        });
+      }
+      kfDragRef.current = null;
+      setKfDragIndicator(null);
+    },
+    [dispatch]
+  );
+
+  // ── Tween handlers ────────────────────────────────────────────────────────
+  const handleApplyTween = useCallback(
+    (overlay: Overlay, easing: TweenEasing) => {
+      if (overlay.locked) return;
+      const newKeyframes = generateTweenedKeyframes(overlay, easing);
+      dispatch({
+        type: "UPDATE_OVERLAY",
+        payload: { id: overlay.id, updates: { keyframes: newKeyframes } },
+      });
+      setTweenPopover(null);
+    },
+    [dispatch]
+  );
+
+  const handleClearTweens = useCallback(
+    (overlay: Overlay) => {
+      if (overlay.locked) return;
+      const anchors = overlay.keyframes.filter((kf) => !kf.tweened);
+      dispatch({
+        type: "UPDATE_OVERLAY",
+        payload: { id: overlay.id, updates: { keyframes: anchors } },
+      });
+      setTweenPopover(null);
+    },
+    [dispatch]
+  );
+
   // ── Playhead position as percent ──────────────────────────────────────────
   const playheadPct = frameCount > 1 ? (currentFrameIndex / (frameCount - 1)) * 100 : 0;
   const trimStartPct = frameCount > 1 ? (trimStartClamped / (frameCount - 1)) * 100 : 0;
@@ -525,6 +637,13 @@ export function TimelinePanel() {
           ({currentFrameIndex + 1} / {frameCount})
         </span>
 
+        <span
+          className="hidden sm:inline text-[10px] text-muted-foreground/45 ml-1 tabular-nums"
+          title="Press A/D to step through frames (when not editing text)"
+        >
+          A/D: prev/next
+        </span>
+
         <span className="text-xs text-muted-foreground/80 ml-2">
           Speed {playbackRate}x
         </span>
@@ -548,7 +667,18 @@ export function TimelinePanel() {
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 ml-2">
+        <div className="flex items-center gap-1 ml-2 rounded-lg border border-border/50 bg-background/60 px-1.5 py-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
+            onClick={() => applyTimelineZoom(Math.max(1, timelineZoom - 0.25))}
+            disabled={timelineZoom <= 1}
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <Minus className="h-2.5 w-2.5" />
+          </Button>
           <input
             type="range"
             min={1}
@@ -560,21 +690,32 @@ export function TimelinePanel() {
               if (!Number.isFinite(next)) return;
               applyTimelineZoom(next);
             }}
-            className="h-6 w-24 accent-primary"
+            className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-border/70 accent-primary [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm"
             title="Timeline zoom"
             aria-label="Timeline zoom"
           />
-          <span className="min-w-10 text-[10px] tabular-nums text-muted-foreground">
-            {Math.round(timelineZoom * 100)}%
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
+            onClick={() => applyTimelineZoom(Math.min(4, timelineZoom + 0.25))}
+            disabled={timelineZoom >= 4}
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <Plus className="h-2.5 w-2.5" />
+          </Button>
+          <span className="min-w-[2.4rem] rounded bg-primary/10 px-1 py-0.5 text-center text-[10px] font-medium tabular-nums text-primary">
+            {timelineZoom % 1 === 0 ? `${timelineZoom}×` : `${timelineZoom.toFixed(1)}×`}
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 rounded px-2 text-[10px]"
+            className="h-5 rounded px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
             onClick={fitTimelineZoom}
             title="Fit timeline to trimmed range"
           >
-            fit
+            Fit
           </Button>
         </div>
 
@@ -754,6 +895,39 @@ export function TimelinePanel() {
                   >
                     <ArrowDown className="h-3 w-3" />
                   </button>
+                  {overlay.keyframes.filter((kf) => !kf.tweened).length >= 2 && (
+                    <button
+                      type="button"
+                      className={cn(
+                        "rounded p-1 transition-colors",
+                        isLocked
+                          ? "cursor-not-allowed text-muted-foreground/40"
+                          : tweenPopover?.overlayId === overlay.id
+                            ? "bg-primary/20 text-primary"
+                            : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                      )}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (tweenPopover?.overlayId === overlay.id) {
+                          setTweenPopover(null);
+                          return;
+                        }
+                        const btn = e.currentTarget as HTMLButtonElement;
+                        const r = btn.getBoundingClientRect();
+                        setTweenPopover({
+                          overlayId: overlay.id,
+                          easing: "linear",
+                          rect: { top: r.bottom + 4, left: r.left },
+                        });
+                      }}
+                      disabled={isLocked}
+                      aria-label="Tween keyframes"
+                      title="Auto-generate intermediate keyframes (tweening)"
+                    >
+                      <Wand2 className="h-3 w-3" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={cn(
@@ -955,7 +1129,7 @@ export function TimelinePanel() {
                     <Trash2 className="h-3 w-3" />
                   </button>
 
-                  {/* Keyframe diamonds */}
+                  {/* Keyframe diamonds — draggable */}
                   {(() => {
                     const validSortedKeyframes = (Array.isArray(overlay.keyframes) ? overlay.keyframes : [])
                       .filter(
@@ -966,14 +1140,47 @@ export function TimelinePanel() {
 
                     return validSortedKeyframes.map((kf, idx) => {
                       const range = end - start;
-                      const kfPct = range > 0 ? ((kf.frameIndex - start) / range) * 100 : 50;
+                      const isDragging =
+                        kfDragIndicator?.overlayId === overlay.id &&
+                        kfDragIndicator.originalFrame === kf.frameIndex;
+                      const visualFrame = isDragging ? kfDragIndicator.targetFrame : kf.frameIndex;
+                      const visualPct = range > 0 ? ((visualFrame - start) / range) * 100 : 50;
+                      const isTweened = kf.tweened === true;
                       return (
                         <div
                           key={`${overlay.id}-kf-${kf.frameIndex}-${idx}`}
-                          title={`Frame ${kf.frameIndex}`}
-                          className="absolute top-1/2 -translate-y-1/2 w-[7px] h-[7px] rotate-45 bg-white/90 border border-white/40 pointer-events-none"
-                          style={{ left: `calc(${kfPct}% - 3.5px)` }}
-                        />
+                          title={
+                            isLocked
+                              ? `Frame ${kf.frameIndex}${isTweened ? " (tweened)" : ""}`
+                              : `Frame ${kf.frameIndex}${isTweened ? " (tweened)" : ""} — drag to move`
+                          }
+                          className={cn(
+                            "absolute top-1/2 -translate-y-1/2 rotate-45 border transition-colors z-10",
+                            isTweened
+                              ? "w-[5px] h-[5px] bg-white/50 border-white/25"
+                              : "w-[9px] h-[9px] bg-white/90 border-white/40",
+                            isLocked
+                              ? "cursor-not-allowed"
+                              : "cursor-ew-resize hover:bg-yellow-200 hover:border-yellow-400",
+                            isDragging && "bg-yellow-300 border-yellow-500 scale-125"
+                          )}
+                          style={{ left: `calc(${visualPct}% - ${isTweened ? 2.5 : 4.5}px)` }}
+                          onPointerDown={(e) => {
+                            if (isTweened) return;
+                            handleKfPointerDown(e, overlay, kf.frameIndex);
+                          }}
+                          onPointerMove={(e) => handleKfPointerMove(e, overlay)}
+                          onPointerUp={() => handleKfPointerUp(overlay)}
+                        >
+                          {isDragging && (
+                            <span
+                              className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] bg-black/80 text-white px-1 rounded whitespace-nowrap rotate-[-45deg]"
+                              style={{ pointerEvents: "none" }}
+                            >
+                              {visualFrame}
+                            </span>
+                          )}
+                        </div>
                       );
                     });
                   })()}
@@ -1029,6 +1236,71 @@ export function TimelinePanel() {
           </div>
         </div>
       </div>
+
+      {/* ── Tween popover (fixed-positioned to escape overflow) ─────────────── */}
+      {tweenPopover && (() => {
+        const popoverOverlay = overlays.find((o) => o.id === tweenPopover.overlayId);
+        const hasTweens = popoverOverlay?.keyframes.some((kf) => kf.tweened) ?? false;
+        return (
+          <>
+            <div
+              className="fixed inset-0 z-[199]"
+              onClick={() => setTweenPopover(null)}
+            />
+            <div
+              className="fixed z-[200] bg-popover border border-border rounded-lg shadow-xl p-3 flex flex-col gap-2 min-w-[160px]"
+              style={{ top: tweenPopover.rect.top, left: tweenPopover.rect.left }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Tween easing
+              </p>
+              <div className="flex flex-col gap-1">
+                {TWEEN_EASING_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={cn(
+                      "text-left text-xs px-2 py-1 rounded transition-colors",
+                      tweenPopover.easing === value
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                    onClick={() => setTweenPopover((p) => p ? { ...p, easing: value } : null)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-col gap-1 pt-1 border-t border-border/40">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={() => {
+                    if (!popoverOverlay) return;
+                    handleApplyTween(popoverOverlay, tweenPopover.easing);
+                  }}
+                >
+                  <Wand2 className="h-3 w-3" />
+                  Apply tween
+                </button>
+                {hasTweens && (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded text-destructive hover:bg-destructive/10 transition-colors"
+                    onClick={() => {
+                      if (!popoverOverlay) return;
+                      handleClearTweens(popoverOverlay);
+                    }}
+                  >
+                    Clear tweens
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

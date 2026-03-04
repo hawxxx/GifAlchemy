@@ -122,6 +122,23 @@ export function useEditorKeyboard() {
         return;
       }
 
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key.toLowerCase() === "a") {
+          if (state.frames.length === 0) return;
+          e.preventDefault();
+          dispatch({ type: "SET_PLAYING", payload: false });
+          dispatch({ type: "SET_FRAME", payload: Math.max(0, state.currentFrameIndex - 1) });
+          return;
+        }
+        if (e.key.toLowerCase() === "d") {
+          if (state.frames.length === 0) return;
+          e.preventDefault();
+          dispatch({ type: "SET_PLAYING", payload: false });
+          dispatch({ type: "SET_FRAME", payload: Math.min(state.frames.length - 1, state.currentFrameIndex + 1) });
+          return;
+        }
+      }
+
       if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowDown") {
         if (state.activeTool === "text" && state.selectedOverlayId) {
           e.preventDefault();
