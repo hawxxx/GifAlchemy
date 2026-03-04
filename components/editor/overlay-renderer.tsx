@@ -487,7 +487,6 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
   );
 
   const visibleOverlays = interpolated.filter(({ overlay }) => overlay.visible !== false);
-  if (visibleOverlays.length === 0) return null;
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-visible">
