@@ -324,7 +324,12 @@ export function TextToolPanel() {
                 <Type className="h-3 w-3 shrink-0" />
                 <span className="text-xs truncate flex-1">{overlay.content || "Text"}</span>
                 <button
-                  className="opacity-0 group-hover:opacity-100 hover:text-foreground transition-opacity"
+                  className={cn(
+                    "transition-opacity hover:text-foreground",
+                    isSelected
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                  )}
                   onClick={(e) => {
                     e.stopPropagation();
                     duplicateOverlay(overlay.id);
@@ -336,7 +341,10 @@ export function TextToolPanel() {
                 </button>
                 <button
                   className={cn(
-                    "opacity-0 group-hover:opacity-100 transition-opacity",
+                    "transition-opacity",
+                    isSelected
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
                     overlay.locked
                       ? "cursor-not-allowed text-muted-foreground/40"
                       : "hover:text-destructive"

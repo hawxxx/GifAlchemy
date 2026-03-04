@@ -164,6 +164,13 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     null
   );
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
+  const clickStateRef = useRef<{
+    overlayId: string;
+    startClientX: number;
+    startClientY: number;
+    moved: boolean;
+  } | null>(null);
+  const CLICK_MOVE_THRESHOLD_PX = 4;
 
   const interpolated = useMemo(
     () => overlays.map((o) => ({ overlay: o, ...interpolate(o, currentFrameIndex) })),
@@ -241,6 +248,12 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     (e: React.PointerEvent, overlay: Overlay) => {
       e.stopPropagation();
       if (editingOverlayId === overlay.id) return;
+      clickStateRef.current = {
+        overlayId: overlay.id,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        moved: false,
+      };
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
       dispatch({ type: "SET_TOOL", payload: "text" });
       if (overlay.locked !== true) {
@@ -262,6 +275,16 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent, overlay: Overlay) => {
+      const click = clickStateRef.current;
+      if (click && click.overlayId === overlay.id && !click.moved) {
+        if (
+          Math.abs(e.clientX - click.startClientX) > CLICK_MOVE_THRESHOLD_PX ||
+          Math.abs(e.clientY - click.startClientY) > CLICK_MOVE_THRESHOLD_PX
+        ) {
+          click.moved = true;
+        }
+      }
+
       const drag = dragState.current;
       if (!drag || drag.overlayId !== overlay.id || overlay.locked === true) return;
 
@@ -325,6 +348,22 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
     dragState.current = null;
     setSnapGuides(null);
   }, []);
+
+  const handleClick = useCallback(
+    (e: MouseEvent, overlay: Overlay) => {
+      e.stopPropagation();
+      const click = clickStateRef.current;
+      if (!click || click.overlayId !== overlay.id) return;
+      clickStateRef.current = null;
+      if (click.moved || overlay.locked) return;
+
+      // First click selects, second click starts inline edit.
+      if (selectedOverlayId === overlay.id) {
+        setEditingOverlayId(overlay.id);
+      }
+    },
+    [selectedOverlayId]
+  );
 
   // ─── Resize handle handlers ─────────────────────────────────────────────────
 
@@ -551,6 +590,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
             onPointerDown={(e) => handlePointerDown(e, overlay)}
             onPointerMove={(e) => handlePointerMove(e, overlay)}
             onPointerUp={handlePointerUp}
+            onClick={(e) => handleClick(e, overlay)}
             onDoubleClick={(e) => handleDoubleClick(e, overlay)}
           >
             {editingOverlayId === overlay.id ? (
@@ -625,12 +665,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
                     width: 1,
                     height: 28,
                     transform: "translate(-50%, -100%)",
-                    background: "rgba(96, 165, 250, 0.7)",
+                    background: "rgba(37, 99, 235, 0.9)",
+                    boxShadow: "0 0 0 1px rgba(255,255,255,0.55)",
                   }}
                 />
                 {/* Rotate handle */}
                 <div
-                  className="absolute h-4 w-4 rounded-full bg-white border-2 border-blue-400 shadow z-[90]"
+                  className="absolute h-4 w-4 rounded-full bg-white border-2 border-blue-600 shadow-md z-[90] flex items-center justify-center"
+                  aria-label="Rotate text"
+                  title="Rotate text"
                   style={{
                     top: 0,
                     left: "50%",
@@ -640,7 +683,21 @@ export function OverlayRenderer({ overlays, currentFrameIndex }: OverlayRenderer
                   onPointerDown={(e) => handleRotatePointerDown(e, overlay, rotation)}
                   onPointerMove={handleRotatePointerMove}
                   onPointerUp={handleRotatePointerUp}
-                />
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-2.5 w-2.5 text-blue-700 drop-shadow-[0_0_1px_rgba(255,255,255,0.9)] pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 10a6 6 0 1 1-2.2-4.6" />
+                    <path d="M16 4v4h-4" />
+                  </svg>
+                </div>
                 {/* 8 resize handles */}
                 {RESIZE_HANDLES.map((h) => (
                   <div
