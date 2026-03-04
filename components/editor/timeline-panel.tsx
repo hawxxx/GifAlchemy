@@ -20,6 +20,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { useEditor } from "@/hooks/use-editor";
 import { usePlayback } from "@/hooks/use-playback";
 import { useOverlays } from "@/hooks/use-overlays";
@@ -170,7 +171,6 @@ export function TimelinePanel() {
     easing: TweenEasing;
     rect: { top: number; left: number };
   } | null>(null);
-
   const lastFrame = Math.max(0, frameCount - 1);
   const trimEndClamped = Math.min(lastFrame, Math.max(trimStart, trimEnd));
   const trimStartClamped = Math.max(0, Math.min(trimEndClamped, trimStart));
@@ -668,50 +668,45 @@ export function TimelinePanel() {
           ))}
         </div>
         <div className="flex items-center gap-1 ml-2 rounded-lg border border-border/50 bg-background/60 px-1.5 py-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
-            onClick={() => applyTimelineZoom(Math.max(1, timelineZoom - 0.25))}
+          <button
+            type="button"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => applyTimelineZoom(Math.round((timelineZoom - 0.25) * 20) / 20)}
             disabled={timelineZoom <= 1}
-            title="Zoom out"
-            aria-label="Zoom out"
+            title="Zoom out timeline"
+            aria-label="Zoom out timeline"
           >
-            <Minus className="h-2.5 w-2.5" />
-          </Button>
-          <input
-            type="range"
+            <Minus className="h-3 w-3" />
+          </button>
+          <Slider
             min={1}
             max={4}
             step={0.05}
-            value={timelineZoom}
-            onChange={(e) => {
-              const next = Number.parseFloat(e.target.value);
-              if (!Number.isFinite(next)) return;
-              applyTimelineZoom(next);
+            value={[timelineZoom]}
+            onValueChange={([v]) => {
+              if (v !== undefined && Number.isFinite(v)) applyTimelineZoom(v);
             }}
-            className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-border/70 accent-primary [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm"
-            title="Timeline zoom"
+            className="w-20 [&_[data-slot=track]]:h-1 [&_[data-slot=thumb]]:h-3.5 [&_[data-slot=thumb]]:w-3.5"
             aria-label="Timeline zoom"
           />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 rounded text-muted-foreground hover:text-foreground"
-            onClick={() => applyTimelineZoom(Math.min(4, timelineZoom + 0.25))}
+          <button
+            type="button"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => applyTimelineZoom(Math.round((timelineZoom + 0.25) * 20) / 20)}
             disabled={timelineZoom >= 4}
-            title="Zoom in"
-            aria-label="Zoom in"
+            title="Zoom in timeline"
+            aria-label="Zoom in timeline"
           >
-            <Plus className="h-2.5 w-2.5" />
-          </Button>
-          <span className="min-w-[2.4rem] rounded bg-primary/10 px-1 py-0.5 text-center text-[10px] font-medium tabular-nums text-primary">
-            {timelineZoom % 1 === 0 ? `${timelineZoom}×` : `${timelineZoom.toFixed(1)}×`}
+            <Plus className="h-3 w-3" />
+          </button>
+          <span className="min-w-7 text-center text-[10px] tabular-nums font-medium text-muted-foreground rounded bg-muted/60 px-1 py-0.5">
+            {timelineZoom === 1 ? "1×" : `${parseFloat(timelineZoom.toFixed(1))}×`}
           </span>
+          <div className="h-3 w-px bg-border/60 mx-0.5" />
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 rounded px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+            className="h-6 rounded px-2 text-[10px] font-medium text-muted-foreground hover:text-foreground"
             onClick={fitTimelineZoom}
             title="Fit timeline to trimmed range"
           >
