@@ -1,91 +1,62 @@
 "use client";
 
+/**
+ * FloatingTextToolbar — a draggable mini-toolbar that appears when a text overlay is selected.
+ * Import and render this component in editor-shell.tsx (or it is already rendered via overlay-renderer.tsx).
+ */
+
 import { useRef, useState, useCallback, useEffect } from "react";
 import {
+  Bold,
+  Italic,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Bold,
   Copy,
-  GripVertical,
-  Italic,
-  Lock,
-  Minus,
-  Palette,
-  Plus,
-  RotateCcw,
   Trash2,
-  Type,
+  GripVertical,
 } from "lucide-react";
 import { useEditor } from "@/hooks/use-editor";
 import { useOverlays } from "@/hooks/use-overlays";
 import { cn } from "@/lib/utils";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ToolbarPos {
   x: number;
   y: number;
 }
 
-const VIEWPORT_MARGIN = 12;
-const QUICK_COLORS = [
-  "#ffffff",
-  "#f5f5f5",
-  "#94a3b8",
-  "#60a5fa",
-  "#34d399",
-  "#fbbf24",
-  "#f87171",
-  "#f472b6",
-] as const;
-
 function getDefaultPos(): ToolbarPos {
-  if (typeof window === "undefined") return { x: 24, y: 16 };
-  return {
-    x: Math.max(VIEWPORT_MARGIN, window.innerWidth / 2 - 280),
-    y: 16,
-  };
+  if (typeof window === "undefined") return { x: 0, y: 16 };
+  return { x: Math.max(0, window.innerWidth / 2 - 176), y: 16 };
 }
 
-function clampToolbarPos(pos: ToolbarPos, width: number, height: number): ToolbarPos {
-  if (typeof window === "undefined") return pos;
-  return {
-    x: Math.max(VIEWPORT_MARGIN, Math.min(pos.x, window.innerWidth - width - VIEWPORT_MARGIN)),
-    y: Math.max(VIEWPORT_MARGIN, Math.min(pos.y, window.innerHeight - height - VIEWPORT_MARGIN)),
-  };
-}
+// ─── Toolbar button ───────────────────────────────────────────────────────────
 
 function ToolbarBtn({
   active,
-  pressed,
   danger,
-  disabled,
-  title,
   onClick,
+  title,
   children,
 }: {
   active?: boolean;
-  pressed?: boolean;
   danger?: boolean;
-  disabled?: boolean;
-  title: string;
   onClick: () => void;
+  title: string;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       title={title}
-      aria-label={title}
-      aria-pressed={pressed}
-      disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-150 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black/40",
-        "text-zinc-200 border-transparent hover:text-white hover:border-white/20 hover:bg-white/10 active:scale-[0.97]",
-        active && "text-primary border-primary/40 bg-primary/15 shadow-[0_0_0_1px_rgba(59,130,246,0.15)_inset]",
-        danger && "hover:border-red-400/35 hover:bg-red-500/15 hover:text-red-200",
-        disabled && "opacity-40 hover:bg-transparent hover:border-transparent hover:text-zinc-200 cursor-not-allowed active:scale-100"
+        "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-[0.97]",
+        "text-white/60 hover:text-white hover:bg-white/10",
+        active && "bg-primary/20 text-primary",
+        danger && "hover:bg-destructive/20 hover:text-destructive"
       )}
     >
       {children}
@@ -93,30 +64,33 @@ function ToolbarBtn({
   );
 }
 
-function Group({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center rounded-xl border border-white/10 bg-black/20 px-1 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
+// ─── Separator ────────────────────────────────────────────────────────────────
+
+function Sep() {
+  return <div className="h-5 w-px bg-white/10 mx-0.5" />;
 }
+
+// ─── FloatingTextToolbar ──────────────────────────────────────────────────────
 
 export function FloatingTextToolbar() {
   const { state } = useEditor();
   const { overlays, updateOverlay, removeOverlay, duplicateOverlay } = useOverlays();
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const colorInputRef = useRef<HTMLInputElement | null>(null);
 
-  const selectedOverlay = overlays.find((o) => o.id === state.selectedOverlayId) ?? null;
+  const { selectedOverlayId } = state;
+  const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId) ?? null;
+
   const [pos, setPos] = useState<ToolbarPos>(getDefaultPos);
-  const posRef = useRef(pos);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const posRef = useRef<ToolbarPos>(getDefaultPos());
+  const [colorOpen, setColorOpen] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
+  // Keep posRef in sync with pos state
+  const setPosSynced = useCallback((newPos: ToolbarPos) => {
+    posRef.current = newPos;
+    setPos(newPos);
+  }, []);
+
+  // Dragging state
   const gripDragRef = useRef<{
     startClientX: number;
     startClientY: number;
@@ -124,324 +98,196 @@ export function FloatingTextToolbar() {
     startPosY: number;
   } | null>(null);
 
-  const syncPos = useCallback((nextPos: ToolbarPos) => {
-    const rect = rootRef.current?.getBoundingClientRect();
-    const clamped = clampToolbarPos(nextPos, rect?.width ?? 560, rect?.height ?? 58);
-    posRef.current = clamped;
-    setPos(clamped);
-  }, []);
-
-  const resetToolbarPos = useCallback(() => {
-    syncPos(getDefaultPos());
-  }, [syncPos]);
-
-  useEffect(() => {
-    const onResize = () => syncPos(posRef.current);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [syncPos]);
-
-  useEffect(() => {
-    if (!paletteOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      const root = rootRef.current;
-      if (!root) return;
-      if (!root.contains(e.target as Node)) setPaletteOpen(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [paletteOpen]);
-
-  useEffect(() => {
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPaletteOpen(false);
-    };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, []);
-
-  const handleGripPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    gripDragRef.current = {
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startPosX: posRef.current.x,
-      startPosY: posRef.current.y,
-    };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }, []);
-
-  const handleGripPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLButtonElement>) => {
-      const drag = gripDragRef.current;
-      if (!drag) return;
-      syncPos({
-        x: drag.startPosX + (e.clientX - drag.startClientX),
-        y: drag.startPosY + (e.clientY - drag.startClientY),
-      });
+  const handleGripPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      gripDragRef.current = {
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        startPosX: posRef.current.x,
+        startPosY: posRef.current.y,
+      };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [syncPos]
+    [] // no pos dependency — reads posRef.current directly
   );
+
+  const handleGripPointerMove = useCallback((e: React.PointerEvent) => {
+    const drag = gripDragRef.current;
+    if (!drag) return;
+    const newX = drag.startPosX + (e.clientX - drag.startClientX);
+    const newY = drag.startPosY + (e.clientY - drag.startClientY);
+    setPosSynced({
+      x: Math.max(0, newX),
+      y: Math.max(0, newY),
+    });
+  }, [setPosSynced]);
 
   const handleGripPointerUp = useCallback(() => {
     gripDragRef.current = null;
   }, []);
 
+  // Clamp position when window resizes
+  useEffect(() => {
+    const onResize = () => {
+      setPosSynced({
+        x: Math.max(0, Math.min(posRef.current.x, window.innerWidth - 352)),
+        y: Math.max(0, Math.min(posRef.current.y, window.innerHeight - 60)),
+      });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Close color popover on outside click
+  useEffect(() => {
+    if (!colorOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (colorInputRef.current && !colorInputRef.current.contains(target)) {
+        setColorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [colorOpen]);
+
   if (!selectedOverlay) return null;
 
   const isBold = selectedOverlay.fontWeight === "bold";
   const isItalic = selectedOverlay.fontStyle === "italic";
-  const isLocked = selectedOverlay.locked === true;
   const align = selectedOverlay.textAlign ?? "center";
   const color = selectedOverlay.color ?? "#ffffff";
-  const fontSize = Math.max(6, Math.round(selectedOverlay.fontSize ?? 32));
+  const fontSize = selectedOverlay.fontSize ?? 32;
+
+  // Extract a human-readable font name from the fontFamily string
   const fontName =
-    selectedOverlay.fontFamily?.split(",")[0]?.replace(/['"]/g, "").trim() ?? "Font";
-  const previewLabel = selectedOverlay.content?.trim()?.slice(0, 20) || "Text layer";
+    selectedOverlay.fontFamily
+      ?.split(",")[0]
+      ?.replace(/['"]/g, "")
+      ?.trim() ?? "Font";
 
-  const setAlign = (nextAlign: "left" | "center" | "right") => {
-    if (isLocked) return;
-    updateOverlay(selectedOverlay.id, { textAlign: nextAlign });
-  };
-
-  const toggleStyle = (key: "fontWeight" | "fontStyle") => {
-    if (isLocked) return;
-    if (key === "fontWeight") {
+  const toggle = (field: "fontWeight" | "fontStyle") => {
+    if (field === "fontWeight") {
       updateOverlay(selectedOverlay.id, { fontWeight: isBold ? "normal" : "bold" });
-      return;
+    } else {
+      updateOverlay(selectedOverlay.id, { fontStyle: isItalic ? "normal" : "italic" });
     }
-    updateOverlay(selectedOverlay.id, { fontStyle: isItalic ? "normal" : "italic" });
   };
 
-  const setFontSize = (value: number) => {
-    if (isLocked) return;
-    updateOverlay(selectedOverlay.id, { fontSize: Math.max(6, Math.min(400, value)) });
+  const setAlign = (a: "left" | "center" | "right") => {
+    updateOverlay(selectedOverlay.id, { textAlign: a });
+  };
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateOverlay(selectedOverlay.id, { color: e.target.value });
+  };
+
+  const handleFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v > 0) {
+      updateOverlay(selectedOverlay.id, { fontSize: v });
+    }
   };
 
   return (
     <div
-      ref={rootRef}
-      className={cn(
-        "fixed z-[140] flex max-w-[calc(100vw-24px)] items-center gap-2 overflow-visible rounded-2xl px-2.5 py-2 select-none",
-        "border border-white/15 bg-[linear-gradient(145deg,rgba(10,14,24,0.96),rgba(18,24,36,0.9))]",
-        "backdrop-blur-xl shadow-[0_16px_42px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]"
-      )}
+      className="fixed z-[100] flex h-10 items-center gap-0.5 px-2 rounded-2xl bg-[#1a1c23]/95 backdrop-blur-xl border border-white/10 shadow-2xl select-none"
       style={{ left: pos.x, top: pos.y }}
     >
-      <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-
-      <button
-        type="button"
-        title="Drag toolbar (double-click to reset position)"
-        aria-label="Drag toolbar"
+      {/* Grip */}
+      <div
+        className="flex items-center justify-center h-8 w-5 mr-0.5 text-white/25 hover:text-white/50 cursor-grab active:cursor-grabbing rounded-lg transition-colors"
         onPointerDown={handleGripPointerDown}
         onPointerMove={handleGripPointerMove}
         onPointerUp={handleGripPointerUp}
-        onDoubleClick={resetToolbarPos}
-        className={cn(
-          "inline-flex h-8 w-6 items-center justify-center rounded-lg text-zinc-400",
-          "cursor-grab active:cursor-grabbing hover:bg-white/10 hover:text-zinc-200",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-black/40"
-        )}
       >
-        <GripVertical className="h-4 w-4" />
-      </button>
-
-      <div className="hidden min-w-0 flex-col sm:flex">
-        <span className="max-w-[130px] truncate text-[11px] font-medium leading-none text-zinc-100">
-          {previewLabel}
-        </span>
-        <div className="mt-1 flex items-center gap-1.5">
-          <span className="max-w-[98px] truncate text-[10px] uppercase tracking-[0.12em] text-zinc-400">
-            {fontName}
-          </span>
-          {isLocked && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/25 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-200">
-              <Lock className="h-2.5 w-2.5" />
-              Locked
-            </span>
-          )}
-        </div>
+        <GripVertical className="h-3.5 w-3.5" />
       </div>
 
-      <Group>
-        <ToolbarBtn
-          active={isBold}
-          pressed={isBold}
-          disabled={isLocked}
-          title="Bold"
-          onClick={() => toggleStyle("fontWeight")}
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn
-          active={isItalic}
-          pressed={isItalic}
-          disabled={isLocked}
-          title="Italic"
-          onClick={() => toggleStyle("fontStyle")}
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-      </Group>
+      {/* Font name */}
+      <span className="text-[10px] text-white/40 max-w-[72px] truncate pr-1 hidden sm:block">
+        {fontName}
+      </span>
 
-      <Group>
-        <ToolbarBtn
-          active={align === "left"}
-          pressed={align === "left"}
-          disabled={isLocked}
-          title="Align left"
-          onClick={() => setAlign("left")}
-        >
-          <AlignLeft className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn
-          active={align === "center"}
-          pressed={align === "center"}
-          disabled={isLocked}
-          title="Align center"
-          onClick={() => setAlign("center")}
-        >
-          <AlignCenter className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn
-          active={align === "right"}
-          pressed={align === "right"}
-          disabled={isLocked}
-          title="Align right"
-          onClick={() => setAlign("right")}
-        >
-          <AlignRight className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-      </Group>
+      <Sep />
 
-      <Group className="gap-1.5 px-1.5">
-        <Type className="h-3.5 w-3.5 text-zinc-400" />
-        <button
-          type="button"
-          title="Decrease font size (Shift: -10)"
-          aria-label="Decrease font size"
-          disabled={isLocked}
-          onClick={(e) => setFontSize(fontSize - (e.shiftKey ? 10 : 1))}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-        <input
-          type="number"
-          min={6}
-          max={400}
-          step={1}
-          title="Font size"
-          aria-label="Font size"
-          value={fontSize}
-          disabled={isLocked}
-          onChange={(e) => {
-            const next = Number(e.target.value);
-            if (!Number.isNaN(next)) setFontSize(next);
-          }}
-          className={cn(
-            "h-7 w-12 rounded-md border border-white/20 bg-black/25 px-1 text-center text-xs tabular-nums text-zinc-100",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-            "disabled:opacity-40 disabled:cursor-not-allowed"
-          )}
-        />
-        <button
-          type="button"
-          title="Increase font size (Shift: +10)"
-          aria-label="Increase font size"
-          disabled={isLocked}
-          onClick={(e) => setFontSize(fontSize + (e.shiftKey ? 10 : 1))}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-      </Group>
+      {/* Bold / Italic */}
+      <ToolbarBtn active={isBold} onClick={() => toggle("fontWeight")} title="Bold">
+        <Bold className="h-3.5 w-3.5" />
+      </ToolbarBtn>
+      <ToolbarBtn active={isItalic} onClick={() => toggle("fontStyle")} title="Italic">
+        <Italic className="h-3.5 w-3.5" />
+      </ToolbarBtn>
 
+      <Sep />
+
+      {/* Color swatch */}
       <div className="relative">
         <button
           type="button"
           title="Text color"
-          aria-label="Text color"
-          disabled={isLocked}
-          onClick={() => setPaletteOpen((v) => !v)}
-          className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-black/20",
-            "hover:border-white/25 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-            "disabled:opacity-40 disabled:cursor-not-allowed"
-          )}
+          onClick={() => {
+            setColorOpen((v) => !v);
+            colorInputRef.current?.click();
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
         >
-          <Palette className="h-3.5 w-3.5 text-zinc-200" />
           <span
-            className="absolute bottom-1 h-1 w-4 rounded-full border border-white/15"
-            style={{ backgroundColor: color }}
+            className="h-4 w-4 rounded-sm border border-white/20 shadow-sm"
+            style={{ background: color }}
           />
         </button>
         <input
           ref={colorInputRef}
           type="color"
+          value={color}
+          onChange={handleColorChange}
           className="sr-only"
           tabIndex={-1}
-          value={color}
-          onChange={(e) => updateOverlay(selectedOverlay.id, { color: e.target.value })}
         />
-        {paletteOpen && (
-          <div
-            role="dialog"
-            aria-label="Text color palette"
-            className={cn(
-              "absolute left-1/2 top-[calc(100%+8px)] z-[160] -translate-x-1/2 rounded-xl border border-white/15 bg-[#0b1220]/95 p-2 backdrop-blur-xl",
-              "shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
-            )}
-          >
-            <div className="mb-2 grid grid-cols-4 gap-1.5">
-              {QUICK_COLORS.map((swatch) => (
-                <button
-                  key={swatch}
-                  type="button"
-                  aria-label={`Set color ${swatch}`}
-                  onClick={() => {
-                    updateOverlay(selectedOverlay.id, { color: swatch });
-                    setPaletteOpen(false);
-                  }}
-                  className={cn(
-                    "h-5 w-5 rounded-md border transition-transform hover:scale-105",
-                    swatch.toLowerCase() === color.toLowerCase()
-                      ? "border-primary ring-2 ring-primary/35"
-                      : "border-white/20"
-                  )}
-                  style={{ backgroundColor: swatch }}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => colorInputRef.current?.click()}
-              className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-zinc-200 hover:bg-white/10"
-            >
-              <Palette className="h-3 w-3" />
-              Custom color
-            </button>
-          </div>
-        )}
       </div>
 
-      <Group>
-        <ToolbarBtn title="Duplicate layer" onClick={() => duplicateOverlay(selectedOverlay.id)}>
-          <Copy className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn title="Reset toolbar position" onClick={resetToolbarPos}>
-          <RotateCcw className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-        <ToolbarBtn
-          danger
-          disabled={isLocked}
-          title="Delete layer"
-          onClick={() => removeOverlay(selectedOverlay.id)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </ToolbarBtn>
-      </Group>
+      {/* Font size */}
+      <input
+        type="number"
+        min={6}
+        max={400}
+        step={1}
+        value={Math.round(fontSize)}
+        onChange={handleFontSizeChange}
+        className="h-8 w-12 rounded-lg border border-white/10 bg-white/5 px-1.5 text-center text-xs text-white/80 focus:outline-none focus:ring-1 focus:ring-primary/50"
+        title="Font size"
+      />
+
+      <Sep />
+
+      {/* Alignment */}
+      <ToolbarBtn active={align === "left"} onClick={() => setAlign("left")} title="Align left">
+        <AlignLeft className="h-3.5 w-3.5" />
+      </ToolbarBtn>
+      <ToolbarBtn active={align === "center"} onClick={() => setAlign("center")} title="Align center">
+        <AlignCenter className="h-3.5 w-3.5" />
+      </ToolbarBtn>
+      <ToolbarBtn active={align === "right"} onClick={() => setAlign("right")} title="Align right">
+        <AlignRight className="h-3.5 w-3.5" />
+      </ToolbarBtn>
+
+      <Sep />
+
+      {/* Duplicate */}
+      <ToolbarBtn onClick={() => duplicateOverlay(selectedOverlay.id)} title="Duplicate">
+        <Copy className="h-3.5 w-3.5" />
+      </ToolbarBtn>
+
+      {/* Delete */}
+      <ToolbarBtn
+        danger
+        onClick={() => removeOverlay(selectedOverlay.id)}
+        title="Delete overlay"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </ToolbarBtn>
     </div>
   );
 }
