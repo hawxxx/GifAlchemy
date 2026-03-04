@@ -44,12 +44,12 @@ const TRACK_H = 34;
 // ─── Per-overlay colours ─────────────────────────────────────────────────────
 
 const COLORS = [
-  { bar: "bg-blue-500/75 border-blue-400/60", text: "text-white", dot: "bg-blue-400" },
-  { bar: "bg-violet-500/75 border-violet-400/60", text: "text-white", dot: "bg-violet-400" },
-  { bar: "bg-emerald-500/75 border-emerald-400/60", text: "text-white", dot: "bg-emerald-400" },
-  { bar: "bg-orange-500/75 border-orange-400/60", text: "text-white", dot: "bg-orange-400" },
-  { bar: "bg-rose-500/75 border-rose-400/60", text: "text-white", dot: "bg-rose-400" },
-  { bar: "bg-cyan-500/75 border-cyan-400/60", text: "text-white", dot: "bg-cyan-400" },
+  { bar: "bg-blue-400/55 border-blue-300/45", text: "text-white/95", dot: "bg-blue-300/80" },
+  { bar: "bg-violet-400/55 border-violet-300/45", text: "text-white/95", dot: "bg-violet-300/80" },
+  { bar: "bg-emerald-400/55 border-emerald-300/45", text: "text-white/95", dot: "bg-emerald-300/80" },
+  { bar: "bg-orange-400/55 border-orange-300/45", text: "text-white/95", dot: "bg-orange-300/80" },
+  { bar: "bg-rose-400/55 border-rose-300/45", text: "text-white/95", dot: "bg-rose-300/80" },
+  { bar: "bg-cyan-400/55 border-cyan-300/45", text: "text-white/95", dot: "bg-cyan-300/80" },
 ];
 const color = (i: number) => COLORS[i % COLORS.length];
 
@@ -116,11 +116,11 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
       style={{ left: `${pct}%`, height: totalH }}
     >
       {/* triangle notch */}
-      <div className="absolute -top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#ff5a67] drop-shadow-[0_0_6px_rgba(255,90,103,0.95)]" />
+      <div className="absolute -top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#ff6f61] drop-shadow-[0_0_4px_rgba(255,111,97,0.55)]" />
       {/* vertical glow + core line */}
-      <div className="absolute top-0 left-1/2 h-full w-[3px] -translate-x-[1.5px] bg-[#ff5a67]/35 blur-[0.3px]" />
+      <div className="absolute top-0 left-1/2 h-full w-[3px] -translate-x-[1.5px] bg-[#ff6f61]/18 blur-[0.4px]" />
       <div className="absolute top-0 left-1/2 h-full w-px -translate-x-px bg-white/95" />
-      <div className="absolute top-0 left-1/2 h-full w-px -translate-x-px bg-[#ff5a67]/90" />
+      <div className="absolute top-0 left-1/2 h-full w-px -translate-x-px bg-[#ff6f61]/85" />
     </div>
   );
 }
@@ -608,13 +608,13 @@ export function TimelinePanel() {
   }
 
   return (
-    <div className="flex h-full select-none flex-col overflow-hidden border-t border-white/10 bg-[linear-gradient(180deg,rgba(36,41,53,0.9)_0%,rgba(27,31,41,0.92)_100%)]">
+    <div className="flex h-full select-none flex-col overflow-hidden border-t border-white/10 bg-[linear-gradient(180deg,rgba(28,33,43,0.94)_0%,rgba(21,25,33,0.96)_100%)]">
       {/* ── Controls bar ─────────────────────────────────────────────────── */}
-      <div className="flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/20 px-3 backdrop-blur-[2px]">
+      <div className="flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/25 px-3 backdrop-blur-[1px]">
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg transition-colors duration-150 hover:bg-white/15"
+          className="h-7 w-7 rounded-md transition-colors duration-150 hover:bg-white/12"
           onClick={togglePlay}
           aria-label={isPlaying ? "Pause" : "Play"}
         >
@@ -624,18 +624,18 @@ export function TimelinePanel() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg transition-colors duration-150 hover:bg-white/15"
+          className="h-7 w-7 rounded-md transition-colors duration-150 hover:bg-white/12"
           onClick={stop}
           aria-label="Stop"
         >
           <Square className="h-3 w-3" />
         </Button>
 
-        <span className="text-xs tabular-nums text-muted-foreground ml-1">
+        <span className="ml-1 text-xs tabular-nums text-muted-foreground/95">
           {formatTime(currentFrameIndex, avgDelay)}&nbsp;/&nbsp;
           {formatTime(frameCount - 1, avgDelay)}
         </span>
-        <span className="text-xs text-muted-foreground/60">
+        <span className="text-xs text-muted-foreground/70">
           ({currentFrameIndex + 1} / {frameCount})
         </span>
 
@@ -646,7 +646,7 @@ export function TimelinePanel() {
           A/D: prev/next
         </span>
 
-        <span className="text-xs text-muted-foreground/80 ml-2">
+        <span className="ml-2 text-xs text-muted-foreground/85">
           Speed {playbackRate}x
         </span>
 
@@ -657,10 +657,10 @@ export function TimelinePanel() {
               variant="ghost"
               size="sm"
               className={cn(
-                "h-6 min-w-7 rounded text-xs tabular-nums transition-colors duration-150",
+                "h-6 min-w-7 rounded-md text-xs tabular-nums transition-colors duration-150",
                 playbackRate === rate
-                  ? "bg-primary text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.16)_inset] hover:bg-primary/90"
-                  : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                  ? "bg-primary/90 text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.12)_inset] hover:bg-primary/85"
+                  : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
               )}
               onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: rate })}
               title={`Playback speed ${rate}×`}
@@ -669,10 +669,10 @@ export function TimelinePanel() {
             </Button>
           ))}
         </div>
-        <div className="ml-2 flex items-center gap-1 rounded-lg border border-white/15 bg-black/20 px-1.5 py-0.5">
+        <div className="ml-2 flex items-center gap-1 rounded-md border border-white/12 bg-black/25 px-1.5 py-0.5">
           <button
             type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() => applyTimelineZoom(Math.round((timelineZoom - 0.25) * 20) / 20)}
             disabled={timelineZoom <= 1}
             title="Zoom out timeline"
@@ -688,12 +688,12 @@ export function TimelinePanel() {
             onValueChange={([v]) => {
               if (v !== undefined && Number.isFinite(v)) applyTimelineZoom(v);
             }}
-            className="w-20 [&_[data-slot=range]]:bg-primary/90 [&_[data-slot=thumb]]:h-3.5 [&_[data-slot=thumb]]:w-3.5 [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/20"
+            className="w-20 [&_[data-slot=range]]:bg-primary/80 [&_[data-slot=thumb]]:h-3.5 [&_[data-slot=thumb]]:w-3.5 [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/18"
             aria-label="Timeline zoom"
           />
           <button
             type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             onClick={() => applyTimelineZoom(Math.round((timelineZoom + 0.25) * 20) / 20)}
             disabled={timelineZoom >= 4}
             title="Zoom in timeline"
@@ -701,14 +701,14 @@ export function TimelinePanel() {
           >
             <Plus className="h-3 w-3" />
           </button>
-          <span className="min-w-7 rounded bg-white/15 px-1 py-0.5 text-center text-[10px] font-medium tabular-nums text-muted-foreground">
+          <span className="min-w-7 rounded bg-white/10 px-1 py-0.5 text-center text-[10px] font-medium tabular-nums text-muted-foreground">
             {timelineZoom === 1 ? "1×" : `${parseFloat(timelineZoom.toFixed(1))}×`}
           </span>
-          <div className="mx-0.5 h-3 w-px bg-white/20" />
+          <div className="mx-0.5 h-3 w-px bg-white/15" />
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 rounded px-2 text-[10px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground"
+            className="h-6 rounded-md px-2 text-[10px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
             onClick={fitTimelineZoom}
             title="Fit timeline to trimmed range"
           >
@@ -723,7 +723,7 @@ export function TimelinePanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 rounded-lg text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground"
+              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
               onClick={copyKeyframeAtCurrentFrame}
               disabled={!selectedFrameKeyframe || selectedOverlay.locked}
               title="Copy keyframe at current frame"
@@ -734,7 +734,7 @@ export function TimelinePanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 rounded-lg text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground"
+              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
               onClick={pasteKeyframeAtCurrentFrame}
               disabled={!copiedKeyframe || selectedOverlay.locked}
               title="Paste copied keyframe to current frame"
@@ -745,7 +745,7 @@ export function TimelinePanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 rounded-lg text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground"
+              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
               onClick={() => duplicateOverlay(selectedOverlay.id)}
               title="Duplicate selected layer"
             >
@@ -755,7 +755,7 @@ export function TimelinePanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1.5 rounded-lg text-xs text-destructive transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+              className="h-7 gap-1.5 rounded-md text-xs text-destructive transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
               onClick={() => removeOverlay(selectedOverlay.id)}
               disabled={selectedOverlay.locked}
               title="Remove selected layer"
@@ -769,7 +769,7 @@ export function TimelinePanel() {
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 rounded-lg text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/15 hover:text-foreground"
+          className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
           onClick={addOverlay}
           disabled={frameCount === 0}
           title="Add text layer"
@@ -783,17 +783,17 @@ export function TimelinePanel() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Label column */}
         <div
-          className="flex flex-col shrink-0 border-r border-white/10 bg-black/10"
+          className="flex flex-col shrink-0 border-r border-white/10 bg-black/15"
           style={{ width: LABEL_W }}
         >
           {/* Thumbnail row label */}
           <div
-            className="border-b border-white/10 bg-white/[0.06]"
+            className="border-b border-white/10 bg-white/[0.04]"
             style={{ height: THUMB_ROW_H }}
           />
           {/* Ruler label */}
           <div
-            className="border-b border-white/10 bg-white/[0.08]"
+            className="border-b border-white/10 bg-white/[0.05]"
             style={{ height: RULER_H }}
           />
           {/* Per-overlay labels */}
@@ -808,8 +808,8 @@ export function TimelinePanel() {
                 className={cn(
                   "group flex cursor-pointer items-center gap-2 border-b border-white/[0.08] px-2.5 transition-colors duration-150",
                   isSelected
-                    ? "bg-primary/[0.16] shadow-[inset_3px_0_0_rgba(255,255,255,0.4)]"
-                    : "hover:bg-white/[0.07]",
+                    ? "bg-primary/[0.14] shadow-[inset_2px_0_0_rgba(255,255,255,0.35)]"
+                    : "hover:bg-white/[0.05]",
                   isHidden && "opacity-55",
                   isLocked && "bg-amber-500/5"
                 )}
@@ -821,7 +821,7 @@ export function TimelinePanel() {
                 <span className="text-xs truncate text-foreground leading-none">
                   {overlay.content || "Text"}
                 </span>
-                <div className="flex items-center gap-0.5 rounded-full border border-white/15 bg-black/35 p-0.5 opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                <div className="flex items-center gap-0.5 rounded-full border border-white/12 bg-black/35 p-0.5 opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                   <button
                     type="button"
                     className={cn(
@@ -964,7 +964,7 @@ export function TimelinePanel() {
         {/* Track area — ruler + tracks stacked, playhead absolute over both */}
         <div
           ref={scrollViewportRef}
-          className="relative flex-1 min-w-0 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)]"
+          className="relative flex-1 min-w-0 overflow-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.025)_0%,rgba(255,255,255,0.012)_100%)]"
         >
           <div
             ref={trackRef}
@@ -976,7 +976,7 @@ export function TimelinePanel() {
           >
           {/* Frame thumbnails — click to seek; trim range dimmed, draggable handles */}
           <div
-            className="relative flex shrink-0 overflow-hidden border-b border-white/10 bg-white/[0.08]"
+            className="relative flex shrink-0 overflow-hidden border-b border-white/10 bg-white/[0.05]"
             style={{ height: THUMB_ROW_H }}
             onPointerMove={handleTrimMove}
             onPointerUp={handleTrimUp}
@@ -988,9 +988,9 @@ export function TimelinePanel() {
                 type="button"
                 onClick={() => dispatch({ type: "SET_FRAME", payload: frameIndex })}
                 className={cn(
-                  "flex-shrink-0 border-r border-white/20 last:border-r-0 transition-[filter,box-shadow,opacity] duration-150 hover:brightness-110 focus:outline-none focus:ring-1 focus:ring-primary/70",
+                  "flex-shrink-0 border-r border-white/15 last:border-r-0 transition-[filter,box-shadow,opacity] duration-150 hover:brightness-105 focus:outline-none focus:ring-1 focus:ring-primary/70",
                   currentFrameIndex === frameIndex &&
-                    "opacity-100 ring-2 ring-primary ring-inset shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]"
+                    "opacity-100 ring-2 ring-primary/85 ring-inset shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)]"
                 )}
                 style={{
                   width: thumbnails.length > 0 ? `${100 / thumbnails.length}%` : undefined,
@@ -1018,7 +1018,7 @@ export function TimelinePanel() {
             {/* Draggable trim start handle */}
             {frameCount > 1 && (
               <div
-                className="absolute top-0 bottom-0 w-1.5 z-20 cursor-ew-resize bg-primary border-x border-primary-foreground/30 hover:w-2 hover:bg-primary/90"
+                className="absolute top-0 bottom-0 z-20 w-1.5 cursor-ew-resize border-x border-primary-foreground/30 bg-primary/95 hover:w-2 hover:bg-primary/85"
                 style={{ left: `${trimStartPct}%`, transform: "translateX(-50%)" }}
                 onPointerDown={(e) => handleTrimHandleDown(e, "start")}
                 title="Trim start — drag to adjust"
@@ -1027,7 +1027,7 @@ export function TimelinePanel() {
             {/* Draggable trim end handle */}
             {frameCount > 1 && (
               <div
-                className="absolute top-0 bottom-0 w-1.5 z-20 cursor-ew-resize bg-primary border-x border-primary-foreground/30 hover:w-2 hover:bg-primary/90"
+                className="absolute top-0 bottom-0 z-20 w-1.5 cursor-ew-resize border-x border-primary-foreground/30 bg-primary/95 hover:w-2 hover:bg-primary/85"
                 style={{ left: `${trimEndPct}%`, transform: "translateX(-50%)" }}
                 onPointerDown={(e) => handleTrimHandleDown(e, "end")}
                 title="Trim end — drag to adjust"
@@ -1037,7 +1037,7 @@ export function TimelinePanel() {
 
           {/* Ruler */}
           <div
-            className="relative overflow-hidden border-b border-white/10 bg-white/[0.1]"
+            className="relative overflow-hidden border-b border-white/10 bg-white/[0.06]"
             style={{ height: RULER_H }}
           >
             {rulerTicks.map((tick) => {
@@ -1052,12 +1052,12 @@ export function TimelinePanel() {
                   <span
                     className={cn(
                       "mt-[3px] text-[9px] leading-none",
-                      isMajor ? "text-foreground/80" : "text-muted-foreground/75"
+                      isMajor ? "text-foreground/75" : "text-muted-foreground/70"
                     )}
                   >
                     {tick}
                   </span>
-                  <div className={cn("mt-[3px] w-px", isMajor ? "h-[9px] bg-white/65" : "h-[6px] bg-white/45")} />
+                  <div className={cn("mt-[3px] w-px", isMajor ? "h-[9px] bg-white/50" : "h-[6px] bg-white/35")} />
                 </div>
               );
             })}
@@ -1080,7 +1080,7 @@ export function TimelinePanel() {
                 key={overlay.id}
                 className={cn(
                   "relative border-b border-white/[0.08] transition-colors duration-150",
-                  isSelected ? "bg-primary/[0.12]" : "hover:bg-white/[0.06]"
+                  isSelected ? "bg-primary/[0.1]" : "hover:bg-white/[0.04]"
                 )}
                 style={{ height: TRACK_H }}
                 onClick={(e) => handleOverlaySelect(overlay.id, e.metaKey || e.ctrlKey)}
@@ -1088,9 +1088,9 @@ export function TimelinePanel() {
                 {/* Overlay duration bar */}
                 <div
                   className={cn(
-                    "absolute bottom-[5px] top-[5px] flex cursor-grab items-center overflow-hidden rounded-md border px-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.25)] transition-[filter,box-shadow] duration-150 active:cursor-grabbing hover:brightness-110",
+                    "absolute bottom-[5px] top-[5px] flex cursor-grab items-center overflow-hidden rounded-md border px-1.5 shadow-[0_1px_5px_rgba(0,0,0,0.22)] transition-[filter,box-shadow] duration-150 active:cursor-grabbing hover:brightness-105",
                     isLocked && "cursor-not-allowed active:cursor-not-allowed",
-                    isSelected && "shadow-[0_0_0_1px_rgba(255,255,255,0.45),0_4px_14px_rgba(0,0,0,0.3)]",
+                    isSelected && "shadow-[0_0_0_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(0,0,0,0.26)]",
                     c.bar
                   )}
                   style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
@@ -1101,14 +1101,14 @@ export function TimelinePanel() {
                   {!isLocked && (
                     <>
                       <div
-                        className="absolute bottom-0 left-0 top-0 z-10 w-2 cursor-ew-resize border-r border-white/35 bg-black/20 transition-colors duration-150 hover:bg-black/35"
+                        className="absolute bottom-0 left-0 top-0 z-10 w-2 cursor-ew-resize border-r border-white/28 bg-black/18 transition-colors duration-150 hover:bg-black/30"
                         onPointerDown={(e) => handleBarTrimDown(e, overlay, "start")}
                         onPointerMove={(e) => handleBarTrimMove(e, overlay)}
                         onPointerUp={handleBarTrimUp}
                         title="Trim layer start"
                       />
                       <div
-                        className="absolute bottom-0 right-0 top-0 z-10 w-2 cursor-ew-resize border-l border-white/35 bg-black/20 transition-colors duration-150 hover:bg-black/35"
+                        className="absolute bottom-0 right-0 top-0 z-10 w-2 cursor-ew-resize border-l border-white/28 bg-black/18 transition-colors duration-150 hover:bg-black/30"
                         onPointerDown={(e) => handleBarTrimDown(e, overlay, "end")}
                         onPointerMove={(e) => handleBarTrimMove(e, overlay)}
                         onPointerUp={handleBarTrimUp}
@@ -1167,8 +1167,8 @@ export function TimelinePanel() {
                           className={cn(
                             "absolute top-1/2 z-10 -translate-y-1/2 rotate-45 border transition-[transform,background-color,border-color] duration-150",
                             isTweened
-                              ? "h-[5px] w-[5px] border-white/35 bg-white/55"
-                              : "h-[9px] w-[9px] border-white/50 bg-white/95 shadow-[0_0_0_1px_rgba(0,0,0,0.2)]",
+                              ? "h-[5px] w-[5px] border-white/28 bg-white/42"
+                              : "h-[9px] w-[9px] border-white/45 bg-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.22)]",
                             isLocked
                               ? "cursor-not-allowed"
                               : "cursor-ew-resize hover:border-yellow-400 hover:bg-yellow-200",
@@ -1219,7 +1219,7 @@ export function TimelinePanel() {
                           type="button"
                           className={cn(
                             "absolute top-[3px] -translate-x-1/2 rounded-sm border px-1 py-px text-[8px] leading-none transition-colors duration-150",
-                            "border-white/30 bg-black/35 text-white/95 hover:bg-black/55",
+                            "border-white/24 bg-black/40 text-white/90 hover:bg-black/56",
                             overlay.locked && "cursor-not-allowed opacity-60"
                           )}
                           style={{ left: `${midPct}%` }}
@@ -1258,7 +1258,7 @@ export function TimelinePanel() {
               onClick={() => setTweenPopover(null)}
             />
             <div
-              className="fixed z-[200] bg-popover border border-border rounded-lg shadow-xl p-3 flex flex-col gap-2 min-w-[160px]"
+              className="fixed z-[200] flex min-w-[160px] flex-col gap-2 rounded-lg border border-border bg-popover p-3 shadow-lg"
               style={{ top: tweenPopover.rect.top, left: tweenPopover.rect.left }}
               onPointerDown={(e) => e.stopPropagation()}
             >
@@ -1271,7 +1271,7 @@ export function TimelinePanel() {
                     key={value}
                     type="button"
                     className={cn(
-                      "text-left text-xs px-2 py-1 rounded transition-colors",
+                      "rounded px-2 py-1 text-left text-xs transition-colors",
                       tweenPopover.easing === value
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-muted text-foreground"
@@ -1282,10 +1282,10 @@ export function TimelinePanel() {
                   </button>
                 ))}
               </div>
-              <div className="flex flex-col gap-1 pt-1 border-t border-border/40">
+              <div className="flex flex-col gap-1 border-t border-border/40 pt-1">
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="flex items-center gap-1.5 rounded bg-primary px-2 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
                   onClick={() => {
                     if (!popoverOverlay) return;
                     handleApplyTween(popoverOverlay, tweenPopover.easing);
@@ -1297,7 +1297,7 @@ export function TimelinePanel() {
                 {hasTweens && (
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded text-destructive hover:bg-destructive/10 transition-colors"
+                    className="rounded px-2 py-1 text-xs text-destructive transition-colors hover:bg-destructive/10"
                     onClick={() => {
                       if (!popoverOverlay) return;
                       handleClearTweens(popoverOverlay);

@@ -40,7 +40,7 @@ function SaveIndicator({ status }: { status: EditorTopBarProps["saveStatus"] }) 
   if (status === "idle") return null;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full border border-border/55 bg-background/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground"
+      className="inline-flex items-center gap-1 rounded-full border border-border/45 bg-background/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors duration-150"
       aria-live="polite"
     >
       {status === "saving" && (
@@ -162,25 +162,25 @@ export function EditorTopBar({
   return (
     <header
       className={cn(
-        "relative z-20 shrink-0 border-b border-border/55",
-        "bg-card/86 backdrop-blur-xl supports-[backdrop-filter]:bg-card/72 transition-colors duration-200",
-        "flex h-auto flex-wrap items-center gap-2 px-3 py-2 sm:px-4",
+        "relative z-20 shrink-0 border-b border-border/35",
+        "bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/64 transition-colors duration-200",
+        "flex h-auto flex-wrap items-center gap-2.5 px-3 py-2.5 sm:px-4",
         className
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Link
           href="/"
           aria-label={EDITOR_LABELS.topBar.logo}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/55 bg-background/75 px-2.5 py-1.5 text-foreground transition-colors duration-120 hover:bg-background/95"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/45 bg-background/75 px-2.5 py-1.5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 hover:border-border/60 hover:bg-background/90"
         >
-          <Sparkles className="h-[18px] w-[18px] text-primary/85" />
-          <span className="text-[13px] font-semibold tracking-[0.01em]">GifAlchemy</span>
+          <Sparkles className="h-4 w-4 text-primary/85" />
+          <span className="text-[13px] font-semibold tracking-[0.02em]">GifAlchemy</span>
         </Link>
 
-        <div className="h-6 w-px shrink-0 bg-border/50" />
+        <div className="h-6 w-px shrink-0 bg-border/35" />
 
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-transparent px-0.5 py-0.5">
           {editing ? (
             <input
               ref={inputRef}
@@ -192,14 +192,14 @@ export function EditorTopBar({
                 if (e.key === "Enter") commitEdit();
                 if (e.key === "Escape") setEditing(false);
               }}
-              className="min-w-0 max-w-[170px] rounded-lg border border-border/60 bg-background/70 px-2 py-1 text-sm font-medium tracking-[0.01em] outline-none transition-colors duration-120 focus:ring-2 focus:ring-ring/40 sm:max-w-[240px]"
+              className="min-w-0 max-w-[170px] rounded-lg border border-border/50 bg-background/70 px-2.5 py-1 text-sm font-medium tracking-[0.01em] text-foreground outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 focus:border-border/70 focus:ring-2 focus:ring-ring/35 sm:max-w-[240px]"
               autoFocus
             />
           ) : (
             <button
               onClick={startEdit}
               title={EDITOR_LABELS.topBar.rename}
-              className="max-w-[170px] truncate rounded-lg px-2 py-1 text-sm font-semibold tracking-[0.01em] text-foreground transition-colors duration-120 hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-w-[240px]"
+              className="max-w-[170px] truncate rounded-lg px-2.5 py-1 text-sm font-semibold tracking-[0.01em] text-foreground/95 transition-all duration-150 hover:bg-background/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 sm:max-w-[240px]"
             >
               {projectName}
             </button>
@@ -208,15 +208,15 @@ export function EditorTopBar({
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-xl border border-border/55 bg-background/66 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors duration-200">
+      <div className="ml-auto flex items-center gap-2.5">
+        <div className="flex items-center gap-1 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 rounded-lg gap-1.5 px-2 text-xs text-muted-foreground transition-colors duration-120 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
             onClick={openShortcuts}
           >
-            <Keyboard className="h-[18px] w-[18px]" />
+            <Keyboard className="h-4 w-4" />
             <span className="hidden lg:inline">{EDITOR_LABELS.shortcuts.button}</span>
           </Button>
 
@@ -225,9 +225,9 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-lg gap-1.5 px-2 text-xs text-muted-foreground transition-colors duration-120 hover:text-foreground"
+                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground"
               >
-                <History className="h-[18px] w-[18px]" />
+                <History className="h-4 w-4" />
                 <span className="hidden lg:inline">{EDITOR_LABELS.topBar.recent}</span>
               </Button>
             </DropdownMenuTrigger>
@@ -261,9 +261,9 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-lg gap-1.5 px-2 text-xs text-muted-foreground transition-colors duration-120 hover:text-foreground"
+                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground"
               >
-                <Clock3 className="h-[18px] w-[18px]" />
+                <Clock3 className="h-4 w-4" />
                 <span className="hidden lg:inline">{EDITOR_LABELS.topBar.history}</span>
               </Button>
             </DropdownMenuTrigger>
@@ -300,28 +300,28 @@ export function EditorTopBar({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-0.5 rounded-xl border border-border/55 bg-background/66 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors duration-200">
+        <div className="flex items-center gap-0.5 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground transition-colors duration-120 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
             disabled={!canUndo}
             onClick={undo}
             aria-label="Undo"
             title="Undo (Ctrl/Cmd+Z)"
           >
-            <Undo2 className="h-[18px] w-[18px]" />
+            <Undo2 className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground transition-colors duration-120 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
             disabled={!canRedo}
             onClick={redo}
             aria-label="Redo"
             title="Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y)"
           >
-            <Redo2 className="h-[18px] w-[18px]" />
+            <Redo2 className="h-4 w-4" />
           </Button>
         </div>
 

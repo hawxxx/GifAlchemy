@@ -54,9 +54,9 @@ export function PropertiesPanel({
     activeTool !== "batch";
 
   const sectionCardClass =
-    "content-visibility-auto rounded-xl border border-border/60 bg-gradient-to-b from-background/86 via-background/72 to-background/58 p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.36),inset_0_-1px_0_0_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),inset_0_-1px_0_0_rgba(0,0,0,0.22)]";
+    "content-visibility-auto relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-background/94 via-background/88 to-background/82 p-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.45),inset_0_1px_0_0_rgba(255,255,255,0.45),inset_0_-1px_0_0_rgba(15,23,42,0.05)] dark:shadow-[0_14px_30px_-24px_rgba(2,6,23,0.7),inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_-1px_0_0_rgba(0,0,0,0.24)]";
   const sectionTitleClass =
-    "mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/82";
+    "mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72";
 
   return (
     <aside
@@ -77,45 +77,49 @@ export function PropertiesPanel({
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72">
               Inspector
             </p>
-            <h2 className="mt-1.5 text-base font-semibold tracking-tight text-foreground">
+            <h2 className="mt-1.5 text-[17px] font-semibold leading-tight tracking-[-0.012em] text-foreground">
               {activeToolTitle}
             </h2>
           </div>
           {metadata && (
-            <p className="text-[11px] font-medium tabular-nums text-muted-foreground/90">
+            <p className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground/92 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35)]">
               {metadata.width}×{metadata.height}
             </p>
           )}
         </div>
       </div>
 
-      <div className="relative flex flex-col gap-4 p-4">
+      <div className="relative flex flex-col gap-3.5 p-4">
         <section className={sectionCardClass}>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+          />
           <h3 className={sectionTitleClass}>
             File info
           </h3>
           {metadata ? (
-            <ul className="space-y-2 text-[13px] leading-5">
+            <ul className="space-y-2.5 text-[13px] leading-5">
               <li className="flex items-baseline justify-between gap-3">
-                <span className="text-muted-foreground/85">Dimensions</span>
-                <span className="font-medium tabular-nums text-foreground">
+                <span className="text-muted-foreground/78">Dimensions</span>
+                <span className="font-medium tabular-nums tracking-[0.01em] text-foreground">
                   {metadata.width} x {metadata.height}
                 </span>
               </li>
               <li className="flex items-baseline justify-between gap-3">
-                <span className="text-muted-foreground/85">Frames</span>
-                <span className="font-medium tabular-nums text-foreground">
+                <span className="text-muted-foreground/78">Frames</span>
+                <span className="font-medium tabular-nums tracking-[0.01em] text-foreground">
                   {metadata.frameCount}
                 </span>
               </li>
               <li className="flex items-baseline justify-between gap-3">
-                <span className="text-muted-foreground/85">Size</span>
-                <span className="font-medium tabular-nums text-foreground">
+                <span className="text-muted-foreground/78">Size</span>
+                <span className="font-medium tabular-nums tracking-[0.01em] text-foreground">
                   {formatBytes(metadata.fileSize)}
                 </span>
               </li>
               <li
-                className="truncate pt-0.5 text-xs text-muted-foreground/95"
+                className="truncate pt-1 text-[11px] tracking-[0.01em] text-muted-foreground/86"
                 title={metadata.fileName}
               >
                 {metadata.fileName}
@@ -127,6 +131,10 @@ export function PropertiesPanel({
         </section>
 
         <section className={sectionCardClass}>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+          />
           <h3 className={sectionTitleClass}>
             Active tool
           </h3>
@@ -150,10 +158,14 @@ export function PropertiesPanel({
         </section>
 
         <section className={sectionCardClass}>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+          />
           <h3 className={sectionTitleClass}>
             Output preset
           </h3>
-          <p className="text-sm leading-relaxed text-muted-foreground/92">
+          <p className="text-[13px] leading-relaxed text-muted-foreground/88">
             Output size is set in the Resize tool. Format: {outputSettings.format}.
           </p>
         </section>

@@ -57,11 +57,11 @@ function ToolbarBtn({
       onClick={onClick}
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded-lg border border-transparent transition-all duration-150 ease-out active:scale-[0.97]",
-        "text-white/70 hover:border-white/20 hover:bg-white/12 hover:text-white",
+        "text-white/68 hover:border-white/20 hover:bg-white/[0.09] hover:text-white",
         active &&
-          "border-primary/40 bg-primary/18 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]",
+          "border-primary/45 bg-primary/15 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)]",
         danger &&
-          "hover:border-destructive/45 hover:bg-destructive/16 hover:text-destructive"
+          "hover:border-destructive/48 hover:bg-destructive/14 hover:text-destructive"
       )}
     >
       {children}
@@ -72,12 +72,12 @@ function ToolbarBtn({
 // ─── Separator ────────────────────────────────────────────────────────────────
 
 function Sep() {
-  return <div className="mx-1 h-6 w-px bg-white/14" />;
+  return <div className="mx-0.5 h-6 w-px bg-white/10" />;
 }
 
 function ControlGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-xl border border-white/12 bg-white/[0.04] px-1 py-0.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.11)]">
+    <div className="flex items-center gap-0.5 rounded-xl border border-white/12 bg-white/[0.035] px-1 py-0.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)]">
       {children}
     </div>
   );
@@ -205,18 +205,22 @@ export function FloatingTextToolbar() {
 
   return (
     <div
-      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/18 bg-slate-900/60 p-1.5 text-white shadow-[0_18px_42px_-26px_rgba(2,6,23,0.95),0_0_0_1px_rgba(255,255,255,0.08),0_0_30px_-20px_rgba(56,189,248,0.72)] backdrop-blur-2xl supports-[backdrop-filter]:bg-slate-900/52 select-none"
+      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/16 bg-slate-950/60 p-1.5 text-white shadow-[0_20px_46px_-30px_rgba(2,6,23,0.9),0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-2xl supports-[backdrop-filter]:bg-slate-950/50 select-none"
       style={{ left: pos.x, top: pos.y }}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/16"
+        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/14"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent"
       />
 
       {/* Grip */}
       <ControlGroup>
         <div
-          className="flex h-8 w-5 items-center justify-center rounded-lg text-white/30 transition-colors hover:text-white/60 cursor-grab active:cursor-grabbing"
+          className="flex h-8 w-5 cursor-grab items-center justify-center rounded-lg text-white/30 transition-colors hover:text-white/62 active:cursor-grabbing"
           onPointerDown={handleGripPointerDown}
           onPointerMove={handleGripPointerMove}
           onPointerUp={handleGripPointerUp}
@@ -279,7 +283,7 @@ export function FloatingTextToolbar() {
           step={1}
           value={Math.round(fontSize)}
           onChange={handleFontSizeChange}
-          className="h-8 w-12 rounded-lg border border-white/14 bg-black/25 px-1.5 text-center text-[11px] font-medium text-white/85 [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-primary/45 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-8 w-12 rounded-lg border border-white/14 bg-black/22 px-1.5 text-center text-[11px] font-medium text-white/86 [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-primary/45 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           title="Font size"
         />
       </ControlGroup>

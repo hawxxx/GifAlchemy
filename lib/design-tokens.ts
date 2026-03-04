@@ -1,14 +1,14 @@
 export const colors = {
-  background0: "#0B0E11",
-  background1: "#10141A",
-  background2: "#151A21",
-  panel: "#1A2028",
-  borderSubtle: "rgba(255, 255, 255, 0.06)",
-  borderStrong: "rgba(255, 255, 255, 0.12)",
-  accentPrimary: "#5B8CFF",
-  accentSecondary: "#7C9BFF",
+  background0: "#0D1014",
+  background1: "#12171D",
+  background2: "#171D25",
+  panel: "#1B222C",
+  borderSubtle: "rgba(255, 255, 255, 0.08)",
+  borderStrong: "rgba(255, 255, 255, 0.16)",
+  accentPrimary: "#7098EF",
+  accentSecondary: "#87A7F4",
   foreground: "#E8EDF5",
-  mutedForeground: "#8F9DB1",
+  mutedForeground: "#95A2B3",
   destructive: "#D86868",
 } as const;
 
@@ -34,8 +34,8 @@ export const spacing = {
 } as const;
 
 export const motion = {
-  durationFast: "140ms",
-  durationNormal: "180ms",
+  durationFast: "130ms",
+  durationNormal: "170ms",
   durationUI: "200ms",
   durationSlow: "260ms",
   durationEmphasis: "320ms",

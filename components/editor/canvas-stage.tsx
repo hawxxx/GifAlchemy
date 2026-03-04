@@ -190,7 +190,7 @@ function EmptyUploadView({
   );
 }
 
-const CHECKERBOARD = "repeating-conic-gradient(#1a1a1e 0% 25%, #242428 0% 50%) 50% / 16px 16px";
+const CHECKERBOARD = "repeating-conic-gradient(#17191e 0% 25%, #1f2228 0% 50%) 50% / 16px 16px";
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.05;
@@ -576,7 +576,7 @@ export function CanvasStage() {
       ref={containerRef}
       className={cn(
         "relative flex h-full items-center justify-center overflow-hidden rounded-xl",
-        isPreviewMode ? "bg-black" : "bg-[#090b11]"
+        isPreviewMode ? "bg-black" : "bg-[#080a10]"
       )}
       onPointerDown={handlePanStart}
       onPointerMove={(e) => {
@@ -597,34 +597,43 @@ export function CanvasStage() {
       {!isPreviewMode && (
         <>
           <div
-            className="pointer-events-none absolute inset-0 rounded-xl opacity-60"
+            className="pointer-events-none absolute inset-0 rounded-xl opacity-45"
             style={{
               backgroundImage:
-                "linear-gradient(180deg, rgba(20,24,33,0.92), rgba(9,11,17,0.96)), linear-gradient(rgba(130,148,178,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(130,148,178,0.08) 1px, transparent 1px)",
-              backgroundSize: "100% 100%, 20px 20px, 20px 20px",
+                "linear-gradient(180deg, rgba(15,18,26,0.9), rgba(8,10,16,0.95)), linear-gradient(rgba(122,138,162,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(122,138,162,0.06) 1px, transparent 1px)",
+              backgroundSize: "100% 100%, 24px 24px, 24px 24px",
             }}
           />
           <div
             className="pointer-events-none absolute inset-0 rounded-xl"
             style={{
               background:
-                "radial-gradient(circle at 50% 46%, rgba(180,205,235,0.1) 0%, rgba(10,13,19,0.35) 52%, rgba(4,5,8,0.82) 100%)",
+                "radial-gradient(circle at 50% 48%, rgba(176,198,230,0.12) 0%, rgba(15,18,26,0.28) 50%, rgba(4,6,10,0.74) 100%)",
             }}
           />
         </>
       )}
       <div
-        className="relative overflow-visible rounded-[10px] border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.07)_inset] transition-shadow duration-200"
+        className="relative overflow-visible rounded-[10px] border border-white/12 shadow-[0_16px_46px_rgba(0,0,0,0.46),0_1px_0_rgba(255,255,255,0.05)_inset] transition-shadow duration-200"
         style={{
           background: isPreviewMode ? "#0a0a0a" : CHECKERBOARD,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "center center",
         }}
       >
+        {!isPreviewMode && (
+          <div
+            className="pointer-events-none absolute -inset-10 rounded-[18px] -z-10"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 50%, rgba(148,170,204,0.18) 0%, rgba(66,78,98,0.12) 35%, rgba(12,14,20,0) 72%)",
+            }}
+          />
+        )}
         <div
           className="pointer-events-none absolute inset-0 rounded-[10px]"
           style={{
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 40px rgba(16,24,36,0.42)",
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.045), inset 0 0 28px rgba(14,20,32,0.34)",
           }}
         />
         <canvas
@@ -795,7 +804,7 @@ export function CanvasStage() {
 
       {/* Preview mode top bar */}
       {isPreviewMode && (
-        <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/60 px-4 py-2 backdrop-blur-md animate-fade-in">
+        <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/55 px-4 py-2 backdrop-blur-md">
           <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
           <button
             type="button"
@@ -812,15 +821,16 @@ export function CanvasStage() {
       <div
         className={cn(
           "absolute bottom-4 left-1/2 z-[100] w-[min(96vw,900px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(30,36,48,0.96)_0%,rgba(16,20,29,0.94)_100%)] px-2.5 py-2 shadow-[0_20px_48px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.12)_inset] backdrop-blur-xl transition-opacity duration-200",
+          "absolute bottom-4 left-1/2 z-[100] w-[min(96vw,900px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(26,31,42,0.92)_0%,rgba(14,18,27,0.92)_100%)] px-2.5 py-2 shadow-[0_12px_28px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.08)_inset] backdrop-blur-lg transition-opacity duration-200",
           isPreviewMode && "opacity-60"
         )}
       >
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1 shadow-inner">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-1.5 py-1 shadow-inner">
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.05] transition-colors duration-150 hover:bg-white/[0.12] focus-visible:ring-1 focus-visible:ring-primary/60"
+              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.1] focus-visible:ring-1 focus-visible:ring-primary/60"
               aria-label="Zoom out"
               onClick={() => adjustZoom(-ZOOM_STEP)}
             >
@@ -834,13 +844,13 @@ export function CanvasStage() {
                 step={ZOOM_STEP}
                 value={[zoom]}
                 onValueChange={([nextZoom]) => setZoomLevel(nextZoom)}
-                className="[&_[data-slot=range]]:bg-primary/90 [&_[data-slot=thumb]]:border-white/20 [&_[data-slot=track]]:bg-white/15"
+                className="[&_[data-slot=range]]:bg-primary/80 [&_[data-slot=thumb]]:border-white/20 [&_[data-slot=track]]:bg-white/15"
               />
             </div>
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.05] transition-colors duration-150 hover:bg-white/[0.12] focus-visible:ring-1 focus-visible:ring-primary/60"
+              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.1] focus-visible:ring-1 focus-visible:ring-primary/60"
               aria-label="Zoom in"
               onClick={() => adjustZoom(ZOOM_STEP)}
             >
@@ -858,7 +868,7 @@ export function CanvasStage() {
             <Button
               variant="secondary"
               size="sm"
-              className="h-7 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.12]"
+              className="h-7 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.1]"
               onClick={fitToView}
             >
               Fit
@@ -866,7 +876,7 @@ export function CanvasStage() {
             <Button
               variant="secondary"
               size="sm"
-              className="h-7 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.12]"
+              className="h-7 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.1]"
               onClick={resetView}
             >
               Reset
