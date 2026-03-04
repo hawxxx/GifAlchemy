@@ -5,6 +5,7 @@ import {
   Maximize2,
   Zap,
   Type,
+  ImageIcon,
   Sticker,
   LayoutTemplate,
   Layers,
@@ -23,6 +24,7 @@ const TOOL_ICONS: Record<ToolId, React.ComponentType<{ className?: string }>> = 
   trim: Crop,
   optimize: Zap,
   text: Type,
+  image: ImageIcon,
   stickers: Sticker,
   templates: LayoutTemplate,
   batch: Layers,
@@ -33,6 +35,7 @@ const TOOL_LABELS: Record<ToolId, string> = {
   trim: "Trim",
   optimize: "Optimize",
   text: "Text",
+  image: "Image",
   stickers: "Stickers",
   templates: "Templates",
   batch: "Batch",
@@ -40,7 +43,7 @@ const TOOL_LABELS: Record<ToolId, string> = {
 
 const TOOL_GROUPS: ToolId[][] = [
   ["resize", "trim", "optimize"],
-  ["text", "stickers", "templates"],
+  ["text", "image", "stickers", "templates"],
   ["batch"],
 ];
 
@@ -52,19 +55,27 @@ export interface ToolsRailProps {
 
 export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProps) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={400}>
       <aside
         className={cn(
-          "flex w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-border/60 bg-card/90 px-2 py-2",
-          "shadow-[0_14px_26px_-22px_hsl(var(--foreground)/0.6)] ring-1 ring-black/[0.03] backdrop-blur supports-[backdrop-filter]:bg-card/80",
-          "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-4 dark:ring-white/[0.04]",
+          "flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/60 px-2 py-2",
+          "bg-gradient-to-b from-card/95 via-card/90 to-card/75 backdrop-blur-md",
+          "shadow-[0_14px_26px_-22px_hsl(var(--foreground)/0.6)] ring-1 ring-black/[0.03] dark:ring-white/[0.04]",
+          "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-3",
           className
         )}
       >
         {TOOL_GROUPS.map((group, gi) => (
-          <div key={gi} className="flex items-center px-0.5 md:flex-col md:px-1.5">
+          <div
+            key={gi}
+            className={cn(
+              "flex items-center",
+              "md:flex-col md:w-full",
+              gi > 0 && "ml-1 md:ml-0 md:mt-1"
+            )}
+          >
             {gi > 0 && (
-              <div className="mx-1.5 h-7 border-l border-border/50 md:mx-1 md:my-2.5 md:h-auto md:w-full md:border-l-0 md:border-t" />
+              <div className="mx-1.5 h-7 border-l border-border/50 md:mx-2 md:my-2 md:h-auto md:w-full md:border-l-0 md:border-t md:border-border/40" />
             )}
             {group.map((id) => {
               const isActive = activeTool === id;
@@ -72,13 +83,10 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
               return (
                 <div
                   key={id}
-                  className="relative flex items-center justify-center px-0.5 md:py-1 md:px-0"
+                  className="relative flex items-center justify-center px-0.5 md:w-full md:px-1 md:py-0.5"
                 >
                   {isActive && (
-                    <>
-                      <span className="absolute -top-1.5 h-0.5 w-5 rounded-b-full bg-primary md:hidden" />
-                      <span className="absolute -left-[7px] hidden h-5 w-0.5 rounded-r-full bg-primary md:block" />
-                    </>
+                    <span className="absolute -top-1.5 h-0.5 w-5 rounded-b-full bg-primary md:hidden" />
                   )}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -87,18 +95,40 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                         onClick={() => onSelectTool(isActive ? null : id)}
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
-                          "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-150 ease-out md:h-10 md:w-10",
+                          "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-150 ease-out",
+                          "md:h-auto md:w-full md:flex-col md:gap-1.5 md:rounded-2xl md:px-1 md:py-2.5",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                          "active:scale-[0.97]",
+                          "active:scale-[0.96]",
                           isActive
-                            ? "bg-primary/12 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.25)]"
-                            : "text-muted-foreground hover:bg-accent/85 hover:text-accent-foreground"
+                            ? [
+                                "bg-primary/15 text-primary",
+                                "shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_0_12px_hsl(var(--primary)/0.18)]",
+                              ]
+                            : "text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground"
                         )}
                       >
-                        {Icon && <Icon className="h-[17px] w-[17px]" />}
+                        {Icon && (
+                          <Icon
+                            className={cn(
+                              "h-[17px] w-[17px] shrink-0",
+                              isActive && "drop-shadow-[0_0_4px_hsl(var(--primary)/0.45)]"
+                            )}
+                          />
+                        )}
+                        <span
+                          className={cn(
+                            "hidden md:block text-[10px] leading-none tracking-tight truncate max-w-full text-center",
+                            isActive ? "font-medium" : "font-normal"
+                          )}
+                        >
+                          {TOOL_LABELS[id]}
+                        </span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="rounded-md border-border/60">
+                    <TooltipContent
+                      side="right"
+                      className="rounded-md border-border/60 md:hidden"
+                    >
                       {TOOL_LABELS[id]}
                     </TooltipContent>
                   </Tooltip>

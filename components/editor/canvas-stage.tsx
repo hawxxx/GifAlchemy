@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Eye, Minus, Plus, X } from "lucide-react";
+import { Eye, ImageIcon, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { UploadZone } from "./upload-zone";
@@ -10,7 +10,7 @@ import { OverlayRenderer } from "./overlay-renderer";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
 import { ERROR_MESSAGES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 import type { ProcessingProgress } from "@/core/domain/gif-types";
 
 function ExportProgressOverlay({
@@ -70,6 +70,121 @@ function ExportProgressOverlay({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const UPLOAD_STORAGE_KEY = "gifalchemy:uploads";
+const MAX_RECENT = 6;
+
+interface RecentUpload {
+  name: string;
+  size: number;
+  dataUrl?: string;
+  addedAt: number;
+}
+
+function readRecentUploads(): RecentUpload[] {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(UPLOAD_STORAGE_KEY) : null;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentUpload(entry: RecentUpload): void {
+  try {
+    const existing = readRecentUploads().filter((e) => e.name !== entry.name);
+    const next = [entry, ...existing].slice(0, MAX_RECENT);
+    localStorage.setItem(UPLOAD_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+function makeThumbnailDataUrl(imageData: ImageData, maxSize = 80): string {
+  try {
+    const canvas = document.createElement("canvas");
+    const aspect = imageData.width / imageData.height;
+    if (aspect >= 1) {
+      canvas.width = maxSize;
+      canvas.height = Math.round(maxSize / aspect);
+    } else {
+      canvas.height = maxSize;
+      canvas.width = Math.round(maxSize * aspect);
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    const temp = document.createElement("canvas");
+    temp.width = imageData.width;
+    temp.height = imageData.height;
+    const tctx = temp.getContext("2d");
+    if (!tctx) return "";
+    tctx.putImageData(imageData, 0, 0);
+    ctx.drawImage(temp, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
+function EmptyUploadView({
+  onFileAccepted,
+  onError,
+}: {
+  onFileAccepted: (file: File) => void;
+  onError: (msg: string) => void;
+}) {
+  const [recentUploads] = useState<RecentUpload[]>(() => readRecentUploads().slice(0, MAX_RECENT));
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-6 p-6 overflow-auto">
+      <UploadZone onFileAccepted={onFileAccepted} onError={onError} />
+
+      {recentUploads.length > 0 && (
+        <div className="w-full max-w-xl">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
+            Recent uploads
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {recentUploads.map((item) => (
+              <div
+                key={`${item.name}-${item.addedAt}`}
+                className="group flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card/70 transition-colors hover:border-border hover:bg-card"
+              >
+                <div className="relative flex h-20 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#1a1a1e_0%_25%,#242428_0%_50%)_50%_/_12px_12px]">
+                  {item.dataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.dataUrl}
+                      alt={item.name}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/40">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground/60" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5 px-2 py-1.5">
+                  <p
+                    className="truncate text-[11px] font-medium text-foreground/90"
+                    title={item.name}
+                  >
+                    {item.name}
+                  </p>
+                  <p className="text-[10px] tabular-nums text-muted-foreground/70">
+                    {formatBytes(item.size)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -140,6 +255,7 @@ export function CanvasStage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isPreviewMode]);
+
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -370,6 +486,13 @@ export function CanvasStage() {
       }
       dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
       dispatch({ type: "PROCESSOR_READY" });
+      const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
+      saveRecentUpload({
+        name: file.name,
+        size: file.size,
+        addedAt: Date.now(),
+        dataUrl: dataUrl || undefined,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : ERROR_MESSAGES.PROCESSING_FAILED;
       dispatch({ type: "UPLOAD_ERROR", payload: msg });
@@ -378,12 +501,10 @@ export function CanvasStage() {
 
   if (state.status === "empty") {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <UploadZone
-          onFileAccepted={handleFileAccepted}
-          onError={(msg) => dispatch({ type: "UPLOAD_ERROR", payload: msg })}
-        />
-      </div>
+      <EmptyUploadView
+        onFileAccepted={handleFileAccepted}
+        onError={(msg) => dispatch({ type: "UPLOAD_ERROR", payload: msg })}
+      />
     );
   }
 

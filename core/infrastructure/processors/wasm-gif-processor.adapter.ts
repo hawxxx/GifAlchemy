@@ -508,17 +508,52 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
 
     const total = frames.length;
     const frameStartsMs = this.getFrameStartTimes(frames);
+
+    // Preload image overlay HTMLImageElement objects before the frame loop
+    const imageElementCache = new Map<string, HTMLImageElement>();
+    await Promise.all(
+      overlaysToUse
+        .filter((o) => o.type === "image" && o.imageDataUrl && o.visible !== false)
+        .map(
+          (o) =>
+            new Promise<void>((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                imageElementCache.set(o.id, img);
+                resolve();
+              };
+              img.onerror = () => resolve();
+              img.src = o.imageDataUrl!;
+            })
+        )
+    );
+
     const composited: GifFrame[] = frames.map((frame, i) => {
       if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
       tctx.putImageData(frame.imageData, 0, 0);
       ctx.drawImage(temp, 0, 0);
       for (const overlay of overlaysToUse) {
-        if (overlay.type !== "text" || overlay.visible === false || !overlay.content.trim()) continue;
+        if (overlay.visible === false) continue;
         const range = getOverlayFrameRange(overlay, frames.length);
         if (i < range.inFrame || i > range.outFrame) continue;
         const { x, y, scale, rotation, opacity } = this.interpolateOverlay(overlay, i);
         const px = x * metadata.width;
         const py = y * metadata.height;
+
+        if (overlay.type === "image") {
+          const img = imageElementCache.get(overlay.id);
+          if (!img) continue;
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.translate(px, py);
+          ctx.rotate((rotation * Math.PI) / 180);
+          ctx.scale(scale, scale);
+          ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+          ctx.restore();
+          continue;
+        }
+
+        if (overlay.type !== "text" || !overlay.content.trim()) continue;
         ctx.save();
         ctx.globalAlpha = opacity;
         ctx.font = `${overlay.fontStyle ?? "normal"} ${overlay.fontWeight ?? "normal"} ${overlay.fontSize}px ${overlay.fontFamily}`;

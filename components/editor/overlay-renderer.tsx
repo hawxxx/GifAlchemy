@@ -125,6 +125,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
   const { state, dispatch } = useEditor();
   const { activeTool, selectedOverlayId } = state;
   const isTextMode = activeTool === "text";
+  const isImageMode = activeTool === "image";
   const overlayInteractionEnabled = !previewMode && activeTool !== "trim";
 
   // Container ref — used to convert pixel deltas to normalised coordinates
@@ -258,7 +259,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
         moved: false,
       };
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
-      dispatch({ type: "SET_TOOL", payload: "text" });
+      dispatch({ type: "SET_TOOL", payload: overlay.type === "image" ? "image" : "text" });
       if (overlay.locked !== true) {
         const start = interpolate(overlay, currentFrameIndex);
         dragState.current = {
@@ -361,10 +362,12 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
       clickStateRef.current = null;
       if (click.moved || overlay.locked) return;
 
-      // Preserve selection/drag intent while making click-to-edit work from any tool.
-      dispatch({ type: "SET_TOOL", payload: "text" });
+      const targetTool = overlay.type === "image" ? "image" : "text";
+      dispatch({ type: "SET_TOOL", payload: targetTool });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
-      if (selectedOverlayId === overlay.id || activeTool !== "text") setEditingOverlayId(overlay.id);
+      if (overlay.type === "text" && (selectedOverlayId === overlay.id || activeTool !== "text")) {
+        setEditingOverlayId(overlay.id);
+      }
     },
     [activeTool, dispatch, overlayInteractionEnabled, selectedOverlayId]
   );
@@ -479,9 +482,10 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
       e.preventDefault();
       e.stopPropagation();
       dragState.current = null;
-      dispatch({ type: "SET_TOOL", payload: "text" });
+      const targetTool = overlay.type === "image" ? "image" : "text";
+      dispatch({ type: "SET_TOOL", payload: targetTool });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
-      setEditingOverlayId(overlay.id);
+      if (overlay.type === "text") setEditingOverlayId(overlay.id);
     },
     [dispatch]
   );
@@ -504,7 +508,9 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
       )}
       {visibleOverlays.map(({ overlay, x, y, scale, rotation, opacity }) => {
         const isSelected = selectedOverlayId === overlay.id;
-        const showHandles = isSelected && isTextMode && !overlay.locked;
+        const isOverlayImageType = overlay.type === "image";
+        const activeToolForOverlay = isOverlayImageType ? isImageMode : isTextMode;
+        const showHandles = isSelected && activeToolForOverlay && !overlay.locked;
         const typewriterState = getTypewriterState(overlay);
         const isTypewriter = typewriterState !== null;
         const content = transformContent(overlay.content || " ", overlay.textTransform ?? "none");
@@ -559,16 +565,17 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
           <div
             key={overlay.id}
             className={cn(
-              "absolute origin-center select-none whitespace-pre-wrap",
+              "absolute origin-center select-none",
+              isOverlayImageType ? "" : "whitespace-pre-wrap",
               overlayInteractionEnabled ? "pointer-events-auto" : "pointer-events-none",
               overlay.locked
                 ? "cursor-not-allowed"
-                : isTextMode
+                : activeToolForOverlay
                   ? "cursor-move"
                   : "cursor-pointer",
               showHandles
                 ? "border-2 border-dashed border-blue-400/70 rounded-sm"
-                : isSelected && isTextMode
+                : isSelected && activeToolForOverlay
                   ? "outline outline-2 outline-offset-2 outline-blue-400/80 rounded-sm"
                   : ""
             )}
@@ -577,18 +584,22 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
               top: `${y * 100}%`,
               transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`,
               opacity,
-              minWidth: "8ch",
-              fontFamily: overlay.fontFamily,
-              fontSize: overlay.fontSize,
-              fontWeight: overlay.fontWeight ?? "normal",
-              fontStyle: overlay.fontStyle ?? "normal",
-              textAlign: overlay.textAlign ?? "center",
-              ...textFillStyles,
-              textShadow,
-              WebkitTextStroke:
-                (overlay.strokeWidth ?? 0) > 0
-                  ? `${overlay.strokeWidth}px ${overlay.strokeColor ?? "#000000"}`
-                  : undefined,
+              ...(isOverlayImageType
+                ? {}
+                : {
+                    minWidth: "8ch",
+                    fontFamily: overlay.fontFamily,
+                    fontSize: overlay.fontSize,
+                    fontWeight: overlay.fontWeight ?? "normal",
+                    fontStyle: overlay.fontStyle ?? "normal",
+                    textAlign: overlay.textAlign ?? "center",
+                    ...textFillStyles,
+                    textShadow,
+                    WebkitTextStroke:
+                      (overlay.strokeWidth ?? 0) > 0
+                        ? `${overlay.strokeWidth}px ${overlay.strokeColor ?? "#000000"}`
+                        : undefined,
+                  }),
             }}
             onPointerDown={(e) => handlePointerDown(e, overlay)}
             onPointerMove={(e) => handlePointerMove(e, overlay)}
@@ -596,7 +607,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
             onClick={(e) => handleClick(e, overlay)}
             onDoubleClick={(e) => handleDoubleClick(e, overlay)}
           >
-            {editingOverlayId === overlay.id ? (
+            {isOverlayImageType ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={overlay.imageDataUrl ?? ""}
+                alt=""
+                draggable={false}
+                style={{ display: "block", maxWidth: "none", pointerEvents: "none", userSelect: "none" }}
+              />
+            ) : editingOverlayId === overlay.id ? (
               <div
                 contentEditable="true"
                 suppressContentEditableWarning
