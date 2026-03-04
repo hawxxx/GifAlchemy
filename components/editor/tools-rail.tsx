@@ -55,7 +55,7 @@ export interface ToolsRailProps {
 
 export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProps) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={400}>
       <aside
         className={cn(
           "flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/60 px-2 py-2",
@@ -83,13 +83,10 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
               return (
                 <div
                   key={id}
-                  className="relative flex items-center justify-center px-0.5 md:w-full md:px-0 md:py-0.5"
+                  className="relative flex items-center justify-center px-0.5 md:w-full md:px-1 md:py-0.5"
                 >
                   {isActive && (
-                    <>
-                      <span className="absolute -top-1.5 h-0.5 w-5 rounded-b-full bg-primary md:hidden" />
-                      <span className="absolute -left-[7px] hidden h-5 w-0.5 rounded-r-full bg-primary md:block" />
-                    </>
+                    <span className="absolute -top-1.5 h-0.5 w-5 rounded-b-full bg-primary md:hidden" />
                   )}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -99,21 +96,39 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
                           "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-150 ease-out",
-                          "md:h-auto md:w-full md:flex-col md:gap-1 md:rounded-xl md:px-1 md:py-2",
+                          "md:h-auto md:w-full md:flex-col md:gap-1.5 md:rounded-2xl md:px-1 md:py-2.5",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                          "active:scale-[0.97]",
+                          "active:scale-[0.96]",
                           isActive
-                            ? "bg-primary/15 text-primary shadow-[0_0_10px_hsl(var(--primary)/0.25),inset_0_0_0_1px_hsl(var(--primary)/0.28)]"
-                            : "text-muted-foreground hover:bg-accent/85 hover:text-accent-foreground"
+                            ? [
+                                "bg-primary/15 text-primary",
+                                "shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_0_12px_hsl(var(--primary)/0.18)]",
+                              ]
+                            : "text-muted-foreground hover:bg-accent/80 hover:text-accent-foreground"
                         )}
                       >
-                        {Icon && <Icon className="h-[17px] w-[17px] shrink-0" />}
-                        <span className="hidden md:block text-[10px] leading-none tracking-tight truncate max-w-full">
+                        {Icon && (
+                          <Icon
+                            className={cn(
+                              "h-[17px] w-[17px] shrink-0",
+                              isActive && "drop-shadow-[0_0_4px_hsl(var(--primary)/0.45)]"
+                            )}
+                          />
+                        )}
+                        <span
+                          className={cn(
+                            "hidden md:block text-[10px] leading-none tracking-tight truncate max-w-full text-center",
+                            isActive ? "font-medium" : "font-normal"
+                          )}
+                        >
                           {TOOL_LABELS[id]}
                         </span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="rounded-md border-border/60">
+                    <TooltipContent
+                      side="right"
+                      className="rounded-md border-border/60 md:hidden"
+                    >
                       {TOOL_LABELS[id]}
                     </TooltipContent>
                   </Tooltip>
