@@ -2,6 +2,7 @@
 import { ResizeToolPanel } from "./resize-tool-panel";
 import { TrimToolPanel } from "./trim-tool-panel";
 import { TextToolPanel } from "./text-tool-panel";
+import { ImageOverlayPanel } from "./image-overlay-panel";
 import { OptimizeToolPanel } from "./optimize-tool-panel";
 import { StickersToolPanel } from "./stickers-tool-panel";
 import { TemplatesToolPanel } from "./templates-tool-panel";
@@ -17,6 +18,7 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   trim: "Trim",
   optimize: "Optimize",
   text: "Text Overlays",
+  image: "Image Overlay",
   stickers: "Stickers",
   templates: "Templates",
   batch: "Batch Export",
@@ -46,6 +48,7 @@ export function PropertiesPanel({
     activeTool !== "trim" &&
     activeTool !== "optimize" &&
     activeTool !== "text" &&
+    activeTool !== "image" &&
     activeTool !== "stickers" &&
     activeTool !== "templates" &&
     activeTool !== "batch";
@@ -53,12 +56,12 @@ export function PropertiesPanel({
   return (
     <aside
       className={cn(
-        "flex flex-col overflow-auto rounded-2xl border border-border/60 bg-card/90",
-        "shadow-[0_16px_30px_-24px_hsl(var(--foreground)/0.7)] ring-1 ring-black/[0.03] backdrop-blur supports-[backdrop-filter]:bg-card/80 dark:ring-white/[0.04]",
+        "editor-chrome flex flex-col overflow-auto rounded-2xl backdrop-blur-md",
+        "ring-1 ring-black/[0.03] dark:ring-white/[0.04]",
         className
       )}
     >
-      <div className="sticky top-0 z-10 shrink-0 border-b border-border/55 bg-gradient-to-b from-card/95 to-card/85 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
+      <div className="sticky top-0 z-10 shrink-0 border-b border-border/55 bg-gradient-to-b from-card/95 via-card/90 to-card/85 px-4 py-4 backdrop-blur-md supports-[backdrop-filter]:bg-card/90">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
@@ -109,6 +112,7 @@ export function PropertiesPanel({
           {activeTool === "trim" && <TrimToolPanel />}
           {activeTool === "optimize" && <OptimizeToolPanel />}
           {activeTool === "text" && <TextToolPanel />}
+          {activeTool === "image" && <ImageOverlayPanel />}
           {activeTool === "stickers" && <StickersToolPanel />}
           {activeTool === "templates" && <TemplatesToolPanel />}
           {activeTool === "batch" && <BatchToolPanel />}
