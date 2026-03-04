@@ -2,11 +2,11 @@
 
 @theme {
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --radius-xl: 0.75rem;
-  --radius-lg: 0.5rem;
-  --radius-md: 0.375rem;
-  --radius-sm: 0.25rem;
-  --radius-2xl: 1.5rem;
+  --radius-xl: 0.875rem;
+  --radius-lg: 0.625rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-2xl: 1.25rem;
   --radius-full: 9999px;
 
   /* Spacing scale */
@@ -14,55 +14,67 @@
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
   --space-12: 3rem;
 
   /* Motion tokens */
-  --duration-fast: 120ms;
+  --duration-fast: 140ms;
   --duration-normal: 180ms;
+  --duration-ui: 200ms;
   --duration-slow: 260ms;
-  --duration-ui: 220ms;
-  --duration-emphasis: 360ms;
-  --duration-ambient: 700ms;
+  --duration-emphasis: 320ms;
+  --duration-ambient: 640ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-standard: cubic-bezier(0.2, 0.75, 0.2, 1);
   --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-snappy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-snappy: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @layer base {
-  :root {
-    --background: oklch(0.972 0.004 250);
-    --foreground: oklch(0.17 0.01 250);
-    --card: oklch(0.988 0.002 250);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.31 0.05 252);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.952 0.006 250);
-    --secondary-foreground: oklch(0.25 0.02 250);
-    --muted: oklch(0.945 0.006 250);
-    --muted-foreground: oklch(0.46 0.01 250);
-    --accent: oklch(0.93 0.015 252);
-    --accent-foreground: oklch(0.25 0.02 250);
-    --destructive: oklch(0.55 0.2 25);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0.885 0.012 252);
-    --input: oklch(0.895 0.01 252);
-    --ring: oklch(0.62 0.17 252);
-    --radius: 0.5rem;
+  :root,
+  .dark {
+    --background-0: #0b0e11;
+    --background-1: #10141a;
+    --background-2: #151a21;
+    --panel: #1a2028;
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --accent-1: #5b8cff;
+    --accent-2: #7c9bff;
+
+    --background: var(--background-0);
+    --foreground: #e8edf5;
+    --card: var(--background-1);
+    --card-foreground: #e8edf5;
+    --popover: var(--panel);
+    --popover-foreground: #f0f4ff;
+    --primary: var(--accent-1);
+    --primary-foreground: #f7faff;
+    --secondary: var(--background-2);
+    --secondary-foreground: #d1daea;
+    --muted: var(--background-2);
+    --muted-foreground: #8f9db1;
+    --accent: rgba(124, 155, 255, 0.14);
+    --accent-foreground: #dce6ff;
+    --destructive: #d86868;
+    --destructive-foreground: #fff5f5;
+    --border: var(--border-subtle);
+    --input: var(--background-2);
+    --ring: rgba(91, 140, 255, 0.52);
+    --radius: 0.625rem;
 
     /* Surface layers */
-    --surface-1: oklch(0.98 0.002 252);
-    --surface-2: oklch(0.955 0.006 252);
-    --surface-3: oklch(0.925 0.01 252);
-    --surface-4: oklch(0.892 0.014 252);
-    --surface-overlay: oklch(0.22 0.02 252 / 0.18);
-    --surface-inset: oklch(0.908 0.01 252);
-    --glow-primary: oklch(0.62 0.17 252 / 0.24);
+    --surface-1: var(--background-1);
+    --surface-2: var(--background-2);
+    --surface-3: var(--panel);
+    --surface-4: #202733;
+    --surface-overlay: rgba(11, 14, 17, 0.78);
+    --surface-inset: #0f1319;
+    --glow-primary: rgba(91, 140, 255, 0.24);
 
     /* Typography scale */
     --text-xs: 0.75rem;
@@ -75,48 +87,11 @@
     --text-4xl: 2.25rem;
 
     /* Shadow tokens */
-    --shadow-sm: 0 1px 2px oklch(0.1 0.02 252 / 0.07), 0 0 0 1px oklch(1 0 0 / 0.55) inset;
-    --shadow-md: 0 8px 24px oklch(0.08 0.02 252 / 0.1), 0 1px 0 oklch(1 0 0 / 0.6) inset;
-    --shadow-lg: 0 18px 42px oklch(0.06 0.02 252 / 0.16), 0 1px 0 oklch(1 0 0 / 0.72) inset;
-    --shadow-xl: 0 28px 60px oklch(0.04 0.02 252 / 0.2), 0 1px 0 oklch(1 0 0 / 0.8) inset;
-    --shadow-glow: 0 0 24px var(--glow-primary);
-  }
-  .dark {
-    --background: oklch(0.125 0.01 252);
-    --foreground: oklch(0.97 0.005 250);
-    --card: oklch(0.165 0.012 252);
-    --card-foreground: oklch(0.97 0.005 250);
-    --popover: oklch(0.19 0.012 252);
-    --popover-foreground: oklch(0.97 0.005 250);
-    --primary: oklch(0.72 0.2 256);
-    --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.225 0.012 252);
-    --secondary-foreground: oklch(0.85 0.01 250);
-    --muted: oklch(0.205 0.01 252);
-    --muted-foreground: oklch(0.58 0.01 250);
-    --accent: oklch(0.26 0.02 256);
-    --accent-foreground: oklch(0.92 0.01 256);
-    --destructive: oklch(0.52 0.22 25);
-    --destructive-foreground: oklch(0.99 0 0);
-    --border: oklch(0.305 0.018 252);
-    --input: oklch(0.235 0.012 252);
-    --ring: oklch(0.68 0.22 256);
-
-    /* Surface layers */
-    --surface-1: oklch(0.18 0.012 252);
-    --surface-2: oklch(0.22 0.016 252);
-    --surface-3: oklch(0.26 0.02 252);
-    --surface-4: oklch(0.305 0.022 252);
-    --surface-overlay: oklch(0.02 0.01 252 / 0.48);
-    --surface-inset: oklch(0.145 0.012 252);
-    --glow-primary: oklch(0.72 0.2 252 / 0.34);
-
-    /* Shadow tokens */
-    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.35), 0 0 0 1px oklch(1 0 0 / 0.03) inset;
-    --shadow-md: 0 10px 26px oklch(0 0 0 / 0.4), 0 1px 0 oklch(1 0 0 / 0.05) inset;
-    --shadow-lg: 0 20px 44px oklch(0 0 0 / 0.5), 0 1px 0 oklch(1 0 0 / 0.06) inset;
-    --shadow-xl: 0 30px 64px oklch(0 0 0 / 0.58), 0 1px 0 oklch(1 0 0 / 0.08) inset;
-    --shadow-glow: 0 0 24px var(--glow-primary);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --shadow-lg: 0 16px 34px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-xl: 0 24px 50px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --shadow-glow: 0 0 22px var(--glow-primary);
   }
   html {
     color-scheme: dark;
@@ -142,10 +117,11 @@
     animation: slide-up-sm var(--duration-slow) var(--ease-out);
   }
   .glass {
-    background: oklch(from var(--card) l c h / 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
+    background: rgba(16, 20, 26, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
   .surface-1 { background: var(--surface-1); }
   .surface-2 { background: var(--surface-2); }
@@ -159,33 +135,69 @@
     box-shadow: var(--shadow-glow);
   }
   .editor-chrome {
-    background: linear-gradient(
-      180deg,
-      oklch(from var(--surface-2) l c h / 0.96) 0%,
-      oklch(from var(--surface-1) l c h / 0.94) 100%
-    );
-    border: 1px solid oklch(from var(--border) l c h / 0.86);
-    box-shadow: var(--shadow-md);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
   .editor-panel {
-    background: oklch(from var(--surface-1) l c h / 0.94);
-    border: 1px solid oklch(from var(--border) l c h / 0.72);
-    box-shadow: var(--shadow-sm);
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
   .editor-divider {
-    border-color: oklch(from var(--border) l c h / 0.58);
+    border-color: var(--border-subtle);
   }
   .editor-overlay-scrim {
-    background: linear-gradient(180deg, transparent 0%, var(--surface-overlay) 100%);
+    background: var(--surface-overlay);
+  }
+  .editor-surface-base {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+  }
+  .editor-surface-raised {
+    background: var(--surface-3);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .editor-surface-inset {
+    background: var(--surface-inset);
+    border: 1px solid var(--border-subtle);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.45);
+  }
+  .editor-interactive {
+    transition: background-color var(--duration-ui) var(--ease-standard),
+      border-color var(--duration-ui) var(--ease-standard),
+      box-shadow var(--duration-ui) var(--ease-standard),
+      transform var(--duration-fast) var(--ease-out);
+  }
+  .editor-interactive:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .editor-interactive:focus-visible {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow:
+      0 0 0 2px var(--background-0),
+      0 0 0 4px rgba(91, 140, 255, 0.28),
+      var(--shadow-md);
   }
   .focus-ring-brand {
     outline: none;
     box-shadow:
-      0 0 0 2px oklch(from var(--background) l c h / 0.7),
-      0 0 0 4px oklch(from var(--ring) l c h / 0.48);
+      0 0 0 2px var(--background-0),
+      0 0 0 4px rgba(91, 140, 255, 0.34),
+      0 0 0 8px rgba(91, 140, 255, 0.14);
   }
   .transition-ui {
     transition-property: background-color, border-color, color, box-shadow, transform, opacity, filter;
+    transition-duration: var(--duration-ui);
+    transition-timing-function: var(--ease-standard);
+  }
+  .transition-surface {
+    transition-property: background-color, border-color, box-shadow, opacity;
     transition-duration: var(--duration-ui);
     transition-timing-function: var(--ease-standard);
   }
@@ -193,6 +205,11 @@
     transition-property: transform, opacity, box-shadow, filter;
     transition-duration: var(--duration-emphasis);
     transition-timing-function: var(--ease-emphasis);
+  }
+  .transition-press {
+    transition-property: transform, box-shadow;
+    transition-duration: var(--duration-fast);
+    transition-timing-function: var(--ease-out);
   }
   .hover-lift-sm {
     transition-property: transform, box-shadow;
@@ -204,7 +221,7 @@
     box-shadow: var(--shadow-md);
   }
   .text-subtle {
-    color: oklch(from var(--muted-foreground) l c h / 0.86);
+    color: rgba(143, 157, 177, 0.92);
   }
 }
 

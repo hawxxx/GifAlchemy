@@ -575,8 +575,8 @@ export function CanvasStage() {
     <div
       ref={containerRef}
       className={cn(
-        "flex items-center justify-center h-full rounded-xl relative",
-        isPreviewMode ? "bg-black" : "bg-[#111318]"
+        "relative flex h-full items-center justify-center overflow-hidden rounded-xl",
+        isPreviewMode ? "bg-black" : "bg-[#090b11]"
       )}
       onPointerDown={handlePanStart}
       onPointerMove={(e) => {
@@ -594,14 +594,39 @@ export function CanvasStage() {
       onContextMenu={(e) => e.preventDefault()}
       style={{ cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : undefined }}
     >
+      {!isPreviewMode && (
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 rounded-xl opacity-60"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, rgba(20,24,33,0.92), rgba(9,11,17,0.96)), linear-gradient(rgba(130,148,178,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(130,148,178,0.08) 1px, transparent 1px)",
+              backgroundSize: "100% 100%, 20px 20px, 20px 20px",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 rounded-xl"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 46%, rgba(180,205,235,0.1) 0%, rgba(10,13,19,0.35) 52%, rgba(4,5,8,0.82) 100%)",
+            }}
+          />
+        </>
+      )}
       <div
-        className="relative rounded-lg overflow-visible shadow-sm border border-border/30"
+        className="relative overflow-visible rounded-[10px] border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.07)_inset] transition-shadow duration-200"
         style={{
           background: isPreviewMode ? "#0a0a0a" : CHECKERBOARD,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "center center",
         }}
       >
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[10px]"
+          style={{
+            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 40px rgba(16,24,36,0.42)",
+          }}
+        />
         <canvas
           ref={canvasRef}
           className="block max-w-full max-h-full"
@@ -770,12 +795,12 @@ export function CanvasStage() {
 
       {/* Preview mode top bar */}
       {isPreviewMode && (
-        <div className="absolute inset-x-0 top-0 z-50 flex items-center justify-between px-4 py-2 bg-black/60 backdrop-blur-sm pointer-events-auto animate-fade-in rounded-t-xl">
+        <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/60 px-4 py-2 backdrop-blur-md animate-fade-in">
           <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
           <button
             type="button"
             onClick={() => setIsPreviewMode(false)}
-            className="text-[11px] text-white/60 hover:text-white transition-colors flex items-center gap-1"
+            className="flex items-center gap-1 text-[11px] text-white/60 transition-colors duration-150 hover:text-white"
           >
             <X className="h-3 w-3" />
             Exit
@@ -786,16 +811,16 @@ export function CanvasStage() {
       {/* Floating zoom bar — outside the transform div so it never pans/scales */}
       <div
         className={cn(
-          "absolute bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[min(96vw,900px)] rounded-2xl border border-border/50 bg-card/95 px-2.5 py-2 shadow-2xl backdrop-blur-md",
+          "absolute bottom-4 left-1/2 z-[100] w-[min(96vw,900px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(30,36,48,0.96)_0%,rgba(16,20,29,0.94)_100%)] px-2.5 py-2 shadow-[0_20px_48px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.12)_inset] backdrop-blur-xl transition-opacity duration-200",
           isPreviewMode && "opacity-60"
         )}
       >
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-1.5 py-1">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1 shadow-inner">
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 rounded-lg"
+              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.05] transition-colors duration-150 hover:bg-white/[0.12] focus-visible:ring-1 focus-visible:ring-primary/60"
               aria-label="Zoom out"
               onClick={() => adjustZoom(-ZOOM_STEP)}
             >
@@ -809,12 +834,13 @@ export function CanvasStage() {
                 step={ZOOM_STEP}
                 value={[zoom]}
                 onValueChange={([nextZoom]) => setZoomLevel(nextZoom)}
+                className="[&_[data-slot=range]]:bg-primary/90 [&_[data-slot=thumb]]:border-white/20 [&_[data-slot=track]]:bg-white/15"
               />
             </div>
             <Button
               variant="secondary"
               size="icon"
-              className="h-7 w-7 rounded-lg"
+              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.05] transition-colors duration-150 hover:bg-white/[0.12] focus-visible:ring-1 focus-visible:ring-primary/60"
               aria-label="Zoom in"
               onClick={() => adjustZoom(ZOOM_STEP)}
             >
@@ -832,7 +858,7 @@ export function CanvasStage() {
             <Button
               variant="secondary"
               size="sm"
-              className="h-7 rounded-lg px-2 text-[11px]"
+              className="h-7 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.12]"
               onClick={fitToView}
             >
               Fit
@@ -840,18 +866,18 @@ export function CanvasStage() {
             <Button
               variant="secondary"
               size="sm"
-              className="h-7 rounded-lg px-2 text-[11px]"
+              className="h-7 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.12]"
               onClick={resetView}
             >
               Reset
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-1.5 py-1">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1 shadow-inner">
             <Button
               variant={showRulers ? "default" : "secondary"}
               size="sm"
-              className="h-7 rounded-lg px-2 text-[11px]"
+              className="h-7 rounded-lg px-2 text-[11px] transition-colors duration-150"
               onClick={() => setShowRulers((v) => !v)}
             >
               Rulers
@@ -859,7 +885,7 @@ export function CanvasStage() {
             <Button
               variant={showSafeArea ? "default" : "secondary"}
               size="sm"
-              className="h-7 rounded-lg px-2 text-[11px]"
+              className="h-7 rounded-lg px-2 text-[11px] transition-colors duration-150"
               onClick={() => setShowSafeArea((v) => !v)}
             >
               Safe area
@@ -867,7 +893,7 @@ export function CanvasStage() {
             <Button
               variant={isPreviewMode ? "default" : "secondary"}
               size="sm"
-              className="h-7 rounded-lg gap-1 px-2 text-[11px]"
+              className="h-7 gap-1 rounded-lg px-2 text-[11px] transition-colors duration-150"
               onClick={() => setIsPreviewMode((v) => !v)}
             >
               <Eye className="h-3.5 w-3.5" />
@@ -875,10 +901,10 @@ export function CanvasStage() {
             </Button>
             <span
               className={cn(
-                "ml-0.5 inline-flex h-7 items-center rounded-lg border px-2 text-[11px]",
+                "ml-0.5 inline-flex h-7 items-center rounded-lg border px-2 text-[11px] transition-colors duration-150",
                 state.snapToGrid
                   ? "border-primary/70 bg-primary text-primary-foreground"
-                  : "border-border/70 bg-background/80 text-muted-foreground"
+                  : "border-white/15 bg-black/30 text-muted-foreground"
               )}
               title="Arrow-key nudge snapping"
             >

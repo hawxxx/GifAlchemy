@@ -27,9 +27,12 @@ interface ToolbarPos {
   y: number;
 }
 
+const TOOLBAR_WIDTH = 396;
+const TOOLBAR_HEIGHT = 56;
+
 function getDefaultPos(): ToolbarPos {
   if (typeof window === "undefined") return { x: 0, y: 16 };
-  return { x: Math.max(0, window.innerWidth / 2 - 176), y: 16 };
+  return { x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), y: 16 };
 }
 
 // ─── Toolbar button ───────────────────────────────────────────────────────────
@@ -53,10 +56,12 @@ function ToolbarBtn({
       title={title}
       onClick={onClick}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-150 ease-out active:scale-[0.97]",
-        "text-white/60 hover:text-white hover:bg-white/10",
-        active && "bg-primary/20 text-primary",
-        danger && "hover:bg-destructive/20 hover:text-destructive"
+        "flex h-8 w-8 items-center justify-center rounded-lg border border-transparent transition-all duration-150 ease-out active:scale-[0.97]",
+        "text-white/70 hover:border-white/20 hover:bg-white/12 hover:text-white",
+        active &&
+          "border-primary/40 bg-primary/18 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]",
+        danger &&
+          "hover:border-destructive/45 hover:bg-destructive/16 hover:text-destructive"
       )}
     >
       {children}
@@ -67,7 +72,15 @@ function ToolbarBtn({
 // ─── Separator ────────────────────────────────────────────────────────────────
 
 function Sep() {
-  return <div className="h-5 w-px bg-white/10 mx-0.5" />;
+  return <div className="mx-1 h-6 w-px bg-white/14" />;
+}
+
+function ControlGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-xl border border-white/12 bg-white/[0.04] px-1 py-0.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.11)]">
+      {children}
+    </div>
+  );
 }
 
 // ─── FloatingTextToolbar ──────────────────────────────────────────────────────
@@ -131,13 +144,13 @@ export function FloatingTextToolbar() {
   useEffect(() => {
     const onResize = () => {
       setPosSynced({
-        x: Math.max(0, Math.min(posRef.current.x, window.innerWidth - 352)),
-        y: Math.max(0, Math.min(posRef.current.y, window.innerHeight - 60)),
+        x: Math.max(0, Math.min(posRef.current.x, window.innerWidth - TOOLBAR_WIDTH)),
+        y: Math.max(0, Math.min(posRef.current.y, window.innerHeight - TOOLBAR_HEIGHT)),
       });
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [setPosSynced]);
 
   // Close color popover on outside click
   useEffect(() => {
@@ -192,102 +205,125 @@ export function FloatingTextToolbar() {
 
   return (
     <div
-      className="fixed z-[100] flex h-10 items-center gap-0.5 px-2 rounded-2xl bg-[#1a1c23]/95 backdrop-blur-xl border border-white/10 shadow-2xl select-none"
+      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/18 bg-slate-900/60 p-1.5 text-white shadow-[0_18px_42px_-26px_rgba(2,6,23,0.95),0_0_0_1px_rgba(255,255,255,0.08),0_0_30px_-20px_rgba(56,189,248,0.72)] backdrop-blur-2xl supports-[backdrop-filter]:bg-slate-900/52 select-none"
       style={{ left: pos.x, top: pos.y }}
     >
-      {/* Grip */}
       <div
-        className="flex items-center justify-center h-8 w-5 mr-0.5 text-white/25 hover:text-white/50 cursor-grab active:cursor-grabbing rounded-lg transition-colors"
-        onPointerDown={handleGripPointerDown}
-        onPointerMove={handleGripPointerMove}
-        onPointerUp={handleGripPointerUp}
-      >
-        <GripVertical className="h-3.5 w-3.5" />
-      </div>
-
-      {/* Font name */}
-      <span className="text-[10px] text-white/40 max-w-[72px] truncate pr-1 hidden sm:block">
-        {fontName}
-      </span>
-
-      <Sep />
-
-      {/* Bold / Italic */}
-      <ToolbarBtn active={isBold} onClick={() => toggle("fontWeight")} title="Bold">
-        <Bold className="h-3.5 w-3.5" />
-      </ToolbarBtn>
-      <ToolbarBtn active={isItalic} onClick={() => toggle("fontStyle")} title="Italic">
-        <Italic className="h-3.5 w-3.5" />
-      </ToolbarBtn>
-
-      <Sep />
-
-      {/* Color swatch */}
-      <div className="relative">
-        <button
-          type="button"
-          title="Text color"
-          onClick={() => {
-            setColorOpen((v) => !v);
-            colorInputRef.current?.click();
-          }}
-          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
-        >
-          <span
-            className="h-4 w-4 rounded-sm border border-white/20 shadow-sm"
-            style={{ background: color }}
-          />
-        </button>
-        <input
-          ref={colorInputRef}
-          type="color"
-          value={color}
-          onChange={handleColorChange}
-          className="sr-only"
-          tabIndex={-1}
-        />
-      </div>
-
-      {/* Font size */}
-      <input
-        type="number"
-        min={6}
-        max={400}
-        step={1}
-        value={Math.round(fontSize)}
-        onChange={handleFontSizeChange}
-        className="h-8 w-12 rounded-lg border border-white/10 bg-white/5 px-1.5 text-center text-xs text-white/80 focus:outline-none focus:ring-1 focus:ring-primary/50"
-        title="Font size"
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/16"
       />
 
+      {/* Grip */}
+      <ControlGroup>
+        <div
+          className="flex h-8 w-5 items-center justify-center rounded-lg text-white/30 transition-colors hover:text-white/60 cursor-grab active:cursor-grabbing"
+          onPointerDown={handleGripPointerDown}
+          onPointerMove={handleGripPointerMove}
+          onPointerUp={handleGripPointerUp}
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+
+        {/* Font name */}
+        <span className="hidden max-w-[72px] truncate pr-1 text-[10px] font-medium tracking-[0.02em] text-white/55 sm:block">
+          {fontName}
+        </span>
+      </ControlGroup>
+
       <Sep />
 
-      {/* Alignment */}
-      <ToolbarBtn active={align === "left"} onClick={() => setAlign("left")} title="Align left">
-        <AlignLeft className="h-3.5 w-3.5" />
-      </ToolbarBtn>
-      <ToolbarBtn active={align === "center"} onClick={() => setAlign("center")} title="Align center">
-        <AlignCenter className="h-3.5 w-3.5" />
-      </ToolbarBtn>
-      <ToolbarBtn active={align === "right"} onClick={() => setAlign("right")} title="Align right">
-        <AlignRight className="h-3.5 w-3.5" />
-      </ToolbarBtn>
+      <ControlGroup>
+        {/* Bold / Italic */}
+        <ToolbarBtn active={isBold} onClick={() => toggle("fontWeight")} title="Bold">
+          <Bold className="h-4 w-4" />
+        </ToolbarBtn>
+        <ToolbarBtn active={isItalic} onClick={() => toggle("fontStyle")} title="Italic">
+          <Italic className="h-4 w-4" />
+        </ToolbarBtn>
+      </ControlGroup>
 
       <Sep />
 
-      {/* Duplicate */}
-      <ToolbarBtn onClick={() => duplicateOverlay(selectedOverlay.id)} title="Duplicate">
-        <Copy className="h-3.5 w-3.5" />
-      </ToolbarBtn>
+      <ControlGroup>
+        {/* Color swatch */}
+        <div className="relative">
+          <button
+            type="button"
+            title="Text color"
+            onClick={() => {
+              setColorOpen((v) => !v);
+              colorInputRef.current?.click();
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] transition-colors hover:border-white/20 hover:bg-white/12"
+          >
+            <span
+              className="h-4 w-4 rounded border border-white/30 shadow-sm"
+              style={{ background: color }}
+            />
+          </button>
+          <input
+            ref={colorInputRef}
+            type="color"
+            value={color}
+            onChange={handleColorChange}
+            className="sr-only"
+            tabIndex={-1}
+          />
+        </div>
 
-      {/* Delete */}
-      <ToolbarBtn
-        danger
-        onClick={() => removeOverlay(selectedOverlay.id)}
-        title="Delete overlay"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </ToolbarBtn>
+        {/* Font size */}
+        <input
+          type="number"
+          min={6}
+          max={400}
+          step={1}
+          value={Math.round(fontSize)}
+          onChange={handleFontSizeChange}
+          className="h-8 w-12 rounded-lg border border-white/14 bg-black/25 px-1.5 text-center text-[11px] font-medium text-white/85 [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-primary/45 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          title="Font size"
+        />
+      </ControlGroup>
+
+      <Sep />
+
+      <ControlGroup>
+        {/* Alignment */}
+        <ToolbarBtn active={align === "left"} onClick={() => setAlign("left")} title="Align left">
+          <AlignLeft className="h-4 w-4" />
+        </ToolbarBtn>
+        <ToolbarBtn
+          active={align === "center"}
+          onClick={() => setAlign("center")}
+          title="Align center"
+        >
+          <AlignCenter className="h-4 w-4" />
+        </ToolbarBtn>
+        <ToolbarBtn
+          active={align === "right"}
+          onClick={() => setAlign("right")}
+          title="Align right"
+        >
+          <AlignRight className="h-4 w-4" />
+        </ToolbarBtn>
+      </ControlGroup>
+
+      <Sep />
+
+      <ControlGroup>
+        {/* Duplicate */}
+        <ToolbarBtn onClick={() => duplicateOverlay(selectedOverlay.id)} title="Duplicate">
+          <Copy className="h-4 w-4" />
+        </ToolbarBtn>
+
+        {/* Delete */}
+        <ToolbarBtn
+          danger
+          onClick={() => removeOverlay(selectedOverlay.id)}
+          title="Delete overlay"
+        >
+          <Trash2 className="h-4 w-4" />
+        </ToolbarBtn>
+      </ControlGroup>
     </div>
   );
 }

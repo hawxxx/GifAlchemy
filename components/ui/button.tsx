@@ -4,22 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[color,box-shadow,transform,background-color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md active:bg-primary/95",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 hover:shadow-md active:bg-destructive/95",
-        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground hover:border-border active:bg-accent/80",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:bg-secondary/90",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
+        default: "bg-primary text-primary-foreground shadow-sm shadow-black/30 hover:-translate-y-px hover:bg-[var(--accent-2)] hover:shadow-md hover:shadow-black/40 active:translate-y-0",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm shadow-black/30 hover:-translate-y-px hover:bg-[#e17676] hover:shadow-md hover:shadow-black/40 active:translate-y-0",
+        outline: "border-[color:var(--border-subtle)] bg-[var(--surface-2)] text-foreground shadow-sm shadow-black/30 hover:-translate-y-px hover:border-[color:var(--border-strong)] hover:bg-[var(--surface-3)] hover:shadow-md hover:shadow-black/40 active:translate-y-0",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm shadow-black/25 hover:-translate-y-px hover:border-[color:var(--border-subtle)] hover:bg-[var(--panel)] hover:shadow-md hover:shadow-black/35 active:translate-y-0",
+        ghost: "text-muted-foreground hover:border-[color:var(--border-subtle)] hover:bg-[var(--surface-2)] hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
+        sm: "h-8 rounded-lg px-3 text-xs",
         lg: "h-10 rounded-lg px-8",
-        icon: "h-9 w-9",
+        icon: "h-9 w-9 p-0",
       },
     },
     defaultVariants: {
