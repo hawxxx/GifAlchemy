@@ -53,31 +53,40 @@ export function PropertiesPanel({
   return (
     <aside
       className={cn(
-        "flex flex-col overflow-auto rounded-2xl border border-border/60 bg-card/90 shadow-sm ring-1 ring-black/[0.03] backdrop-blur supports-[backdrop-filter]:bg-card/80 dark:ring-white/[0.04]",
+        "flex flex-col overflow-auto rounded-2xl border border-border/60 bg-card/90",
+        "shadow-[0_16px_30px_-24px_hsl(var(--foreground)/0.7)] ring-1 ring-black/[0.03] backdrop-blur supports-[backdrop-filter]:bg-card/80 dark:ring-white/[0.04]",
         className
       )}
     >
-      {/* Panel header */}
-      <div className="sticky top-0 z-10 shrink-0 border-b border-border/55 bg-card/95 px-5 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
-          Inspector
-        </p>
-        <h2 className="mt-1 text-sm font-semibold tracking-tight text-foreground">
-          {activeToolTitle}
-        </h2>
+      <div className="sticky top-0 z-10 shrink-0 border-b border-border/55 bg-gradient-to-b from-card/95 to-card/85 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/90">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/75">
+              Inspector
+            </p>
+            <h2 className="mt-1 text-[15px] font-semibold tracking-tight text-foreground">
+              {activeToolTitle}
+            </h2>
+          </div>
+          {metadata && (
+            <p className="text-[11px] tabular-nums text-muted-foreground">
+              {metadata.width}×{metadata.height}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3 p-4">
-        <section className="content-visibility-auto rounded-xl border border-border/55 bg-background/55 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
-          <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+      <div className="flex flex-col gap-3 p-3 md:p-4">
+        <section className="content-visibility-auto rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
             File info
           </h3>
           {metadata ? (
             <ul className="space-y-1.5 text-sm leading-5 text-foreground">
-              <li>{metadata.width} × {metadata.height}</li>
-              <li>{metadata.frameCount} frames</li>
-              <li>{formatBytes(metadata.fileSize)}</li>
-              <li className="truncate text-xs text-muted-foreground" title={metadata.fileName}>
+              <li className="tabular-nums">{metadata.width} × {metadata.height}</li>
+              <li className="tabular-nums">{metadata.frameCount} frames</li>
+              <li className="tabular-nums">{formatBytes(metadata.fileSize)}</li>
+              <li className="truncate text-xs text-muted-foreground/95" title={metadata.fileName}>
                 {metadata.fileName}
               </li>
             </ul>
@@ -86,8 +95,8 @@ export function PropertiesPanel({
           )}
         </section>
 
-        <section className="content-visibility-auto rounded-xl border border-border/55 bg-background/55 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
-          <h3 className="mb-3 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+        <section className="content-visibility-auto rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
+          <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
             Active tool
           </h3>
           {activeTool === "resize" && (
@@ -108,11 +117,11 @@ export function PropertiesPanel({
           )}
         </section>
 
-        <section className="content-visibility-auto rounded-xl border border-border/55 bg-background/55 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
-          <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
+        <section className="content-visibility-auto rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3.5 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
             Output preset
           </h3>
-          <p className="text-xs leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground/95">
             Output size is set in the Resize tool. Format: {outputSettings.format}.
           </p>
         </section>

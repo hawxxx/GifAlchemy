@@ -68,7 +68,7 @@ export function EditorShell({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "h-screen flex flex-col overflow-hidden bg-background text-foreground",
+        "h-screen flex flex-col overflow-hidden bg-[radial-gradient(160%_100%_at_50%_0%,hsl(var(--muted)/0.45)_0%,hsl(var(--background))_50%)] text-foreground",
         className
       )}
     >
@@ -79,18 +79,19 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <div
-        className="grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-border/45 bg-muted/20 px-3 py-3"
-        style={{
-          gridTemplateColumns: "56px minmax(0, 1fr) 304px",
-          gridTemplateRows: "1fr",
-        }}
+        className={cn(
+          "grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-border/50 px-3 py-3",
+          "bg-gradient-to-b from-muted/30 via-muted/20 to-background/20",
+          "[grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_minmax(0,1fr)_minmax(220px,auto)]",
+          "md:px-4 md:py-4 md:[grid-template-columns:64px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
+        )}
       >
         <ToolsRail
           activeTool={state.activeTool}
           onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
         />
 
-        <div className="min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
+        <div className="min-h-0 overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-[0_14px_30px_-20px_hsl(var(--foreground)/0.4)] ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
           <CanvasStage />
         </div>
 
@@ -105,9 +106,9 @@ export function EditorShell({ className }: { className?: string }) {
       </div>
 
       <div
-        className="shrink-0 border-t border-border/45 bg-muted/20 px-3 pb-3 pt-2"
+        className="shrink-0 border-t border-border/50 bg-gradient-to-b from-muted/20 to-muted/10 px-3 pb-3 pt-2 md:px-4 md:pb-4"
       >
-        <div className="h-[170px] overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-sm ring-1 ring-black/[0.02] dark:ring-white/[0.03]">
+        <div className="h-[160px] overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-[0_14px_30px_-22px_hsl(var(--foreground)/0.45)] ring-1 ring-black/[0.02] md:h-[176px] dark:ring-white/[0.03]">
           <TimelinePanel />
         </div>
       </div>
