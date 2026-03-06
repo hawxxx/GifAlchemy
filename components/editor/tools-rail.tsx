@@ -93,7 +93,7 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
                           "group relative flex h-10 w-10 items-center justify-center rounded-xl border border-transparent transition-all duration-150 ease-out",
-                          "md:h-auto md:w-full md:flex-col md:gap-1.5 md:rounded-xl md:px-1 md:py-2.5",
+                          "md:h-auto md:w-full md:flex-col md:gap-1 md:rounded-xl md:px-1.5 md:py-2.5",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                           "active:scale-[0.97]",
                           "before:absolute before:left-1/2 before:top-0.5 before:h-0.5 before:w-4 before:-translate-x-1/2 before:rounded-full before:bg-primary/80 before:opacity-0 before:transition-opacity before:duration-150",
@@ -117,8 +117,8 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                         )}
                         <span
                           className={cn(
-                            "hidden max-w-full truncate text-center text-[9px] font-semibold uppercase leading-none tracking-[0.12em] md:block",
-                            isActive ? "text-foreground" : "text-muted-foreground"
+                            "hidden max-w-full truncate text-center text-[12px] font-medium leading-tight tracking-[0.01em] md:block",
+                            isActive ? "text-foreground" : "text-muted-foreground/95"
                           )}
                         >
                           {TOOL_LABELS[id]}

@@ -346,22 +346,66 @@ export function CanvasStage() {
     setZoom((prev) => clampZoom(prev + delta));
   }, [clampZoom]);
 
-  const updateCrop = useCallback((next: { x: number; y: number; width: number; height: number }) => {
+  useEffect(() => {
     const meta = state.metadata;
-    if (!meta) return;
-    const x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
-    const y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
-    const width = Math.max(1, Math.min(meta.width - x, Math.round(next.width)));
-    const height = Math.max(1, Math.min(meta.height - y, Math.round(next.height)));
-    dispatch({
-      type: "UPDATE_OUTPUT_SETTINGS",
-      payload: { crop: { x, y, width, height } },
-    });
-  }, [dispatch, state.metadata]);
+    if (state.activeTool !== "resize" || !meta) return;
+    const crop = state.outputSettings.crop;
+    if (!crop) {
+      dispatch({
+        type: "UPDATE_OUTPUT_SETTINGS",
+        payload: {
+          crop: { x: 0, y: 0, width: meta.width, height: meta.height },
+          width: meta.width,
+          height: meta.height,
+        },
+      });
+      return;
+    }
+    if (state.outputSettings.width !== crop.width || state.outputSettings.height !== crop.height) {
+      dispatch({
+        type: "UPDATE_OUTPUT_SETTINGS",
+        payload: { width: crop.width, height: crop.height },
+      });
+    }
+  }, [
+    dispatch,
+    state.activeTool,
+    state.metadata,
+    state.outputSettings.crop,
+    state.outputSettings.height,
+    state.outputSettings.width,
+  ]);
+
+  const updateCrop = useCallback(
+    (next: { x: number; y: number; width: number; height: number }, syncDimensions: boolean) => {
+      const meta = state.metadata;
+      if (!meta) return;
+      const x = Math.max(0, Math.min(meta.width - 1, Math.round(next.x)));
+      const y = Math.max(0, Math.min(meta.height - 1, Math.round(next.y)));
+      const width = Math.max(1, Math.min(meta.width - x, Math.round(next.width)));
+      const height = Math.max(1, Math.min(meta.height - y, Math.round(next.height)));
+      dispatch({
+        type: "UPDATE_OUTPUT_SETTINGS",
+        payload: {
+          crop: {
+            ...(state.outputSettings.crop ?? {}),
+            x,
+            y,
+            width,
+            height,
+          },
+          ...(syncDimensions ? { width, height } : {}),
+        },
+      });
+    },
+    [dispatch, state.metadata, state.outputSettings.crop]
+  );
 
   const handleCropPointerDown = useCallback(
     (e: React.PointerEvent, mode: CropDragMode) => {
-      if (state.activeTool !== "trim" || !state.outputSettings.crop) return;
+      if ((state.activeTool !== "trim" && state.activeTool !== "resize") || !state.outputSettings.crop) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       cropDragRef.current = {
@@ -380,6 +424,7 @@ export function CanvasStage() {
       const drag = cropDragRef.current;
       const meta = state.metadata;
       if (!drag || !meta) return;
+      const syncDimensions = state.activeTool === "resize";
       const dxPx = (e.clientX - drag.startX) / zoomRef.current;
       const dyPx = (e.clientY - drag.startY) / zoomRef.current;
       const minSize = 1;
@@ -397,7 +442,7 @@ export function CanvasStage() {
           ...drag.startCrop,
           x: nextX,
           y: nextY,
-        });
+        }, syncDimensions);
         return;
       }
 
@@ -428,9 +473,9 @@ export function CanvasStage() {
         y: top,
         width: right - left,
         height: bottom - top,
-      });
+      }, syncDimensions);
     },
-    [state.metadata, updateCrop]
+    [state.activeTool, state.metadata, updateCrop]
   );
 
   const handleCropPointerUp = useCallback(() => {
@@ -554,6 +599,8 @@ export function CanvasStage() {
     return state.currentFrameIndex >= inFrame && state.currentFrameIndex <= outFrame;
   });
   const crop = state.outputSettings.crop;
+  const isCropToolActive = state.activeTool === "trim" || state.activeTool === "resize";
+  const isResizeToolActive = state.activeTool === "resize";
 
   const effectiveShowRulers = isPreviewMode ? false : showRulers;
   const effectiveShowSafeArea = isPreviewMode ? false : showSafeArea;
@@ -723,7 +770,7 @@ export function CanvasStage() {
             />
           </>
         )}
-        {!isPreviewMode && state.activeTool === "trim" && crop && (
+        {!isPreviewMode && isCropToolActive && crop && (
           <>
             <div
               className="absolute bg-black/45 pointer-events-none"
@@ -760,7 +807,12 @@ export function CanvasStage() {
               }}
             />
             <div
-              className="absolute border-2 border-primary/90 bg-primary/10"
+              className={cn(
+                "absolute border-2",
+                isResizeToolActive
+                  ? "border-sky-400/95 bg-sky-500/10 shadow-[0_0_0_1px_rgba(56,189,248,0.22)_inset,0_0_28px_rgba(14,116,144,0.16)]"
+                  : "border-primary/90 bg-primary/10"
+              )}
               style={{
                 left: crop.x,
                 top: crop.y,
@@ -771,8 +823,15 @@ export function CanvasStage() {
               }}
               onPointerDown={(e) => handleCropPointerDown(e, "move")}
             >
-              <div className="absolute -top-5 left-0 rounded bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5">
-                Crop
+              <div
+                className={cn(
+                  "absolute -top-5 left-0 rounded text-[10px] px-1.5 py-0.5 backdrop-blur-sm",
+                  isResizeToolActive
+                    ? "bg-sky-500/90 text-white"
+                    : "bg-primary text-primary-foreground"
+                )}
+              >
+                {isResizeToolActive ? `${crop.width}x${crop.height}` : "Crop"}
               </div>
               {cropHandleStyles.map((handle) => (
                 <button
@@ -780,7 +839,10 @@ export function CanvasStage() {
                   type="button"
                   aria-label={handle.ariaLabel}
                   className={cn(
-                    "absolute h-3.5 w-3.5 rounded-sm bg-primary border border-primary-foreground/50",
+                    "absolute h-3.5 w-3.5 rounded-sm border",
+                    isResizeToolActive
+                      ? "bg-sky-400 border-white/70"
+                      : "bg-primary border-primary-foreground/50",
                     handle.className
                   )}
                   style={{ cursor: handle.cursor }}

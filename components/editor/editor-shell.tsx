@@ -83,7 +83,7 @@ export function EditorShell({ className }: { className?: string }) {
           "grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-[var(--border-subtle)] px-3 py-3 transition-colors duration-[var(--duration-ui)]",
           "bg-[var(--background-0)]",
           "[grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_minmax(0,1fr)_minmax(220px,auto)]",
-          "md:px-4 md:py-4 md:[grid-template-columns:64px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
+          "md:px-4 md:py-4 md:[grid-template-columns:88px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
         )}
       >
         <ToolsRail
