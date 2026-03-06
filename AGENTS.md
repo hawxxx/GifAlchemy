@@ -37,7 +37,7 @@ Use Conventional Commits for all messages:
 - Footers are optional and start after one blank line; use trailer style like `Refs: #123` or `Reviewed-by: Name`.
 - Footer token `BREAKING CHANGE` must be uppercase; `BREAKING-CHANGE` is also accepted.
 
-Keep commits focused and descriptive. PRs should include:
+Keep commits focused and descriptive. When requested, split separate implementations/features into separate commits (one feature/implementation per commit). PRs should include:
 - concise summary of behavior changes,
 - linked issue/task (if available),
 - screenshots or GIFs for UI changes,
