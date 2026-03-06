@@ -358,6 +358,14 @@ export function CanvasStage() {
     setPan({ x: 0, y: 0 });
   }, [state.metadata]);
 
+  useEffect(() => {
+    if (state.status !== "ready" || !state.metadata || state.frames.length === 0) return;
+    const rafId = window.requestAnimationFrame(() => {
+      fitToView();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [fitToView, state.frames.length, state.metadata, state.projectId, state.status]);
+
   const clampZoom = useCallback((nextZoom: number) => {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
   }, []);
