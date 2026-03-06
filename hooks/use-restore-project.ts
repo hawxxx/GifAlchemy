@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useEditor } from "./use-editor";
+import { resolveProjectSourceFile } from "@/lib/project-source";
 
 /**
  * On editor load, if the editor is empty and we have a saved project (with file blob),
@@ -44,7 +45,7 @@ export function useRestoreProject() {
           const fallbackId = list.length > 0 ? list[0].id : null;
           if (fallbackId && fallbackId !== targetId) {
             loaded = await projectRepo.load(fallbackId);
-            if (loaded?.project && loaded.fileBlob) {
+            if (loaded?.project) {
               targetId = fallbackId;
               const url = new URL(window.location.href);
               url.searchParams.set("project", fallbackId);
@@ -52,17 +53,15 @@ export function useRestoreProject() {
             }
           }
         }
-        if (cancelled || !loaded?.project || !loaded.fileBlob) return;
+        if (cancelled || !loaded?.project) {
+          attemptedRestore.current = false;
+          dispatch({ type: "RESET" });
+          return;
+        }
 
         const { project, fileBlob } = loaded;
-        const idSuffixMatch = /-(\d+)$/.exec(project.id);
-        const inferredLastModified = idSuffixMatch ? Number(idSuffixMatch[1]) : Date.now();
-        const file = new File([fileBlob], project.sourceFile.name, {
-          type: project.sourceFile.type,
-          lastModified: Number.isFinite(inferredLastModified)
-            ? inferredLastModified
-            : Date.now(),
-        });
+        const file = await resolveProjectSourceFile({ project, fileBlob });
+        if (cancelled || !file) return;
 
         const url = new URL(window.location.href);
         url.searchParams.set("project", project.id);

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAssetLibrary } from "@/hooks/use-asset-library";
 import { useEditor } from "@/hooks/use-editor";
 import { formatBytes } from "@/lib/utils";
+import { resolveProjectSourceFile } from "@/lib/project-source";
 
 interface ProjectCardMeta {
   id: string;
@@ -44,12 +45,10 @@ export function AssetLibraryPanel() {
   const openProject = async (id: string) => {
     if (!projectRepo || !processor) return;
     const loaded = await projectRepo.load(id);
-    if (!loaded?.project || !loaded.fileBlob) return;
+    if (!loaded?.project) return;
     const { project, fileBlob } = loaded;
-    const file = new File([fileBlob], project.sourceFile.name, {
-      type: project.sourceFile.type,
-      lastModified: project.updatedAt,
-    });
+    const file = await resolveProjectSourceFile({ project, fileBlob });
+    if (!file) return;
     if (!processor.isReady) await processor.initialize();
     const { frames, metadata } = await processor.decode(file);
     dispatch({

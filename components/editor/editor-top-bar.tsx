@@ -25,6 +25,7 @@ import {
 import { ExportButton } from "./export-button";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
+import { resolveProjectSourceFile } from "@/lib/project-source";
 import { toast } from "sonner";
 import type { ProjectSummary } from "@/core/application/repositories/project-repository.port";
 import { EDITOR_LABELS } from "@/lib/i18n/editor-labels";
@@ -102,19 +103,16 @@ export function EditorTopBar({
     if (!projectRepo || !processor) return;
     try {
       const loaded = await projectRepo.load(id);
-      if (!loaded?.project || !loaded.fileBlob) {
+      if (!loaded?.project) {
         toast.error(EDITOR_LABELS.topBar.openFailed);
         return;
       }
       const { project, fileBlob } = loaded;
-      const idSuffixMatch = /-(\d+)$/.exec(project.id);
-      const inferredLastModified = idSuffixMatch ? Number(idSuffixMatch[1]) : Date.now();
-      const file = new File([fileBlob], project.sourceFile.name, {
-        type: project.sourceFile.type,
-        lastModified: Number.isFinite(inferredLastModified)
-          ? inferredLastModified
-          : Date.now(),
-      });
+      const file = await resolveProjectSourceFile({ project, fileBlob });
+      if (!file) {
+        toast.error(EDITOR_LABELS.topBar.openFailed);
+        return;
+      }
       if (!processor.isReady) await processor.initialize();
       const { frames, metadata } = await processor.decode(file);
       dispatch({

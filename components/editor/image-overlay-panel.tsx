@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useOverlays } from "@/hooks/use-overlays";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
+import { resolveProjectSourceFile } from "@/lib/project-source";
 import { createImageOverlay } from "@/core/application/commands/overlay-commands";
 import { getAssetFile, listAssets, saveAsset, type StoredAsset } from "@/lib/asset-library";
 import { toast } from "sonner";
@@ -146,15 +147,16 @@ export function ImageOverlayPanel() {
     if (!projectRepo || !processor) return;
     try {
       const loaded = await projectRepo.load(id);
-      if (!loaded?.project || !loaded.fileBlob) {
+      if (!loaded?.project) {
         toast.error("Project source file is missing.");
         return;
       }
       const { project, fileBlob } = loaded;
-      const file = new File([fileBlob], project.sourceFile.name, {
-        type: project.sourceFile.type,
-        lastModified: project.updatedAt,
-      });
+      const file = await resolveProjectSourceFile({ project, fileBlob });
+      if (!file) {
+        toast.error("Project source file is missing.");
+        return;
+      }
       if (!processor.isReady) await processor.initialize();
       const { frames, metadata } = await processor.decode(file);
       dispatch({
