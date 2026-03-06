@@ -10,9 +10,11 @@ import { NextStepsMenu } from "./next-steps-menu";
 import { OnboardingModal } from "./onboarding-modal";
 import { KeyboardShortcutsModal } from "./keyboard-shortcuts-modal";
 import { GuidedOnboarding } from "./guided-onboarding";
+import { ImageAssetsModal } from "./image-assets-modal";
 import { useEditor } from "@/hooks/use-editor";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useRestoreProject } from "@/hooks/use-restore-project";
+import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 import { useEditorKeyboard } from "@/hooks/use-editor-keyboard";
 import { useProjectPersistence } from "@/hooks/use-project-persistence";
 import { cn } from "@/lib/utils";
@@ -28,8 +30,10 @@ export function EditorShell({ className }: { className?: string }) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+  const [showImageAssets, setShowImageAssets] = useState(false);
 
   useRestoreProject();
+  useLoadingTimeout();
   useEditorKeyboard();
   useProjectPersistence();
 
@@ -104,6 +108,12 @@ export function EditorShell({ className }: { className?: string }) {
     const openShortcuts = () => setShowShortcuts(true);
     window.addEventListener("gifalchemy:open-shortcuts", openShortcuts);
     return () => window.removeEventListener("gifalchemy:open-shortcuts", openShortcuts);
+  }, []);
+
+  useEffect(() => {
+    const openImageAssets = () => setShowImageAssets(true);
+    window.addEventListener("gifalchemy:open-image-assets", openImageAssets);
+    return () => window.removeEventListener("gifalchemy:open-image-assets", openImageAssets);
   }, []);
 
   const dismissOnboarding = () => {
@@ -206,6 +216,7 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <ImageAssetsModal open={showImageAssets} onClose={() => setShowImageAssets(false)} />
       {showTour && (
         <GuidedOnboarding
           stepIndex={tourStep}

@@ -89,7 +89,13 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => onSelectTool(isActive ? null : id)}
+                        onClick={() => {
+                          const nextTool = isActive ? null : id;
+                          onSelectTool(nextTool);
+                          if (id === "image" && nextTool === "image" && typeof window !== "undefined") {
+                            window.dispatchEvent(new CustomEvent("gifalchemy:open-image-assets"));
+                          }
+                        }}
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
                           "group relative flex h-10 w-10 items-center justify-center rounded-xl border border-transparent transition-all duration-150 ease-out",
