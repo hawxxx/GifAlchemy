@@ -15,6 +15,8 @@ import {
 } from "@/core/domain/project";
 
 type GifuctPatch = typeof import("gifuct-js");
+const WEBM_MAX_DECODE_FRAMES = 900;
+const WEBM_FALLBACK_FPS = 15;
 
 export class WasmGifProcessorAdapter implements IGifProcessor {
   private _ready = false;
@@ -44,8 +46,257 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
   }
 
   async decode(file: File, signal?: AbortSignal): Promise<{ frames: GifFrame[]; metadata: GifMetadata }> {
-    if (!this._ready || !this._gifuct) await this.initialize();
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+    if (this.isWebmSource(file)) {
+      return this.decodeWebm(file, signal);
+    }
+    if (!this._ready || !this._gifuct) await this.initialize();
+    return this.decodeGif(file, signal);
+  }
+
+  private isWebmSource(file: File): boolean {
+    const type = file.type.toLowerCase();
+    return type === "video/webm" || /\.webm$/i.test(file.name);
+  }
+
+  private async decodeWebm(file: File, signal?: AbortSignal): Promise<{ frames: GifFrame[]; metadata: GifMetadata }> {
+    if (typeof document === "undefined") {
+      throw new Error("Video decoding is only available in the browser.");
+    }
+    if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.src = objectUrl;
+
+    try {
+      await this.waitForVideoEvent(video, "loadedmetadata", signal);
+      await this.waitForVideoEvent(video, "loadeddata", signal);
+
+      const width = Math.max(1, video.videoWidth || 0);
+      const height = Math.max(1, video.videoHeight || 0);
+      const durationSec = Number.isFinite(video.duration) ? Math.max(0, video.duration) : 0;
+
+      if (width <= 0 || height <= 0) {
+        throw new Error("Could not read video dimensions.");
+      }
+      if (durationSec <= 0) {
+        throw new Error("Could not read video duration.");
+      }
+
+      const canUseFrameCallback = typeof video.requestVideoFrameCallback === "function";
+      const decoded = canUseFrameCallback
+        ? await this.decodeWebmWithFrameCallback(video, width, height, durationSec, signal)
+        : await this.decodeWebmWithSeeking(video, width, height, durationSec, signal);
+
+      if (decoded.frames.length === 0) {
+        throw new Error("No frames could be decoded from this WebM file.");
+      }
+
+      const metadata: GifMetadata = {
+        width,
+        height,
+        frameCount: decoded.frames.length,
+        duration: decoded.totalMs,
+        fileSize: file.size,
+        fileName: file.name,
+      };
+      return { frames: decoded.frames, metadata };
+    } finally {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  private waitForVideoEvent(video: HTMLVideoElement, event: "loadedmetadata" | "loadeddata", signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("Export cancelled", "AbortError"));
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("Video decoding failed. Try a different file."));
+      };
+      const onReady = () => {
+        cleanup();
+        resolve();
+      };
+      const cleanup = () => {
+        signal?.removeEventListener("abort", onAbort);
+        video.removeEventListener("error", onError);
+        video.removeEventListener(event, onReady);
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      video.addEventListener("error", onError, { once: true });
+      video.addEventListener(event, onReady, { once: true });
+    });
+  }
+
+  private async decodeWebmWithFrameCallback(
+    video: HTMLVideoElement,
+    width: number,
+    height: number,
+    durationSec: number,
+    signal?: AbortSignal
+  ): Promise<{ frames: GifFrame[]; totalMs: number }> {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context unavailable for video decoding.");
+
+    const frames: GifFrame[] = [];
+    let lastMediaMs: number | null = null;
+    let captureDone = false;
+    const durationMs = Math.max(1, Math.round(durationSec * 1000));
+
+    const finalize = (): { frames: GifFrame[]; totalMs: number } => {
+      if (frames.length === 0) {
+        return { frames: [], totalMs: 0 };
+      }
+      if (frames.length === 1) {
+        frames[0] = { ...frames[0], delay: Math.max(10, durationMs) };
+      } else {
+        const avgDelay = Math.max(10, Math.round(durationMs / frames.length));
+        const last = frames[frames.length - 1];
+        frames[frames.length - 1] = { ...last, delay: avgDelay };
+      }
+      const totalMs = frames.reduce((sum, f) => sum + Math.max(10, f.delay), 0);
+      return { frames, totalMs };
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("Export cancelled", "AbortError"));
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("Video decoding failed. Try a different file."));
+      };
+      const onEnded = () => {
+        captureDone = true;
+        cleanup();
+        resolve();
+      };
+      const cleanup = () => {
+        signal?.removeEventListener("abort", onAbort);
+        video.removeEventListener("error", onError);
+        video.removeEventListener("ended", onEnded);
+      };
+      const capture = (_now: number, metadata: VideoFrameCallbackMetadata) => {
+        if (captureDone) return;
+        if (signal?.aborted) {
+          onAbort();
+          return;
+        }
+        const mediaMs = Math.max(0, Math.round(metadata.mediaTime * 1000));
+        ctx.drawImage(video, 0, 0, width, height);
+        const out = ctx.getImageData(0, 0, width, height);
+        const delay = lastMediaMs == null ? Math.max(10, Math.round(1000 / WEBM_FALLBACK_FPS)) : Math.max(10, mediaMs - lastMediaMs);
+        frames.push({ index: frames.length, imageData: out, delay, disposal: 0 });
+        lastMediaMs = mediaMs;
+
+        if (frames.length >= WEBM_MAX_DECODE_FRAMES) {
+          captureDone = true;
+          video.pause();
+          cleanup();
+          resolve();
+          return;
+        }
+        const percent = Math.min(98, Math.round((mediaMs / durationMs) * 100));
+        this.reportProgress("Decoding", percent);
+        video.requestVideoFrameCallback(capture);
+      };
+
+      signal?.addEventListener("abort", onAbort, { once: true });
+      video.addEventListener("error", onError, { once: true });
+      video.addEventListener("ended", onEnded, { once: true });
+      video.requestVideoFrameCallback(capture);
+      void video.play().catch((err) => {
+        cleanup();
+        reject(err instanceof Error ? err : new Error("Unable to play WebM for decoding."));
+      });
+    });
+
+    return finalize();
+  }
+
+  private async decodeWebmWithSeeking(
+    video: HTMLVideoElement,
+    width: number,
+    height: number,
+    durationSec: number,
+    signal?: AbortSignal
+  ): Promise<{ frames: GifFrame[]; totalMs: number }> {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context unavailable for video decoding.");
+
+    const targetFrames = Math.max(
+      1,
+      Math.min(WEBM_MAX_DECODE_FRAMES, Math.round(durationSec * WEBM_FALLBACK_FPS))
+    );
+    const frames: GifFrame[] = [];
+    let prevTime = 0;
+
+    video.pause();
+    for (let i = 0; i < targetFrames; i++) {
+      if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
+      const time = targetFrames <= 1
+        ? 0
+        : (i / (targetFrames - 1)) * durationSec;
+      await this.seekVideo(video, time, signal);
+      ctx.drawImage(video, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const delay = i === 0
+        ? Math.max(10, Math.round(1000 / WEBM_FALLBACK_FPS))
+        : Math.max(10, Math.round((time - prevTime) * 1000));
+      frames.push({ index: i, imageData, delay, disposal: 0 });
+      prevTime = time;
+      this.reportProgress("Decoding", Math.min(98, Math.round(((i + 1) / targetFrames) * 100)));
+    }
+
+    const totalMs = frames.reduce((sum, frame) => sum + Math.max(10, frame.delay), 0);
+    return { frames, totalMs };
+  }
+
+  private seekVideo(video: HTMLVideoElement, timeSec: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("Export cancelled", "AbortError"));
+      };
+      const onSeeked = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error("Failed to seek WebM while decoding."));
+      };
+      const cleanup = () => {
+        signal?.removeEventListener("abort", onAbort);
+        video.removeEventListener("seeked", onSeeked);
+        video.removeEventListener("error", onError);
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      video.addEventListener("seeked", onSeeked, { once: true });
+      video.addEventListener("error", onError, { once: true });
+      video.currentTime = Math.max(0, Math.min(timeSec, Math.max(0, video.duration || 0)));
+    });
+  }
+
+  private async decodeGif(file: File, signal?: AbortSignal): Promise<{ frames: GifFrame[]; metadata: GifMetadata }> {
     const gifuct = this._gifuct!;
     const buffer = await file.arrayBuffer();
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
@@ -139,7 +390,7 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
       if (patchCanvas && patchCtx && pw > 0 && ph > 0) {
         patchCanvas.width = pw;
         patchCanvas.height = ph;
-        patchCtx.putImageData(new ImageData(raw.patch, pw, ph), 0, 0);
+        patchCtx.putImageData(new ImageData(new Uint8ClampedArray(raw.patch), pw, ph), 0, 0);
         const drawLeft = Math.max(0, Math.min(left, width - 1));
         const drawTop = Math.max(0, Math.min(top, height - 1));
         ctx.drawImage(patchCanvas, drawLeft, drawTop);

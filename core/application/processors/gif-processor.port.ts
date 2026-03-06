@@ -23,7 +23,7 @@ export interface TransformOptions {
 export interface IGifProcessor {
   readonly isReady: boolean;
   initialize(): Promise<void>;
-  decode(file: File): Promise<{ frames: GifFrame[]; metadata: GifMetadata }>;
+  decode(file: File, signal?: AbortSignal): Promise<{ frames: GifFrame[]; metadata: GifMetadata }>;
   resize(file: File, width: number, height: number): Promise<ProcessingResult>;
   transform(file: File, options: TransformOptions): Promise<ProcessingResult>;
   addTextOverlays(
