@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Eye, ImageIcon, LoaderCircle, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -237,7 +237,6 @@ type CropDragMode = "move" | "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
 export function CanvasStage() {
   const { state, dispatch, processor, processingAbortRef } = useEditor();
   const { initialize } = useProcessor(processor);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -536,48 +535,6 @@ export function CanvasStage() {
   const handleCropPointerUp = useCallback(() => {
     cropDragRef.current = null;
   }, []);
-
-  // Draw current frame to canvas. Runs in useLayoutEffect so the GIF is visible before paint.
-  useLayoutEffect(() => {
-    if (state.status !== "ready" || state.frames.length === 0) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
-    const frame = state.frames[safeIndex];
-    if (!frame?.imageData) return;
-    const w = frame.imageData.width;
-    const h = frame.imageData.height;
-    if (w <= 0 || h <= 0) return;
-    const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio : 1);
-    try {
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = `${w}px`;
-        canvas.style.height = `${h}px`;
-      }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      const temp = document.createElement("canvas");
-      temp.width = w;
-      temp.height = h;
-      const tempCtx = temp.getContext("2d");
-      if (!tempCtx) return;
-      tempCtx.putImageData(frame.imageData, 0, 0);
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.drawImage(temp, 0, 0);
-      ctx.restore();
-    } catch {
-      // Fallback: draw imageData directly (may only fill logical size at 1:1)
-      const ctx = canvas.getContext("2d");
-      if (ctx && canvas.width === w && canvas.height === h) {
-        ctx.putImageData(frame.imageData, 0, 0);
-      }
-    }
-  }, [state.status, state.frames, state.currentFrameIndex, state.projectId]);
 
   useEffect(() => {
     if (state.status !== "ready" || state.frames.length === 0) {
@@ -916,12 +873,6 @@ export function CanvasStage() {
             style={{ width: w, height: h }}
           />
         ) : null}
-        <canvas
-          key={`canvas-${state.projectId ?? ""}-${state.frames.length}`}
-          ref={canvasRef}
-          className="pointer-events-none absolute inset-0 z-10 block opacity-0"
-          style={{ width: w, height: h }}
-        />
         {effectiveShowRulers && (
           <>
             <div
