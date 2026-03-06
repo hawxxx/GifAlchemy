@@ -855,7 +855,7 @@ export function CanvasStage() {
       {!state.isPreviewMode && (
         <>
           <div
-            className="pointer-events-none absolute inset-0 rounded-xl opacity-45 transition-opacity duration-200 ease-out"
+            className="pointer-events-none absolute inset-0 z-0 rounded-xl opacity-45 transition-opacity duration-200 ease-out"
             style={{
               backgroundImage:
                 "linear-gradient(180deg, rgba(15,18,26,0.9), rgba(8,10,16,0.95)), linear-gradient(rgba(122,138,162,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(122,138,162,0.06) 1px, transparent 1px)",
@@ -863,7 +863,7 @@ export function CanvasStage() {
             }}
           />
           <div
-            className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-200 ease-out"
+            className="pointer-events-none absolute inset-0 z-0 rounded-xl transition-opacity duration-200 ease-out"
             style={{
               background:
                 "radial-gradient(circle at 50% 48%, rgba(176,198,230,0.12) 0%, rgba(15,18,26,0.28) 50%, rgba(4,6,10,0.74) 100%)",
@@ -872,7 +872,7 @@ export function CanvasStage() {
         </>
       )}
       <div
-        className="relative overflow-visible rounded-[10px] border border-white/12 shadow-[0_16px_46px_rgba(0,0,0,0.46),0_1px_0_rgba(255,255,255,0.05)_inset] transition-shadow duration-200"
+        className="relative z-10 isolate overflow-visible rounded-[10px] border border-white/12 shadow-[0_16px_46px_rgba(0,0,0,0.46),0_1px_0_rgba(255,255,255,0.05)_inset] transition-shadow duration-200"
         style={{
           background:
             canvasBackgroundMode === "solid"
@@ -886,7 +886,7 @@ export function CanvasStage() {
       >
         {canvasBackgroundMode === "transparent" && (
           <div
-            className="pointer-events-none absolute inset-0 rounded-[10px] opacity-100"
+            className="pointer-events-none absolute inset-0 z-0 rounded-[10px] opacity-100"
             style={{ background: CHECKERBOARD }}
           />
         )}
@@ -900,7 +900,7 @@ export function CanvasStage() {
           />
         )}
         <div
-          className="pointer-events-none absolute inset-0 rounded-[10px]"
+          className="pointer-events-none absolute inset-0 z-20 rounded-[10px]"
           style={{
             boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.045), inset 0 0 28px rgba(14,20,32,0.34)",
           }}
@@ -912,14 +912,14 @@ export function CanvasStage() {
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="block max-w-full max-h-full select-none"
+            className="relative z-10 block max-w-full max-h-full select-none"
             style={{ width: w, height: h }}
           />
         ) : null}
         <canvas
           key={`canvas-${state.projectId ?? ""}-${state.frames.length}`}
           ref={canvasRef}
-          className="pointer-events-none absolute inset-0 block opacity-0"
+          className="pointer-events-none absolute inset-0 z-10 block opacity-0"
           style={{ width: w, height: h }}
         />
         {effectiveShowRulers && (
@@ -1087,14 +1087,16 @@ export function CanvasStage() {
           </>
         )}
         {frame && (
-          <OverlayRenderer
-            overlays={overlaysInRange}
-            currentFrameIndex={safeFrameIndex}
-            frameCount={state.frames.length}
-            width={w}
-            height={h}
-            previewMode={state.isPreviewMode}
-          />
+          <div className="absolute inset-0 z-30">
+            <OverlayRenderer
+              overlays={overlaysInRange}
+              currentFrameIndex={safeFrameIndex}
+              frameCount={state.frames.length}
+              width={w}
+              height={h}
+              previewMode={state.isPreviewMode}
+            />
+          </div>
         )}
       </div>
 
