@@ -11,6 +11,8 @@ export interface TransformOptions {
   height?: number;
   quality?: number;
   format?: "gif" | "mp4" | "webm" | "apng";
+  backgroundMode?: "transparent" | "solid";
+  backgroundColor?: string;
   signal?: AbortSignal;
   /** First frame index (inclusive) for trim. When set with trimEnd, only this range is exported. */
   trimStart?: number;

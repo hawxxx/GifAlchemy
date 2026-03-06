@@ -38,6 +38,8 @@ const EXPORT_SUPPORT_MATRIX: Array<{
 export function OptimizeToolPanel() {
   const { state, dispatch } = useEditor();
   const selectedFormat = state.outputSettings.format;
+  const backgroundMode = state.outputSettings.backgroundMode ?? "transparent";
+  const backgroundColor = state.outputSettings.backgroundColor ?? "#10141A";
 
   return (
     <div className="space-y-4">
@@ -79,6 +81,67 @@ export function OptimizeToolPanel() {
         <p className="mt-1 text-[11px] text-muted-foreground">
           Higher quality can increase output size and export time.
         </p>
+      </div>
+
+      <div className="space-y-2.5 rounded-lg border border-border/60 bg-background/70 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Label className="text-xs">Background</Label>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Keep transparency for transparent GIFs, or bake in a solid color.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant={backgroundMode === "transparent" ? "default" : "outline"}
+            size="sm"
+            className="rounded-lg text-xs"
+            onClick={() =>
+              dispatch({
+                type: "UPDATE_OUTPUT_SETTINGS",
+                payload: { backgroundMode: "transparent" },
+              })
+            }
+          >
+            Transparent
+          </Button>
+          <Button
+            type="button"
+            variant={backgroundMode === "solid" ? "default" : "outline"}
+            size="sm"
+            className="rounded-lg text-xs"
+            onClick={() =>
+              dispatch({
+                type: "UPDATE_OUTPUT_SETTINGS",
+                payload: { backgroundMode: "solid" },
+              })
+            }
+          >
+            Solid color
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={backgroundColor}
+            disabled={backgroundMode !== "solid"}
+            onChange={(e) =>
+              dispatch({
+                type: "UPDATE_OUTPUT_SETTINGS",
+                payload: { backgroundColor: e.target.value, backgroundMode: "solid" },
+              })
+            }
+            className="h-9 w-11 cursor-pointer rounded-lg border border-border/70 bg-transparent p-1 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Background color"
+          />
+          <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+            {backgroundMode === "solid"
+              ? `Export will render over ${backgroundColor.toUpperCase()}.`
+              : "Transparent pixels stay transparent in preview/export where supported."}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5">

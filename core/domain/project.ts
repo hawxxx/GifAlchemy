@@ -86,8 +86,20 @@ export interface Overlay {
   /** CSS letter spacing in pixels. */
   letterSpacing?: number;
   color: string;
+  fillType?: "solid" | "gradient";
+  gradientFrom?: string;
+  gradientTo?: string;
+  gradientAngle?: number;
   strokeWidth: number;
   strokeColor: string;
+  textShadowColor?: string;
+  textShadowBlur?: number;
+  textShadowOffsetX?: number;
+  textShadowOffsetY?: number;
+  backgroundColor?: string;
+  backgroundPaddingX?: number;
+  backgroundPaddingY?: number;
+  backgroundRadius?: number;
   keyframes: Keyframe[];
   effects: Effect[];
   /** Inclusive timeline start frame for overlay visibility. Default 0. */
@@ -154,6 +166,8 @@ export interface OutputSettings {
   format: OutputFormat;
   quality: number;
   crop?: CropRect | null;
+  backgroundMode?: "transparent" | "solid";
+  backgroundColor?: string;
 }
 
 export interface CropRect {

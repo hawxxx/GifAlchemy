@@ -319,21 +319,8 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
       transparentIndex?: number;
     };
 
-    const bgIndex = (parsed as { lsd?: { backgroundColorIndex?: number } }).lsd?.backgroundColorIndex ?? 0;
-    const gct = (parsed as { gct?: [number, number, number][] }).gct;
-    const bgRgb = gct?.[bgIndex] ?? [0, 0, 0];
-    const [bgR, bgG, bgB] = bgRgb;
-
-    // Build a background-colour ImageData for blank-frame fallback
-    let backgroundImageData: ImageData | null = null;
     if (ctx && width > 0 && height > 0) {
-      const bg = ctx.createImageData(width, height);
-      const d = bg.data;
-      for (let i = 0; i < d.length; i += 4) { d[i] = bgR; d[i + 1] = bgG; d[i + 2] = bgB; d[i + 3] = 255; }
-      backgroundImageData = bg;
-      // Fill canvas with background
-      ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
-      ctx.fillRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
     }
 
     // Temp canvas for compositing individual patches via drawImage (GPU alpha-correct)
@@ -349,8 +336,6 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
 
       if (!ctx || !raw.patch || !raw.dims) {
         const blank = new ImageData(Math.max(width, 1), Math.max(height, 1));
-        if (backgroundImageData && blank.data.length >= backgroundImageData.data.length)
-          blank.data.set(backgroundImageData.data);
         result.push({ index, imageData: blank, delay: delayMs(raw.delay), disposal: 0 });
         continue;
       }
@@ -368,9 +353,8 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         const cW = Math.max(0, Math.min(p.width, width - cLeft));
         const cH = Math.max(0, Math.min(p.height, height - cTop));
         if (disposal === 2 && cW > 0 && cH > 0) {
-          // Clear previous frame's rect to GIF background colour
-          ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
-          ctx.fillRect(cLeft, cTop, cW, cH);
+          // Restore the previous frame area to transparent so exported GIFs can preserve alpha.
+          ctx.clearRect(cLeft, cTop, cW, cH);
         } else if (disposal === 3 && savedBeforePatch) {
           // Restore canvas to what it was before the previous patch was drawn
           ctx.putImageData(savedBeforePatch, 0, 0);
@@ -396,14 +380,11 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         ctx.drawImage(patchCanvas, drawLeft, drawTop);
       }
 
-      // ── 4. Capture full composited frame; force alpha=255 for storage ─────────
+      // ── 4. Capture full composited frame and preserve alpha for transparent GIF workflows ──
       const full = ctx.getImageData(0, 0, width, height);
-      const fd = full.data;
-      for (let i = 3; i < fd.length; i += 4) fd[i] = 255;
-
       result.push({
         index,
-        imageData: new ImageData(new Uint8ClampedArray(fd), width, height),
+        imageData: new ImageData(new Uint8ClampedArray(full.data), width, height),
         delay: delayMs(raw.delay),
         disposal: raw.disposalType ?? 0,
       });
@@ -451,6 +432,7 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     if (options.cropRect) {
       frames = await this.cropFramesToCanvas(frames, options.cropRect, signal);
     }
+    frames = this.applyBackground(frames, options);
     this.reportProgress("Decoded", 25);
     const sourceW = options.cropRect ? Math.max(1, Math.round(options.cropRect.width)) : metadata.width;
     const sourceH = options.cropRect ? Math.max(1, Math.round(options.cropRect.height)) : metadata.height;
@@ -808,7 +790,18 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
         ctx.save();
         ctx.globalAlpha = opacity;
         ctx.font = `${overlay.fontStyle ?? "normal"} ${overlay.fontWeight ?? "normal"} ${overlay.fontSize}px ${overlay.fontFamily}`;
-        ctx.fillStyle = overlay.color;
+        const fillType = overlay.fillType ?? "solid";
+        const gradientFrom = overlay.gradientFrom ?? overlay.color;
+        const gradientTo = overlay.gradientTo ?? "#5B8CFF";
+        const gradientAngle = overlay.gradientAngle ?? 90;
+        const shadowColor = overlay.textShadowColor ?? "#000000";
+        const shadowBlur = overlay.textShadowBlur ?? 0;
+        const shadowOffsetX = overlay.textShadowOffsetX ?? 0;
+        const shadowOffsetY = overlay.textShadowOffsetY ?? 0;
+        const backgroundColor = overlay.backgroundColor ?? "#00000000";
+        const backgroundPaddingX = overlay.backgroundPaddingX ?? 0;
+        const backgroundPaddingY = overlay.backgroundPaddingY ?? 0;
+        const backgroundRadius = overlay.backgroundRadius ?? 0;
         const textAlign = overlay.textAlign ?? "center";
         ctx.textAlign = textAlign;
         ctx.textBaseline = "middle";
@@ -832,6 +825,48 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
           : 0;
         if (isTypewriter) {
           ctx.textAlign = "left";
+        }
+
+        const textMetrics = ctx.measureText(textToDraw || overlay.content || " ");
+        const boxWidth = Math.max(visibleWidth || textMetrics.width, 1);
+        const boxHeight = Math.max(overlay.fontSize, 1);
+        const boxX =
+          textAlign === "left"
+            ? leftEdge - backgroundPaddingX
+            : textAlign === "right"
+              ? leftEdge - backgroundPaddingX
+              : -boxWidth / 2 - backgroundPaddingX;
+        const boxY = -boxHeight / 2 - backgroundPaddingY;
+        if (backgroundColor !== "#00000000" && backgroundColor !== "transparent") {
+          ctx.fillStyle = backgroundColor;
+          this.drawRoundedRect(
+            ctx,
+            boxX,
+            boxY,
+            boxWidth + backgroundPaddingX * 2,
+            boxHeight + backgroundPaddingY * 2,
+            backgroundRadius
+          );
+          ctx.fill();
+        }
+
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetX = shadowOffsetX;
+        ctx.shadowOffsetY = shadowOffsetY;
+        if (fillType === "gradient") {
+          const radians = (gradientAngle * Math.PI) / 180;
+          const gradient = ctx.createLinearGradient(
+            Math.cos(radians) * -boxWidth * 0.5,
+            Math.sin(radians) * -boxHeight * 0.5,
+            Math.cos(radians) * boxWidth * 0.5,
+            Math.sin(radians) * boxHeight * 0.5
+          );
+          gradient.addColorStop(0, gradientFrom);
+          gradient.addColorStop(1, gradientTo);
+          ctx.fillStyle = gradient;
+        } else {
+          ctx.fillStyle = overlay.color;
         }
 
         if ((overlay.strokeWidth ?? 0) > 0 && textToDraw.length > 0) {
@@ -865,11 +900,12 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     const resized = w !== cropped[0].imageData.width || h !== cropped[0].imageData.height
       ? await this.resizeFramesToCanvas(cropped, w, h, signal)
       : cropped;
+    const withBackground = this.applyBackground(resized, options);
     if (signal?.aborted) throw new DOMException("Export cancelled", "AbortError");
     const blob = await this.encodeFramesToGif(
-      resized,
-      resized[0].imageData.width,
-      resized[0].imageData.height,
+      withBackground,
+      withBackground[0].imageData.width,
+      withBackground[0].imageData.height,
       (p) => this.reportProgress("Encoding", 65 + Math.round(p * 35)),
       signal
     );
@@ -881,5 +917,59 @@ export class WasmGifProcessorAdapter implements IGifProcessor {
     this._progressCallback = null;
     this._ready = false;
     this._gifuct = null;
+  }
+
+  private applyBackground(frames: GifFrame[], options?: TransformOptions): GifFrame[] {
+    if (!frames.length || options?.backgroundMode !== "solid" || !options.backgroundColor) {
+      return frames;
+    }
+    if (typeof document === "undefined") {
+      return frames;
+    }
+
+    const width = frames[0]?.imageData.width ?? 0;
+    const height = frames[0]?.imageData.height ?? 0;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    const temp = document.createElement("canvas");
+    temp.width = width;
+    temp.height = height;
+    const tctx = temp.getContext("2d");
+    if (!ctx || !tctx) return frames;
+
+    return frames.map((frame) => {
+      tctx.clearRect(0, 0, width, height);
+      tctx.putImageData(frame.imageData, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = options.backgroundColor!;
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(temp, 0, 0);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      return { ...frame, imageData };
+    });
+  }
+
+  private drawRoundedRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number
+  ): void {
+    const r = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 }

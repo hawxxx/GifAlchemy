@@ -586,6 +586,51 @@ export function TextToolPanel() {
             </div>
           </div>
 
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/50 p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Fill style</Label>
+              <div className="grid grid-cols-2 gap-1">
+                {(["solid", "gradient"] as const).map((fillType) => (
+                  <Button
+                    key={fillType}
+                    type="button"
+                    size="sm"
+                    variant={(selected.fillType ?? "solid") === fillType ? "default" : "outline"}
+                    className="h-7 rounded-md px-2 text-[11px]"
+                    disabled={selectedLocked}
+                    onClick={() => updateSelectedOverlay({ fillType })}
+                  >
+                    {fillType}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {(selected.fillType ?? "solid") === "gradient" ? (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">From</Label>
+                  <input
+                    type="color"
+                    value={selected.gradientFrom ?? "#ffffff"}
+                    disabled={selectedLocked}
+                    onChange={(e) => updateSelectedOverlay({ gradientFrom: e.target.value })}
+                    className="mt-1 h-8 w-full rounded-lg border border-border cursor-pointer bg-transparent p-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] text-muted-foreground">To</Label>
+                  <input
+                    type="color"
+                    value={selected.gradientTo ?? "#5B8CFF"}
+                    disabled={selectedLocked}
+                    onChange={(e) => updateSelectedOverlay({ gradientTo: e.target.value })}
+                    className="mt-1 h-8 w-full rounded-lg border border-border cursor-pointer bg-transparent p-1"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           {/* Stroke */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -632,6 +677,73 @@ export function TextToolPanel() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/50 p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Shadow</Label>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {selected.textShadowBlur ?? 0}px
+              </span>
+            </div>
+            <Slider
+              value={[selected.textShadowBlur ?? 0]}
+              min={0}
+              max={32}
+              step={1}
+              disabled={selectedLocked}
+              onValueChange={([v]) => updateSelectedOverlay({ textShadowBlur: v ?? 0 })}
+            />
+            {(selected.textShadowBlur ?? 0) > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-[11px] text-muted-foreground">Shadow color</Label>
+                <input
+                  type="color"
+                  value={selected.textShadowColor ?? "#000000"}
+                  onChange={(e) => updateSelectedOverlay({ textShadowColor: e.target.value })}
+                  className="h-7 w-9 rounded-md border border-border cursor-pointer bg-transparent p-0.5"
+                  disabled={selectedLocked}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-border/60 bg-background/50 p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Background chip</Label>
+              <span className="text-xs text-muted-foreground">
+                {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Off" : "On"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={(selected.backgroundColor && selected.backgroundColor !== "#00000000")
+                  ? selected.backgroundColor
+                  : "#10141A"}
+                onChange={(e) => updateSelectedOverlay({ backgroundColor: e.target.value })}
+                className="h-8 w-10 rounded-lg border border-border cursor-pointer bg-transparent p-0.5"
+                disabled={selectedLocked}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-md px-2 text-[11px]"
+                disabled={selectedLocked}
+                onClick={() =>
+                  updateSelectedOverlay({
+                    backgroundColor:
+                      (selected.backgroundColor ?? "#00000000") === "#00000000" ? "#10141A" : "#00000000",
+                    backgroundPaddingX: (selected.backgroundPaddingX ?? 0) || 14,
+                    backgroundPaddingY: (selected.backgroundPaddingY ?? 0) || 8,
+                    backgroundRadius: (selected.backgroundRadius ?? 0) || 12,
+                  })
+                }
+              >
+                {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Enable" : "Disable"}
+              </Button>
+            </div>
           </div>
 
           {/* Text effects grid */}
