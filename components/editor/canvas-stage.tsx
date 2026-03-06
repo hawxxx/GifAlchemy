@@ -346,25 +346,33 @@ export function CanvasStage() {
 
   const fitToView = useCallback(() => {
     const container = containerRef.current;
-    const meta = state.metadata;
-    if (!container || !meta || meta.width <= 0 || meta.height <= 0) return;
+    const activeFrame =
+      state.frames[
+        Math.max(0, Math.min(state.currentFrameIndex, Math.max(0, state.frames.length - 1)))
+      ];
+    const targetWidth = activeFrame?.imageData.width ?? state.metadata?.width ?? 0;
+    const targetHeight = activeFrame?.imageData.height ?? state.metadata?.height ?? 0;
+    if (!container || targetWidth <= 0 || targetHeight <= 0) return;
     const rect = container.getBoundingClientRect();
     const pad = 40;
     const fitZoom = Math.min(
       MAX_ZOOM,
-      Math.max(MIN_ZOOM, Math.min((rect.width - pad) / meta.width, (rect.height - pad) / meta.height))
+      Math.max(
+        MIN_ZOOM,
+        Math.min((rect.width - pad) / targetWidth, (rect.height - pad) / targetHeight)
+      )
     );
     setZoom(fitZoom);
     setPan({ x: 0, y: 0 });
-  }, [state.metadata]);
+  }, [state.currentFrameIndex, state.frames, state.metadata]);
 
   useEffect(() => {
-    if (state.status !== "ready" || !state.metadata || state.frames.length === 0) return;
+    if (state.status !== "ready" || state.frames.length === 0) return;
     const rafId = window.requestAnimationFrame(() => {
       fitToView();
     });
     return () => window.cancelAnimationFrame(rafId);
-  }, [fitToView, state.frames.length, state.metadata, state.projectId, state.status]);
+  }, [fitToView, state.frames.length, state.projectId, state.status]);
 
   const clampZoom = useCallback((nextZoom: number) => {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
@@ -731,9 +739,10 @@ export function CanvasStage() {
     );
   }
 
-  const frame = state.frames[state.currentFrameIndex];
-  const w = state.metadata?.width ?? 0;
-  const h = state.metadata?.height ?? 0;
+  const safeFrameIndex = Math.max(0, Math.min(state.currentFrameIndex, Math.max(0, state.frames.length - 1)));
+  const frame = state.frames[safeFrameIndex];
+  const w = frame?.imageData.width ?? state.metadata?.width ?? 0;
+  const h = frame?.imageData.height ?? state.metadata?.height ?? 0;
   const lastFrame = Math.max(0, state.frames.length - 1);
   const overlaysInRange = state.overlays.filter((overlay) => {
     const inFrame = Math.max(0, Math.min(lastFrame, overlay.inFrame ?? 0));
@@ -1038,7 +1047,7 @@ export function CanvasStage() {
         {frame && (
           <OverlayRenderer
             overlays={overlaysInRange}
-            currentFrameIndex={state.currentFrameIndex}
+            currentFrameIndex={safeFrameIndex}
             frameCount={state.frames.length}
             width={w}
             height={h}
