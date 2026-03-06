@@ -30,6 +30,10 @@ export const EDITOR_LABELS = {
     tipExport: "Press Ctrl/Cmd+Enter to export from anywhere in the editor.",
     openShortcuts: "View keyboard shortcuts",
     dismiss: "Got it",
+    tourLabel: "Guided tour",
+    skipTour: "Skip",
+    nextTour: "Next",
+    finishTour: "Finish",
   },
   shortcuts: {
     button: "Shortcuts",

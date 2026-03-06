@@ -71,7 +71,7 @@ export function EditorTopBar({
   onProjectNameChange,
   className,
 }: EditorTopBarProps) {
-  const { undo, redo, canUndo, canRedo, undoHistory, redoHistory, projectRepo, processor, dispatch } = useEditor();
+  const { undo, redo, canUndo, canRedo, historyTimeline, restoreHistoryNode, projectRepo, processor, dispatch } = useEditor();
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(projectName);
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
@@ -267,35 +267,59 @@ export function EditorTopBar({
                 <span className="hidden lg:inline">{EDITOR_LABELS.topBar.history}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 {EDITOR_LABELS.topBar.historyTitle}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {undoHistory.length === 0 && redoHistory.length === 0 && (
+              {historyTimeline.length <= 1 && (
                 <DropdownMenuItem disabled>{EDITOR_LABELS.topBar.noHistory}</DropdownMenuItem>
               )}
-              {undoHistory.slice(-8).reverse().map((entry, idx) => (
-                <DropdownMenuItem key={`undo-${entry.id}-${idx}`} disabled className="opacity-80">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate">Undo: {entry.label}</span>
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {new Date(entry.at).toLocaleTimeString()}
-                    </span>
+              {historyTimeline.length > 1 && (
+                <div className="max-h-[360px] overflow-y-auto px-3 py-2">
+                  <div className="relative pl-6">
+                    <div className="absolute left-[10px] top-1 bottom-1 w-px bg-white/10" />
+                    <div className="space-y-3">
+                      {historyTimeline.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => restoreHistoryNode(entry.id)}
+                          title={`${entry.label} · ${new Date(entry.at).toLocaleTimeString()}`}
+                          className={cn(
+                            "group relative flex w-full items-start gap-3 rounded-xl px-1 py-0.5 text-left transition-colors duration-150",
+                            entry.isCurrent ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "absolute left-0 top-2.5 h-5 w-5 rounded-full border transition-all duration-150",
+                              entry.isCurrent
+                                ? "border-primary/60 bg-primary shadow-[0_0_0_4px_rgba(91,140,255,0.16)]"
+                                : "border-white/18 bg-[var(--surface-2)] group-hover:border-primary/40"
+                            )}
+                          />
+                          <div className="min-w-0 pl-7">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-[12px] font-medium">
+                                {entry.label}
+                              </span>
+                              {entry.isCurrent && (
+                                <span className="rounded-full border border-primary/35 bg-primary/12 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                              {new Date(entry.at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </DropdownMenuItem>
-              ))}
-              {redoHistory.length > 0 && <DropdownMenuSeparator />}
-              {redoHistory.slice(0, 8).map((entry, idx) => (
-                <DropdownMenuItem key={`redo-${entry.id}-${idx}`} disabled className="opacity-70">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate">Redo: {entry.label}</span>
-                    <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {new Date(entry.at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

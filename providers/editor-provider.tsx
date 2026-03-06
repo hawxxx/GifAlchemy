@@ -21,11 +21,20 @@ type UndoableSnapshot = Pick<
   | "selectedOverlayId"
   | "playbackRate"
   | "currentFrameIndex"
+  | "previewVolume"
 >;
 export interface HistoryEntry {
   id: string;
   label: string;
   at: number;
+}
+
+export interface HistoryTimelineNode {
+  id: string;
+  label: string;
+  at: number;
+  lane: "past" | "current" | "future";
+  isCurrent: boolean;
 }
 
 export type EditorStatus = "empty" | "loading" | "ready" | "processing" | "error";
@@ -49,6 +58,8 @@ export interface EditorState {
   saveStatus: SaveStatus;
   projectName: string;
   isPlaying: boolean;
+  isPreviewMode: boolean;
+  previewVolume: number;
   /** First frame (inclusive) for export trim. */
   trimStart: number;
   /** Last frame (inclusive) for export trim. */
@@ -64,6 +75,8 @@ const defaultOutputSettings: OutputSettings = {
   height: 0,
   format: "gif",
   quality: 80,
+  backgroundMode: "transparent",
+  backgroundColor: "#10141A",
 };
 
 const initialState: EditorState = {
@@ -84,6 +97,8 @@ const initialState: EditorState = {
   saveStatus: "idle",
   projectName: "Untitled",
   isPlaying: false,
+  isPreviewMode: false,
+  previewVolume: 1,
   trimStart: 0,
   trimEnd: 0,
   playbackRate: 1,
@@ -112,6 +127,8 @@ export type EditorAction =
   | { type: "SET_PROJECT_NAME"; payload: string }
   | { type: "SET_OVERLAYS"; payload: Overlay[] }
   | { type: "SET_PLAYING"; payload: boolean }
+  | { type: "SET_PREVIEW_MODE"; payload: boolean }
+  | { type: "SET_PREVIEW_VOLUME"; payload: number }
   | { type: "SET_TRIM"; payload: { trimStart: number; trimEnd: number } }
   | { type: "SET_PLAYBACK_RATE"; payload: number }
   | { type: "CREATE_PROJECT_SNAPSHOT"; payload: ProjectSnapshot }
@@ -321,6 +338,10 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     case "SET_PLAYING":
       return { ...state, isPlaying: action.payload };
+    case "SET_PREVIEW_MODE":
+      return { ...state, isPreviewMode: action.payload };
+    case "SET_PREVIEW_VOLUME":
+      return { ...state, previewVolume: Math.max(0, Math.min(1, action.payload)) };
     case "SET_TRIM": {
       const last = Math.max(0, state.frames.length - 1);
       const start = Math.max(0, Math.min(last, action.payload.trimStart));
@@ -386,6 +407,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         playbackRate: [0.5, 1, 1.5, 2].includes(p.playbackRate ?? 1) ? (p.playbackRate ?? 1) : 1,
         error: null,
         isPlaying: false,
+        isPreviewMode: false,
       };
     }
     case "RESET":
@@ -411,6 +433,8 @@ export interface EditorContextValue {
   canRedo: boolean;
   undoHistory: HistoryEntry[];
   redoHistory: HistoryEntry[];
+  historyTimeline: HistoryTimelineNode[];
+  restoreHistoryNode: (nodeId: string) => void;
   projectSnapshots: ProjectSnapshot[];
   createProjectSnapshot: (label?: string) => void;
   restoreProjectSnapshot: (id: string) => void;
@@ -440,6 +464,7 @@ function snapshot(s: EditorState): UndoableSnapshot {
     selectedOverlayIds: [...s.selectedOverlayIds],
     playbackRate: s.playbackRate,
     currentFrameIndex: s.currentFrameIndex,
+    previewVolume: s.previewVolume,
   };
 }
 
@@ -507,6 +532,42 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
 
   const undo = useCallback(() => stableDispatch({ type: "UNDO" }), [stableDispatch]);
   const redo = useCallback(() => stableDispatch({ type: "REDO" }), [stableDispatch]);
+  const restoreHistoryNode = useCallback((nodeId: string) => {
+    const currentEntry: HistoryEntry = {
+      id: "history-current",
+      label: "Current state",
+      at: Date.now(),
+    };
+    const currentSnapshot = snapshot(state);
+    const timeline = [
+      ...history.pastEntries.map((entry, index) => ({
+        id: entry.id,
+        entry,
+        snapshot: history.past[index],
+      })),
+      {
+        id: currentEntry.id,
+        entry: currentEntry,
+        snapshot: currentSnapshot,
+      },
+      ...history.futureEntries.map((entry, index) => ({
+        id: entry.id,
+        entry,
+        snapshot: history.future[index],
+      })),
+    ];
+    const targetIndex = timeline.findIndex((node) => node.id === nodeId);
+    if (targetIndex === -1) return;
+    const target = timeline[targetIndex];
+    if (!target?.snapshot) return;
+    setHistory({
+      past: timeline.slice(0, targetIndex).map((node) => node.snapshot),
+      future: timeline.slice(targetIndex + 1).map((node) => node.snapshot),
+      pastEntries: timeline.slice(0, targetIndex).map((node) => node.entry),
+      futureEntries: timeline.slice(targetIndex + 1).map((node) => node.entry),
+    });
+    dispatch({ type: "RESTORE_SNAPSHOT", payload: target.snapshot });
+  }, [history.future, history.futureEntries, history.past, history.pastEntries, state]);
   const createProjectSnapshot = useCallback(
     (label?: string) => {
       stableDispatch({ type: "CREATE_PROJECT_SNAPSHOT", payload: createProjectSnapshotRecord(state, label) });
@@ -536,6 +597,30 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       canRedo: history.future.length > 0,
       undoHistory: history.pastEntries,
       redoHistory: history.futureEntries,
+      historyTimeline: [
+        ...history.pastEntries.map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          at: entry.at,
+          lane: "past" as const,
+          isCurrent: false,
+        })),
+        {
+          id: "history-current",
+          label: "Current state",
+          at: Date.now(),
+          lane: "current" as const,
+          isCurrent: true,
+        },
+        ...history.futureEntries.map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          at: entry.at,
+          lane: "future" as const,
+          isCurrent: false,
+        })),
+      ],
+      restoreHistoryNode,
       projectSnapshots: state.snapshots,
       createProjectSnapshot,
       restoreProjectSnapshot,
@@ -551,6 +636,7 @@ export function EditorProvider({ children, processor, projectRepo }: EditorProvi
       history.future.length,
       history.pastEntries,
       history.futureEntries,
+      restoreHistoryNode,
       stableDispatch,
       undo,
       redo,
