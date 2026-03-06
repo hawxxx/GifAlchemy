@@ -19,6 +19,9 @@ export const TOOLS_ACTIVE: ToolId[] = ["resize", "trim", "optimize", "text", "im
 export const ERROR_MESSAGES = {
   UNSUPPORTED_TYPE: "This file type isn't supported. Try a GIF, MP4, or WebM.",
   FILE_TOO_LARGE: "This file exceeds 50 MB. Try a smaller file.",
+  INVALID_URL: "Enter a valid http or https URL.",
+  URL_FETCH_FAILED: "Couldn't fetch that URL. Check the link, CORS settings, or try downloading the file first.",
+  EMPTY_URL_RESPONSE: "That URL returned an empty file.",
   WASM_LOAD_FAILED: "Processing engine failed to load. Check your connection and retry.",
   PROCESSING_FAILED: "Something went wrong during processing. Try again or use a different file.",
 } as const;

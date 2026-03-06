@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Eye, ImageIcon, Minus, Plus, X } from "lucide-react";
+import { Eye, ImageIcon, LoaderCircle, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { UploadZone } from "./upload-zone";
@@ -134,19 +134,23 @@ function makeThumbnailDataUrl(imageData: ImageData, maxSize = 80): string {
 
 function EmptyUploadView({
   onFileAccepted,
+  onUrlAccepted,
   onError,
 }: {
   onFileAccepted: (file: File) => void;
+  onUrlAccepted: (url: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
   const [recentUploads] = useState<RecentUpload[]>(() => readRecentUploads().slice(0, MAX_RECENT));
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 p-6 overflow-auto">
-      <UploadZone onFileAccepted={onFileAccepted} onError={onError} />
+    <div className="flex h-full flex-col items-center justify-center gap-6 overflow-auto p-6">
+      <div className="w-full max-w-3xl animate-[fade-in_280ms_ease-out]">
+        <UploadZone onFileAccepted={onFileAccepted} onUrlAccepted={onUrlAccepted} onError={onError} />
+      </div>
 
       {recentUploads.length > 0 && (
-        <div className="w-full max-w-xl">
+        <div className="w-full max-w-xl animate-[fade-in_360ms_ease-out]">
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
             Recent uploads
           </p>
@@ -199,7 +203,7 @@ type CropDragMode = "move" | "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
 
 export function CanvasStage() {
   const { state, dispatch, processor, processingAbortRef } = useEditor();
-  const { isReady, isLoading, error: processorError, initialize } = useProcessor(processor);
+  const { initialize } = useProcessor(processor);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
@@ -505,7 +509,7 @@ export function CanvasStage() {
     }
   }, [state.status, state.frames, state.currentFrameIndex]);
 
-  const handleFileAccepted = async (file: File) => {
+  const completeImport = useCallback(async (file: File) => {
     dispatch({ type: "UPLOAD_START" });
     if (!processor) {
       dispatch({ type: "UPLOAD_ERROR", payload: ERROR_MESSAGES.WASM_LOAD_FAILED });
@@ -513,9 +517,9 @@ export function CanvasStage() {
     }
     try {
       if (!processor.isReady) await initialize();
-      const { decodeGif } = await import("@/core/application/commands/editor-commands");
+      const { decodeMedia } = await import("@/core/application/commands/editor-commands");
       const startedAt = performance.now();
-      const { frames, metadata } = await decodeGif(processor, file);
+      const { frames, metadata } = await decodeMedia(processor, file);
       const decodeMs = Math.max(0, performance.now() - startedAt);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -543,12 +547,58 @@ export function CanvasStage() {
       const msg = e instanceof Error ? e.message : ERROR_MESSAGES.PROCESSING_FAILED;
       dispatch({ type: "UPLOAD_ERROR", payload: msg });
     }
-  };
+  }, [dispatch, initialize, processor]);
+
+  const handleFileAccepted = useCallback(async (file: File) => {
+    await completeImport(file);
+  }, [completeImport]);
+
+  const handleUrlAccepted = useCallback(async (url: string) => {
+    dispatch({ type: "UPLOAD_START" });
+    if (!processor) {
+      dispatch({ type: "UPLOAD_ERROR", payload: ERROR_MESSAGES.WASM_LOAD_FAILED });
+      return;
+    }
+    try {
+      if (!processor.isReady) await initialize();
+      const { importFromUrl } = await import("@/core/application/commands/editor-commands");
+      const startedAt = performance.now();
+      const { file, frames, metadata } = await importFromUrl(processor, url);
+      const decodeMs = Math.max(0, performance.now() - startedAt);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("gifalchemy:decode-profile", {
+            detail: {
+              decodeMs,
+              frameCount: frames.length,
+              width: metadata.width,
+              height: metadata.height,
+              at: Date.now(),
+            },
+          })
+        );
+      }
+      dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
+      dispatch({ type: "PROCESSOR_READY" });
+      const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
+      saveRecentUpload({
+        name: file.name,
+        size: file.size,
+        addedAt: Date.now(),
+        dataUrl: dataUrl || undefined,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ERROR_MESSAGES.PROCESSING_FAILED;
+      dispatch({ type: "UPLOAD_ERROR", payload: msg });
+      throw e;
+    }
+  }, [dispatch, initialize, processor]);
 
   if (state.status === "empty") {
     return (
       <EmptyUploadView
         onFileAccepted={handleFileAccepted}
+        onUrlAccepted={handleUrlAccepted}
         onError={(msg) => dispatch({ type: "UPLOAD_ERROR", payload: msg })}
       />
     );
@@ -556,21 +606,33 @@ export function CanvasStage() {
 
   if (state.status === "loading" || (state.status === "ready" && !state.frames.length)) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <SkeletonLoader />
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="flex min-w-[220px] flex-col items-center gap-4 rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(20,25,33,0.94),rgba(10,13,18,0.96))] px-7 py-6 shadow-[0_20px_60px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] animate-[fade-in_220ms_ease-out]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+            <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+          </div>
+          <div className="space-y-1 text-center">
+            <p className="text-sm font-medium text-white/92">Preparing frames</p>
+            <p className="text-xs text-muted-foreground">Decoding media and building the editor preview.</p>
+          </div>
+          <div className="w-full max-w-[160px]">
+            <SkeletonLoader />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
-        <div className="rounded-xl border border-border/50 bg-muted/30 p-4 max-w-md text-center">
-          <p className="text-sm text-foreground mb-3">{state.error}</p>
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
+        <div className="max-w-md animate-[fade-in_220ms_ease-out] rounded-[24px] border border-[rgba(216,104,104,0.22)] bg-[linear-gradient(180deg,rgba(43,25,28,0.82),rgba(22,15,18,0.96))] p-5 text-center shadow-[0_24px_56px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Import failed</p>
+          <p className="text-sm text-white/88 mb-3">{state.error}</p>
           <Button
             variant="outline"
             size="sm"
-            className="rounded-lg"
+            className="rounded-lg border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
             onClick={() => dispatch({ type: "RESET" })}
           >
             Retry
@@ -644,7 +706,7 @@ export function CanvasStage() {
       {!isPreviewMode && (
         <>
           <div
-            className="pointer-events-none absolute inset-0 rounded-xl opacity-45"
+            className="pointer-events-none absolute inset-0 rounded-xl opacity-45 transition-opacity duration-200 ease-out"
             style={{
               backgroundImage:
                 "linear-gradient(180deg, rgba(15,18,26,0.9), rgba(8,10,16,0.95)), linear-gradient(rgba(122,138,162,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(122,138,162,0.06) 1px, transparent 1px)",
@@ -652,7 +714,7 @@ export function CanvasStage() {
             }}
           />
           <div
-            className="pointer-events-none absolute inset-0 rounded-xl"
+            className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-200 ease-out"
             style={{
               background:
                 "radial-gradient(circle at 50% 48%, rgba(176,198,230,0.12) 0%, rgba(15,18,26,0.28) 50%, rgba(4,6,10,0.74) 100%)",
