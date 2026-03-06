@@ -44,34 +44,39 @@ export function AssetLibraryPanel() {
 
   const openProject = async (id: string) => {
     if (!projectRepo || !processor) return;
-    const loaded = await projectRepo.load(id);
-    if (!loaded?.project) return;
-    const { project, fileBlob } = loaded;
-    const file = await resolveProjectSourceFile({ project, fileBlob });
-    if (!file) return;
-    if (!processor.isReady) await processor.initialize();
-    const { frames, metadata } = await processor.decode(file);
-    dispatch({
-      type: "RESTORE_PROJECT",
-      payload: {
-        projectId: project.id,
-        file,
-        frames,
-        metadata,
-        overlays: project.timeline.overlays,
-        outputSettings: project.outputSettings,
-        projectName: project.name,
-        trimStart: project.trimStart ?? 0,
-        trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
-        playbackRate: project.playbackRate ?? 1,
-        snapshots: project.snapshots ?? [],
-      },
-    });
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("project", project.id);
-      url.searchParams.delete("intent");
-      window.history.replaceState({}, "", url.toString());
+    try {
+      const loaded = await projectRepo.load(id);
+      if (!loaded?.project) return;
+      const { project, fileBlob } = loaded;
+      const file = await resolveProjectSourceFile({ project, fileBlob: fileBlob ?? null });
+      if (!file) return;
+      if (!processor.isReady) await processor.initialize();
+      const { decodeMedia } = await import("@/core/application/commands/editor-commands");
+      const { frames, metadata } = await decodeMedia(processor, file);
+      dispatch({
+        type: "RESTORE_PROJECT",
+        payload: {
+          projectId: project.id,
+          file,
+          frames,
+          metadata,
+          overlays: project.timeline.overlays,
+          outputSettings: project.outputSettings,
+          projectName: project.name,
+          trimStart: project.trimStart ?? 0,
+          trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
+          playbackRate: project.playbackRate ?? 1,
+          snapshots: project.snapshots ?? [],
+        },
+      });
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("project", project.id);
+        url.searchParams.delete("intent");
+        window.history.replaceState({}, "", url.toString());
+      }
+    } catch {
+      // Silent fail for asset panel; user can retry
     }
   };
 

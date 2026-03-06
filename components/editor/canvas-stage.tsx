@@ -506,29 +506,46 @@ export function CanvasStage() {
     cropDragRef.current = null;
   }, []);
 
-  useEffect(() => {
-    if (state.status === "ready" && state.frames.length > 0 && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
-      const frame = state.frames[safeIndex];
-      if (!frame) return;
-      const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio : 1);
-      const w = frame.imageData.width;
-      const h = frame.imageData.height;
-      // Only resize the canvas element when dimensions actually change
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = `${w}px`;
-        canvas.style.height = `${h}px`;
-      }
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.putImageData(frame.imageData, 0, 0);
-      }
+  const drawCurrentFrame = useCallback(() => {
+    if (state.status !== "ready" || state.frames.length === 0 || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
+    const frame = state.frames[safeIndex];
+    if (!frame?.imageData) return;
+    const w = frame.imageData.width;
+    const h = frame.imageData.height;
+    if (w <= 0 || h <= 0) return;
+    const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio : 1);
+    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
     }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const temp = document.createElement("canvas");
+    temp.width = w;
+    temp.height = h;
+    const tempCtx = temp.getContext("2d");
+    if (!tempCtx) return;
+    tempCtx.putImageData(frame.imageData, 0, 0);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.drawImage(temp, 0, 0);
+    ctx.restore();
   }, [state.status, state.frames, state.currentFrameIndex]);
+
+  useEffect(() => {
+    if (state.status !== "ready" || state.frames.length === 0) return;
+    drawCurrentFrame();
+    if (!canvasRef.current) {
+      const raf = requestAnimationFrame(() => drawCurrentFrame());
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [state.status, state.frames, state.currentFrameIndex, state.projectId, drawCurrentFrame]);
 
   const completeImport = useCallback(async (file: File) => {
     dispatch({ type: "UPLOAD_START" });

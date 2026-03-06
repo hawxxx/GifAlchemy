@@ -24,7 +24,6 @@ export function useRestoreProject() {
     }
 
     let cancelled = false;
-    attemptedRestore.current = true;
 
     (async () => {
       try {
@@ -38,9 +37,13 @@ export function useRestoreProject() {
           (await projectRepo.list().then((list) => (list.length > 0 ? list[0].id : null)));
         if (cancelled || !targetId) return;
 
+        attemptedRestore.current = true;
+        dispatch({ type: "RESTORE_START" });
+        if (cancelled) return;
+
         let loaded = await projectRepo.load(targetId);
         if (cancelled) return;
-        if (!loaded?.project || !loaded.fileBlob) {
+        if (!loaded?.project) {
           const list = await projectRepo.list();
           const fallbackId = list.length > 0 ? list[0].id : null;
           if (fallbackId && fallbackId !== targetId) {
@@ -60,8 +63,16 @@ export function useRestoreProject() {
         }
 
         const { project, fileBlob } = loaded;
-        const file = await resolveProjectSourceFile({ project, fileBlob });
-        if (cancelled || !file) return;
+        const file = await resolveProjectSourceFile({ project, fileBlob: fileBlob ?? null });
+        if (cancelled) return;
+        if (!file) {
+          attemptedRestore.current = false;
+          dispatch({
+            type: "UPLOAD_ERROR",
+            payload: "Project source file is missing. Open the GIF from Recent or upload it again, then open this project.",
+          });
+          return;
+        }
 
         const url = new URL(window.location.href);
         url.searchParams.set("project", project.id);
@@ -71,7 +82,8 @@ export function useRestoreProject() {
         if (!processor.isReady) await processor.initialize();
         if (cancelled) return;
 
-        const { frames, metadata } = await processor.decode(file);
+        const { decodeMedia } = await import("@/core/application/commands/editor-commands");
+        const { frames, metadata } = await decodeMedia(processor, file);
         if (cancelled) return;
 
         dispatch({
@@ -90,8 +102,10 @@ export function useRestoreProject() {
             snapshots: project.snapshots ?? [],
           },
         });
-      } catch {
+      } catch (err) {
         attemptedRestore.current = false;
+        const message = err instanceof Error ? err.message : "Could not restore project.";
+        dispatch({ type: "UPLOAD_ERROR", payload: message });
       }
     })();
 

@@ -139,6 +139,7 @@ export type EditorAction =
   | { type: "CREATE_PROJECT_SNAPSHOT"; payload: ProjectSnapshot }
   | { type: "DELETE_PROJECT_SNAPSHOT"; payload: string }
   | { type: "RESTORE_PROJECT_SNAPSHOT"; payload: string }
+  | { type: "RESTORE_START" }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "RESTORE_SNAPSHOT"; payload: UndoableSnapshot }
@@ -238,6 +239,7 @@ function getActionLabel(action: EditorAction): string {
 function editorReducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case "UPLOAD_START":
+    case "RESTORE_START":
       return { ...state, status: "loading", error: null };
     case "UPLOAD_SUCCESS": {
       const { file, frames, metadata } = action.payload;

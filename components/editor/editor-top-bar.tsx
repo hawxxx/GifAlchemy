@@ -108,13 +108,14 @@ export function EditorTopBar({
         return;
       }
       const { project, fileBlob } = loaded;
-      const file = await resolveProjectSourceFile({ project, fileBlob });
+      const file = await resolveProjectSourceFile({ project, fileBlob: fileBlob ?? null });
       if (!file) {
         toast.error(EDITOR_LABELS.topBar.openFailed);
         return;
       }
       if (!processor.isReady) await processor.initialize();
-      const { frames, metadata } = await processor.decode(file);
+      const { decodeMedia } = await import("@/core/application/commands/editor-commands");
+      const { frames, metadata } = await decodeMedia(processor, file);
       dispatch({
         type: "RESTORE_PROJECT",
         payload: {

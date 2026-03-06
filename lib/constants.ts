@@ -22,6 +22,7 @@ export const ERROR_MESSAGES = {
   INVALID_URL: "Enter a valid http or https URL.",
   URL_FETCH_FAILED: "Couldn't fetch that URL. Check the link, CORS settings, or try downloading the file first.",
   EMPTY_URL_RESPONSE: "That URL returned an empty file.",
+  DECODE_EMPTY: "No frames could be decoded from this file. Re-upload the source GIF or choose a different file.",
   WASM_LOAD_FAILED: "Processing engine failed to load. Check your connection and retry.",
   PROCESSING_FAILED: "Something went wrong during processing. Try again or use a different file.",
 } as const;

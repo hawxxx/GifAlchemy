@@ -3,6 +3,23 @@ import type { GifFrame, GifMetadata, ProcessingResult } from "@/core/domain/gif-
 import type { OutputSettings, Overlay } from "@/core/domain/project";
 import { ERROR_MESSAGES, MAX_FILE_SIZE, SUPPORTED_FORMATS } from "@/lib/constants";
 
+const DECODE_TIMEOUT_MS = 30000;
+
+function assertDecodedMedia(
+  frames: GifFrame[],
+  metadata: GifMetadata
+): { frames: GifFrame[]; metadata: GifMetadata } {
+  if (
+    frames.length === 0 ||
+    metadata.frameCount === 0 ||
+    metadata.width <= 0 ||
+    metadata.height <= 0
+  ) {
+    throw new Error(ERROR_MESSAGES.DECODE_EMPTY);
+  }
+  return { frames, metadata };
+}
+
 export async function decodeMedia(
   processor: IGifProcessor,
   file: File
@@ -10,7 +27,22 @@ export async function decodeMedia(
   if (!processor.isReady) {
     await processor.initialize();
   }
-  return processor.decode(file);
+  let timeoutId: number | null = null;
+  try {
+    const decoded = await Promise.race([
+      processor.decode(file),
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error(ERROR_MESSAGES.PROCESSING_FAILED));
+        }, DECODE_TIMEOUT_MS);
+      }),
+    ]);
+    return assertDecodedMedia(decoded.frames, decoded.metadata);
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 }
 
 export async function importFromUrl(

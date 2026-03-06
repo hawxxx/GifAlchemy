@@ -89,7 +89,11 @@ export function EditorShell({ className }: { className?: string }) {
   }, [projectRepo, state.frames.length, state.status]);
 
   useEffect(() => {
-    if (state.frames.length > 0 || state.status !== "empty") {
+    if (
+      state.frames.length > 0 ||
+      state.status !== "empty" ||
+      state.status === "loading"
+    ) {
       setShowOnboarding(false);
       setShowTour(false);
       setTourStep(0);
@@ -110,8 +114,9 @@ export function EditorShell({ className }: { className?: string }) {
     if (typeof window !== "undefined" && !window.localStorage.getItem(ONBOARDING_TOUR_KEY)) {
       const params = new URLSearchParams(window.location.search);
       const isExplicitNew = params.get("intent") === "new";
+      const hasProjectInUrl = Boolean(params.get("project"));
       const hasEditorContent = state.frames.length > 0 || state.status !== "empty";
-      if (isExplicitNew || !hasEditorContent) {
+      if ((isExplicitNew || !hasEditorContent) && !hasProjectInUrl) {
         setShowTour(true);
       }
     }

@@ -4,8 +4,17 @@ import type { Project } from "@/core/domain/project";
 import { getAssetFile, listAssets } from "@/lib/asset-library";
 
 function createProjectFile(project: Project, fileBlob: ArrayBuffer, lastModified?: number): File {
-  return new File([fileBlob], project.sourceFile.name, {
-    type: project.sourceFile.type,
+  const { name, type } = project.sourceFile;
+  const mime =
+    type && type.length > 0
+      ? type
+      : /\.gif$/i.test(name)
+        ? "image/gif"
+        : /\.(webm|mp4)$/i.test(name)
+          ? (name.match(/\.webm$/i) ? "video/webm" : "video/mp4")
+          : "application/octet-stream";
+  return new File([fileBlob], name, {
+    type: mime,
     lastModified: lastModified ?? project.updatedAt ?? Date.now(),
   });
 }

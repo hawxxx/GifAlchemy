@@ -148,17 +148,18 @@ export function ImageOverlayPanel() {
     try {
       const loaded = await projectRepo.load(id);
       if (!loaded?.project) {
-        toast.error("Project source file is missing.");
+        toast.error("Project not found.");
         return;
       }
       const { project, fileBlob } = loaded;
-      const file = await resolveProjectSourceFile({ project, fileBlob });
+      const file = await resolveProjectSourceFile({ project, fileBlob: fileBlob ?? null });
       if (!file) {
-        toast.error("Project source file is missing.");
+        toast.error("Project source file is missing. Upload the GIF again or open from Recent.");
         return;
       }
       if (!processor.isReady) await processor.initialize();
-      const { frames, metadata } = await processor.decode(file);
+      const { decodeMedia } = await import("@/core/application/commands/editor-commands");
+      const { frames, metadata } = await decodeMedia(processor, file);
       dispatch({
         type: "RESTORE_PROJECT",
         payload: {
