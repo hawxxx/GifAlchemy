@@ -134,6 +134,31 @@
   .animate-slide-up-sm {
     animation: slide-up-sm var(--duration-slow) var(--ease-out);
   }
+  .animate-panel-in {
+    animation: panel-in var(--duration-slow) var(--ease-out);
+  }
+  .animate-float-idle {
+    animation: float-idle 4.8s var(--ease-in-out) infinite;
+  }
+  .surface-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .surface-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(120deg, transparent 15%, rgba(255, 255, 255, 0.06) 48%, transparent 80%);
+    opacity: 0;
+    transform: translateX(-24%);
+    transition: opacity var(--duration-ui) var(--ease-standard),
+      transform calc(var(--duration-emphasis) * 1.2) var(--ease-emphasis);
+  }
+  .surface-sheen:hover::after {
+    opacity: 1;
+    transform: translateX(8%);
+  }
   .glass {
     background: rgba(23, 29, 37, 0.72);
     backdrop-filter: blur(12px) saturate(120%);
@@ -250,6 +275,14 @@
 @keyframes slide-up-sm {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.992); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes float-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 @keyframes hero-pulse {
   0%, 100% { opacity: 0.07; transform: scale(1); }

@@ -58,7 +58,7 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
     <TooltipProvider delayDuration={400}>
       <aside
         className={cn(
-          "flex w-full items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border-subtle)] px-2 py-2",
+          "animate-panel-in flex w-full items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border-subtle)] px-2 py-2",
           "bg-[var(--surface-1)] transition-colors duration-[var(--duration-ui)]",
           "shadow-[var(--shadow-sm)]",
           "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-2",
@@ -100,10 +100,10 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                           "md:before:left-0.5 md:before:top-1/2 md:before:h-4 md:before:w-0.5 md:before:-translate-x-0 md:before:-translate-y-1/2",
                           isActive
                             ? [
-                                "border-primary/35 bg-primary/10 text-foreground shadow-[inset_0_1px_0_rgba(91,140,255,0.3)]",
+                                "border-primary/35 bg-primary/10 text-foreground shadow-[inset_0_1px_0_rgba(91,140,255,0.3),0_10px_20px_rgba(9,16,28,0.22)]",
                                 "before:opacity-100",
                               ]
-                            : "text-muted-foreground hover:border-border/50 hover:bg-background/80 hover:text-foreground"
+                            : "text-muted-foreground hover:-translate-y-0.5 hover:border-border/50 hover:bg-background/80 hover:text-foreground"
                         )}
                       >
                         {Icon && (

@@ -91,7 +91,7 @@ export function EditorShell({ className }: { className?: string }) {
           onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
         />
 
-        <div className="min-h-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-0)] shadow-[var(--shadow-lg)] transition-all duration-[var(--duration-ui)]">
+        <div className="surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-0)] shadow-[var(--shadow-lg)] transition-all duration-[var(--duration-ui)]">
           <CanvasStage />
         </div>
 
@@ -106,7 +106,7 @@ export function EditorShell({ className }: { className?: string }) {
       </div>
 
       <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--background-1)] px-3 pb-3 pt-2 md:px-4 md:pb-4">
-        <div className="h-[160px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-[var(--shadow-md)] transition-all duration-[var(--duration-ui)] md:h-[176px]">
+        <div className="animate-panel-in h-[160px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-[var(--shadow-md)] transition-all duration-[var(--duration-ui)] md:h-[176px]">
           <TimelinePanel />
         </div>
       </div>

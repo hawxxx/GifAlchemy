@@ -163,7 +163,7 @@ export function EditorTopBar({
     <header
       className={cn(
         "relative z-20 shrink-0 border-b border-[var(--border-subtle)]",
-        "bg-[var(--surface-1)]/95 backdrop-blur-sm transition-colors duration-[var(--duration-ui)]",
+        "animate-panel-in bg-[var(--surface-1)]/95 backdrop-blur-sm transition-colors duration-[var(--duration-ui)]",
         "flex h-auto flex-wrap items-center gap-2 px-3 py-2 sm:px-4",
         className
       )}
@@ -172,9 +172,9 @@ export function EditorTopBar({
         <Link
           href="/"
           aria-label={EDITOR_LABELS.topBar.logo}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/45 bg-background/75 px-2.5 py-1.5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 hover:border-border/60 hover:bg-background/90"
+          className="surface-sheen inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/45 bg-background/75 px-2.5 py-1.5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 hover:border-border/60 hover:bg-background/90"
         >
-          <Sparkles className="h-4 w-4 text-primary/85" />
+          <Sparkles className="animate-float-idle h-4 w-4 text-primary/85" />
           <span className="text-[13px] font-semibold tracking-[0.02em]">GifAlchemy</span>
         </Link>
 
@@ -209,7 +209,7 @@ export function EditorTopBar({
       </div>
 
       <div className="ml-auto flex items-center gap-2.5">
-        <div className="flex items-center gap-1 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
+        <div className="surface-sheen flex items-center gap-1 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
           <Button
             variant="ghost"
             size="sm"
