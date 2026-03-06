@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Eye, ImageIcon, LoaderCircle, Minus, Plus, X } from "lucide-react";
+import { Eye, History, ImageIcon, LoaderCircle, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { UploadZone } from "./upload-zone";
 import { SkeletonLoader } from "./skeleton-loader";
 import { OverlayRenderer } from "./overlay-renderer";
 import { FloatingTextToolbar } from "./floating-text-toolbar";
+import { EditorModal } from "./editor-modal";
 import { createImageOverlay } from "@/core/application/commands/overlay-commands";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
@@ -157,6 +158,7 @@ function EmptyUploadView({
   onError: (msg: string) => void;
 }) {
   const [recentUploads, setRecentUploads] = useState<StoredAsset[]>([]);
+  const [showRecentUploads, setShowRecentUploads] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -177,51 +179,78 @@ function EmptyUploadView({
       </div>
 
       {recentUploads.length > 0 && (
-        <div className="w-full max-w-xl animate-[fade-in_360ms_ease-out]">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/70">
-            Recent uploads
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {recentUploads.map((item) => (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("application/x-gifalchemy-asset-id", item.id);
-                  e.dataTransfer.effectAllowed = "copy";
-                }}
-                onClick={() => void onAssetSelected(item.id)}
-                className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border/50 bg-card/70 transition-colors hover:border-border hover:bg-card"
-              >
-                <div className="relative flex h-20 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#1a1a1e_0%_25%,#242428_0%_50%)_50%_/_12px_12px]">
-                  {item.previewDataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.previewDataUrl}
-                      alt={item.name}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/40">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground/60" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-0.5 px-2 py-1.5">
-                  <p
-                    className="truncate text-[11px] font-medium text-foreground/90"
-                    title={item.name}
-                  >
-                    {item.name}
-                  </p>
-                  <p className="text-[10px] tabular-nums text-muted-foreground/70">
-                    {formatBytes(item.size)}
-                  </p>
-                </div>
+        <>
+          <div className="w-full max-w-3xl animate-[fade-in_360ms_ease-out]">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,23,30,0.88),rgba(10,13,19,0.92))] px-4 py-3 shadow-[0_18px_42px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                  Recent uploads
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Keep this optional. Reopen prior media only when you need it.
+                </p>
               </div>
-            ))}
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-[14px] border-white/10 bg-white/[0.04] px-4 text-white hover:bg-white/[0.08]"
+                onClick={() => setShowRecentUploads(true)}
+              >
+                <History className="h-4 w-4" />
+                Browse recent uploads
+              </Button>
+            </div>
           </div>
-        </div>
+
+          <EditorModal
+            open={showRecentUploads}
+            onClose={() => setShowRecentUploads(false)}
+            title="Recent uploads"
+            description="Reuse previous source files without crowding the main import surface."
+            className="max-w-3xl border-white/10 bg-[linear-gradient(180deg,rgba(17,22,30,0.98),rgba(10,13,19,0.98))] text-white shadow-[0_28px_80px_rgba(0,0,0,0.5)]"
+          >
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {recentUploads.map((item) => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("application/x-gifalchemy-asset-id", item.id);
+                    e.dataTransfer.effectAllowed = "copy";
+                  }}
+                  onClick={() => {
+                    setShowRecentUploads(false);
+                    void onAssetSelected(item.id);
+                  }}
+                  className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-white/8 bg-white/[0.03] transition-colors hover:border-white/14 hover:bg-white/[0.05]"
+                >
+                  <div className="relative flex h-24 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#171b21_0%_25%,#20252d_0%_50%)_50%_/_12px_12px]">
+                    {item.previewDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.previewDataUrl}
+                        alt={item.name}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06]">
+                        <ImageIcon className="h-5 w-5 text-white/50" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5 px-3 py-2">
+                    <p className="truncate text-xs font-medium text-white/90" title={item.name}>
+                      {item.name}
+                    </p>
+                    <p className="text-[10px] tabular-nums text-white/45">
+                      {formatBytes(item.size)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </EditorModal>
+        </>
       )}
     </div>
   );
@@ -379,14 +408,6 @@ export function CanvasStage() {
     setZoom(fitZoom);
     setPan({ x: 0, y: 0 });
   }, [state.currentFrameIndex, state.frames, state.metadata]);
-
-  useEffect(() => {
-    if (state.status !== "ready" || state.frames.length === 0) return;
-    const rafId = window.requestAnimationFrame(() => {
-      fitToView();
-    });
-    return () => window.cancelAnimationFrame(rafId);
-  }, [fitToView, state.frames.length, state.projectId, state.status]);
 
   const clampZoom = useCallback((nextZoom: number) => {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
