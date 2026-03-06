@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Trash2, Copy, Eye, EyeOff, Lock, Unlock, ImageIcon, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useOverlays } from "@/hooks/use-overlays";
@@ -44,6 +45,18 @@ export function ImageOverlayPanel() {
       if (!file.type.match(/^image\/(png|webp|jpeg|jpg)/)) return;
       const dataUrl = await readFileAsDataUrl(file);
       const { width, height } = await getImageDimensions(dataUrl);
+
+      const replaceTarget = selectedOverlay?.type === "image" && !selectedOverlay.imageDataUrl ? selectedOverlay : null;
+      if (replaceTarget) {
+        updateOverlay(replaceTarget.id, {
+          content: file.name,
+          imageDataUrl: dataUrl,
+          imageWidth: width,
+          imageHeight: height,
+        });
+        return;
+      }
+
       const frameCount = state.frames.length;
       const id = `ol_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
       const overlay: Overlay = {
@@ -74,7 +87,7 @@ export function ImageOverlayPanel() {
       dispatch({ type: "ADD_OVERLAY", payload: overlay });
       dispatch({ type: "SET_TOOL", payload: "image" });
     },
-    [dispatch, state.frames.length]
+    [dispatch, state.frames.length, selectedOverlay, updateOverlay]
   );
 
   const handleDrop = useCallback(
@@ -139,6 +152,28 @@ export function ImageOverlayPanel() {
           onChange={(e) => handleFiles(e.target.files)}
         />
       </div>
+
+      {/* Missing image — re-upload for selected overlay */}
+      {selectedOverlay && !selectedOverlay.imageDataUrl && (
+        <div
+          className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-500/50 bg-amber-500/5 p-4"
+          role="alert"
+        >
+          <p className="text-xs font-medium text-amber-200/90 text-center">
+            Image missing (e.g. after refresh)
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-amber-500/40 text-amber-200 hover:bg-amber-500/20"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
+            Re-upload image
+          </Button>
+        </div>
+      )}
 
       {/* Opacity control for selected image overlay */}
       {selectedOverlay && (

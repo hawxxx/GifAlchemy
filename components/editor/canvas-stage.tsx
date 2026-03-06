@@ -817,109 +817,97 @@ export function CanvasStage() {
         </div>
       )}
 
-      {/* Floating zoom bar — outside the transform div so it never pans/scales */}
+      {/* Floating zoom bar — bottom-right so it stays away from canvas media */}
       <div
         className={cn(
-          "absolute bottom-4 left-1/2 z-[100] w-[min(96vw,900px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(30,36,48,0.96)_0%,rgba(16,20,29,0.94)_100%)] px-2.5 py-2 shadow-[0_20px_48px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.12)_inset] backdrop-blur-xl transition-opacity duration-200",
-          "absolute bottom-4 left-1/2 z-[100] w-[min(96vw,900px)] -translate-x-1/2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(26,31,42,0.92)_0%,rgba(14,18,27,0.92)_100%)] px-2.5 py-2 shadow-[0_12px_28px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.08)_inset] backdrop-blur-lg transition-opacity duration-200",
+          "absolute bottom-4 right-4 z-[100] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)]/95 px-2 py-2 shadow-[var(--shadow-md)] backdrop-blur-sm transition-opacity duration-[var(--duration-ui)]",
           isPreviewMode && "opacity-60"
         )}
       >
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-1.5 py-1 shadow-inner">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.1] focus-visible:ring-1 focus-visible:ring-primary/60"
-              aria-label="Zoom out"
-              onClick={() => adjustZoom(-ZOOM_STEP)}
-            >
-              <Minus className="h-3.5 w-3.5" />
-            </Button>
-            <div className="w-28 px-1 sm:w-40">
-              <Slider
-                aria-label="Canvas zoom"
-                min={MIN_ZOOM}
-                max={MAX_ZOOM}
-                step={ZOOM_STEP}
-                value={[zoom]}
-                onValueChange={([nextZoom]) => setZoomLevel(nextZoom)}
-                className="[&_[data-slot=range]]:bg-primary/80 [&_[data-slot=thumb]]:border-white/20 [&_[data-slot=track]]:bg-white/15"
-              />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-inset)]/80 px-1.5 py-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                aria-label="Zoom out"
+                onClick={() => adjustZoom(-ZOOM_STEP)}
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </Button>
+              <div className="w-24 px-1 sm:w-32">
+                <Slider
+                  aria-label="Canvas zoom"
+                  min={MIN_ZOOM}
+                  max={MAX_ZOOM}
+                  step={ZOOM_STEP}
+                  value={[zoom]}
+                  onValueChange={([nextZoom]) => setZoomLevel(nextZoom)}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                aria-label="Zoom in"
+                onClick={() => adjustZoom(ZOOM_STEP)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.04] transition-colors duration-150 hover:bg-white/[0.1] focus-visible:ring-1 focus-visible:ring-primary/60"
-              aria-label="Zoom in"
-              onClick={() => adjustZoom(ZOOM_STEP)}
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
             <span
               className={cn(
-                "w-12 text-center text-[11px] font-semibold tabular-nums",
-                Math.abs(zoom - 1) < 0.01 ? "text-muted-foreground" : "text-primary"
+                "w-10 text-center text-xs font-medium tabular-nums",
+                Math.abs(zoom - 1) < 0.01 ? "text-[var(--text-muted)]" : "text-[var(--primary)]"
               )}
             >
               {Math.round(zoom * 100)}%
             </span>
-            <span className="mx-0.5 h-5 w-px bg-border/50" />
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-7 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.1]"
-              onClick={fitToView}
-            >
+            <Button variant="ghost" size="sm" className="h-7 rounded-md px-2 text-xs" onClick={fitToView}>
               Fit
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-7 rounded-lg border border-white/10 bg-white/[0.04] px-2 text-[11px] transition-colors duration-150 hover:bg-white/[0.1]"
-              onClick={resetView}
-            >
+            <Button variant="ghost" size="sm" className="h-7 rounded-md px-2 text-xs" onClick={resetView}>
               Reset
             </Button>
-          </div>
-
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/25 px-1.5 py-1 shadow-inner">
-            <Button
-              variant={showRulers ? "default" : "secondary"}
-              size="sm"
-              className="h-7 rounded-lg px-2 text-[11px] transition-colors duration-150"
-              onClick={() => setShowRulers((v) => !v)}
-            >
-              Rulers
-            </Button>
-            <Button
-              variant={showSafeArea ? "default" : "secondary"}
-              size="sm"
-              className="h-7 rounded-lg px-2 text-[11px] transition-colors duration-150"
-              onClick={() => setShowSafeArea((v) => !v)}
-            >
-              Safe area
-            </Button>
-            <Button
-              variant={isPreviewMode ? "default" : "secondary"}
-              size="sm"
-              className="h-7 gap-1 rounded-lg px-2 text-[11px] transition-colors duration-150"
-              onClick={() => setIsPreviewMode((v) => !v)}
-            >
-              <Eye className="h-3.5 w-3.5" />
-              {isPreviewMode ? "Exit preview" : "Preview"}
-            </Button>
-            <span
-              className={cn(
-                "ml-0.5 inline-flex h-7 items-center rounded-lg border px-2 text-[11px] transition-colors duration-150",
-                state.snapToGrid
-                  ? "border-primary/70 bg-primary text-primary-foreground"
-                  : "border-white/15 bg-black/30 text-muted-foreground"
-              )}
-              title="Arrow-key nudge snapping"
-            >
-              Snap {state.snapToGrid ? "8px" : "off"}
-            </span>
+            <div className="flex items-center gap-0.5 border-l border-[var(--border-subtle)] pl-2">
+              <Button
+                variant={showRulers ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 rounded-md px-2 text-xs"
+                onClick={() => setShowRulers((v) => !v)}
+              >
+                Rulers
+              </Button>
+              <Button
+                variant={showSafeArea ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 rounded-md px-2 text-xs"
+                onClick={() => setShowSafeArea((v) => !v)}
+              >
+                Safe
+              </Button>
+              <Button
+                variant={isPreviewMode ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 gap-1 rounded-md px-2 text-xs"
+                onClick={() => setIsPreviewMode((v) => !v)}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {isPreviewMode ? "Exit" : "Preview"}
+              </Button>
+              <span
+                className={cn(
+                  "inline-flex h-7 items-center rounded-md border px-2 text-xs",
+                  state.snapToGrid
+                    ? "border-[var(--primary)]/50 bg-[var(--primary)]/20 text-[var(--primary)]"
+                    : "border-[var(--border-subtle)] text-[var(--text-muted)]"
+                )}
+                title="Arrow-key nudge snapping"
+              >
+                Snap {state.snapToGrid ? "8px" : "off"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

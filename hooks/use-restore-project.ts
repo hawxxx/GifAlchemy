@@ -32,12 +32,26 @@ export function useRestoreProject() {
         if (intent === "new") return;
 
         const explicitProjectId = params.get("project");
-        const targetId =
+        let targetId =
           explicitProjectId ||
           (await projectRepo.list().then((list) => (list.length > 0 ? list[0].id : null)));
         if (cancelled || !targetId) return;
 
-        const loaded = await projectRepo.load(targetId);
+        let loaded = await projectRepo.load(targetId);
+        if (cancelled) return;
+        if (!loaded?.project || !loaded.fileBlob) {
+          const list = await projectRepo.list();
+          const fallbackId = list.length > 0 ? list[0].id : null;
+          if (fallbackId && fallbackId !== targetId) {
+            loaded = await projectRepo.load(fallbackId);
+            if (loaded?.project && loaded.fileBlob) {
+              targetId = fallbackId;
+              const url = new URL(window.location.href);
+              url.searchParams.set("project", fallbackId);
+              window.history.replaceState({}, "", url.toString());
+            }
+          }
+        }
         if (cancelled || !loaded?.project || !loaded.fileBlob) return;
 
         const { project, fileBlob } = loaded;

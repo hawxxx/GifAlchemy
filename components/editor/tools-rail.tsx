@@ -58,9 +58,9 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
     <TooltipProvider delayDuration={400}>
       <aside
         className={cn(
-          "flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/45 px-2 py-2",
-          "bg-card/72 backdrop-blur-lg transition-colors duration-200",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] ring-1 ring-black/[0.02] dark:ring-white/[0.03]",
+          "flex w-full items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border-subtle)] px-2 py-2",
+          "bg-[var(--surface-1)] transition-colors duration-[var(--duration-ui)]",
+          "shadow-[var(--shadow-sm)]",
           "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-2",
           className
         )}

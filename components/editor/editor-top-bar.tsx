@@ -162,9 +162,9 @@ export function EditorTopBar({
   return (
     <header
       className={cn(
-        "relative z-20 shrink-0 border-b border-border/35",
-        "bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/64 transition-colors duration-200",
-        "flex h-auto flex-wrap items-center gap-2.5 px-3 py-2.5 sm:px-4",
+        "relative z-20 shrink-0 border-b border-[var(--border-subtle)]",
+        "bg-[var(--surface-1)]/95 backdrop-blur-sm transition-colors duration-[var(--duration-ui)]",
+        "flex h-auto flex-wrap items-center gap-2 px-3 py-2 sm:px-4",
         className
       )}
     >

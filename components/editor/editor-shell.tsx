@@ -80,8 +80,8 @@ export function EditorShell({ className }: { className?: string }) {
 
       <div
         className={cn(
-          "grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-border/25 px-3 py-3 transition-colors duration-200",
-          "bg-[linear-gradient(180deg,var(--background)_0%,var(--background-0)_100%)]",
+          "grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-[var(--border-subtle)] px-3 py-3 transition-colors duration-[var(--duration-ui)]",
+          "bg-[var(--background-0)]",
           "[grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_minmax(0,1fr)_minmax(220px,auto)]",
           "md:px-4 md:py-4 md:[grid-template-columns:64px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
         )}
@@ -91,7 +91,7 @@ export function EditorShell({ className }: { className?: string }) {
           onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
         />
 
-        <div className="min-h-0 overflow-hidden rounded-2xl border border-border/55 bg-card/96 shadow-[0_24px_44px_-28px_rgba(0,0,0,0.75)] ring-1 ring-black/[0.04] transition-all duration-200 dark:ring-white/[0.05]">
+        <div className="min-h-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-0)] shadow-[var(--shadow-lg)] transition-all duration-[var(--duration-ui)]">
           <CanvasStage />
         </div>
 
@@ -105,8 +105,8 @@ export function EditorShell({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="shrink-0 border-t border-border/25 bg-muted/5 px-3 pb-3 pt-2 md:px-4 md:pb-4">
-        <div className="h-[160px] overflow-hidden rounded-2xl border border-border/45 bg-card/84 shadow-[0_14px_28px_-26px_rgba(0,0,0,0.72)] ring-1 ring-black/[0.02] transition-all duration-200 md:h-[176px] dark:ring-white/[0.03]">
+      <div className="shrink-0 border-t border-[var(--border-subtle)] bg-[var(--background-1)] px-3 pb-3 pt-2 md:px-4 md:pb-4">
+        <div className="h-[160px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-[var(--shadow-md)] transition-all duration-[var(--duration-ui)] md:h-[176px]">
           <TimelinePanel />
         </div>
       </div>

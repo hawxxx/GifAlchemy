@@ -20,10 +20,12 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  /* Motion tokens */
+  /* Motion tokens — 120ms micro, 200–220ms transitions, ease-out */
+  --duration-micro: 120ms;
   --duration-fast: 130ms;
   --duration-normal: 170ms;
   --duration-ui: 200ms;
+  --duration-ui-slow: 220ms;
   --duration-slow: 260ms;
   --duration-emphasis: 320ms;
   --duration-ambient: 640ms;
@@ -31,33 +33,40 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-standard: cubic-bezier(0.2, 0.75, 0.2, 1);
   --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-snappy: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-snappy: cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
 @layer base {
   :root,
   .dark {
+    /* Layered dark surfaces — handcrafted depth */
     --background-0: #0d1014;
     --background-1: #12171d;
     --background-2: #171d25;
+    --surface-0: #151a21;
+    --surface-1: #1b222c;
+    --surface-2: #212936;
     --panel: #1b222c;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-strong: rgba(255, 255, 255, 0.12);
     --accent-1: #7098ef;
     --accent-2: #87a7f4;
+    --text-primary: #e8edf5;
+    --text-secondary: #b8c4d4;
+    --text-muted: #95a2b3;
 
     --background: var(--background-0);
-    --foreground: #e8edf5;
+    --foreground: var(--text-primary);
     --card: var(--background-1);
-    --card-foreground: #e8edf5;
+    --card-foreground: var(--text-primary);
     --popover: var(--panel);
     --popover-foreground: #f0f4ff;
     --primary: var(--accent-1);
     --primary-foreground: #f7faff;
     --secondary: var(--background-2);
-    --secondary-foreground: #d4dceb;
+    --secondary-foreground: var(--text-secondary);
     --muted: var(--background-2);
-    --muted-foreground: #95a2b3;
+    --muted-foreground: var(--text-muted);
     --accent: rgba(112, 152, 239, 0.14);
     --accent-foreground: #dee7fa;
     --destructive: #d86868;
@@ -67,11 +76,9 @@
     --ring: rgba(112, 152, 239, 0.5);
     --radius: 0.625rem;
 
-    /* Surface layers */
-    --surface-1: var(--background-1);
-    --surface-2: var(--background-2);
+    /* Surface layers (surface-0 canvas chrome; surface-1/2 panels/controls) */
     --surface-3: var(--panel);
-    --surface-4: #212936;
+    --surface-4: var(--surface-2);
     --surface-overlay: rgba(13, 16, 20, 0.8);
     --surface-inset: #10151c;
     --glow-primary: rgba(112, 152, 239, 0.2);

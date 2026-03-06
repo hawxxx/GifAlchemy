@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useCallback, useState, type MouseEvent, type CSSProperties } from "react";
+import { useMemo, useRef, useCallback, useState, useEffect, type MouseEvent, type CSSProperties } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import type { Overlay, TypewriterCursorStyle } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
@@ -165,6 +165,9 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
   const [snapGuides, setSnapGuides] = useState<{ vertical?: number; horizontal?: number } | null>(
     null
   );
+  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ overlayId: string; x: number; y: number } | null>(null);
+  const settleRef = useRef<{ rafId: number } | null>(null);
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
   const clickStateRef = useRef<{
     overlayId: string;
@@ -173,6 +176,12 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
     moved: boolean;
   } | null>(null);
   const CLICK_MOVE_THRESHOLD_PX = 4;
+
+  useEffect(() => {
+    return () => {
+      if (settleRef.current?.rafId != null) cancelAnimationFrame(settleRef.current.rafId);
+    };
+  }, []);
 
   const interpolated = useMemo(
     () => overlays.map((o) => ({ overlay: o, ...interpolate(o, currentFrameIndex) })),
@@ -270,6 +279,8 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
           baseKeyframes: overlay.keyframes.map((k) => ({ ...k })),
         };
         setSnapGuides(null);
+        setDraggingOverlayId(overlay.id);
+        setDragPreview({ overlayId: overlay.id, x: start.x, y: start.y });
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       }
     },
@@ -296,8 +307,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
 
       const dxNorm = (e.clientX - drag.startClientX) / rect.width;
       const dyNorm = (e.clientY - drag.startClientY) / rect.height;
-      const rawX = drag.startX + dxNorm;
-      const rawY = drag.startY + dyNorm;
+      let rawX = drag.startX + dxNorm;
+      let rawY = drag.startY + dyNorm;
+
+      if (state.snapToGrid) {
+        const gridStepX = 8 / rect.width;
+        const gridStepY = 8 / rect.height;
+        rawX = Math.round(rawX / gridStepX) * gridStepX;
+        rawY = Math.round(rawY / gridStepY) * gridStepY;
+      }
 
       const thresholdX = 8 / rect.width;
       const thresholdY = 8 / rect.height;
@@ -335,22 +353,109 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
           : null
       );
 
-      const deltaX = snappedX - drag.startX;
-      const deltaY = snappedY - drag.startY;
-      const keyframes = drag.baseKeyframes.map((k) => ({
-        ...k,
-        x: Math.max(0, Math.min(1, k.x + deltaX)),
-        y: Math.max(0, Math.min(1, k.y + deltaY)),
-      }));
-      dispatch({ type: "UPDATE_OVERLAY", payload: { id: overlay.id, updates: { keyframes } } });
+      const clampedX = Math.max(0, Math.min(1, snappedX));
+      const clampedY = Math.max(0, Math.min(1, snappedY));
+      setDragPreview({ overlayId: overlay.id, x: clampedX, y: clampedY });
     },
-    [dispatch, overlays, currentFrameIndex]
+    [overlays, currentFrameIndex, state.snapToGrid]
   );
 
   const handlePointerUp = useCallback(() => {
+    const drag = dragState.current;
+    if (!drag) {
+      setDraggingOverlayId(null);
+      setDragPreview(null);
+      setSnapGuides(null);
+      return;
+    }
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    const currentPreview = dragPreview?.overlayId === drag.overlayId ? { x: dragPreview.x, y: dragPreview.y } : null;
+    let finalX = currentPreview?.x ?? drag.startX;
+    let finalY = currentPreview?.y ?? drag.startY;
+
+    if (rect && rect.width > 0 && rect.height > 0) {
+      const thresholdX = 8 / rect.width;
+      const thresholdY = 8 / rect.height;
+      const guideCandidatesX: number[] = [0.5];
+      const guideCandidatesY: number[] = [0.5];
+      for (const other of overlays) {
+        if (other.id === drag.overlayId || other.visible === false) continue;
+        const point = interpolate(other, currentFrameIndex);
+        guideCandidatesX.push(point.x);
+        guideCandidatesY.push(point.y);
+      }
+      for (const candidate of guideCandidatesX) {
+        if (Math.abs(finalX - candidate) <= thresholdX) {
+          finalX = candidate;
+          break;
+        }
+      }
+      for (const candidate of guideCandidatesY) {
+        if (Math.abs(finalY - candidate) <= thresholdY) {
+          finalY = candidate;
+          break;
+        }
+      }
+      if (state.snapToGrid) {
+        const gridStepX = 8 / rect.width;
+        const gridStepY = 8 / rect.height;
+        finalX = Math.round(finalX / gridStepX) * gridStepX;
+        finalY = Math.round(finalY / gridStepY) * gridStepY;
+      }
+      finalX = Math.max(0, Math.min(1, finalX));
+      finalY = Math.max(0, Math.min(1, finalY));
+    }
+
+    const deltaX = finalX - drag.startX;
+    const deltaY = finalY - drag.startY;
+    const keyframes = drag.baseKeyframes.map((k) => ({
+      ...k,
+      x: Math.max(0, Math.min(1, k.x + deltaX)),
+      y: Math.max(0, Math.min(1, k.y + deltaY)),
+    }));
+
+    const startX = currentPreview?.x ?? drag.startX;
+    const startY = currentPreview?.y ?? drag.startY;
+    const needSettle = Math.abs(finalX - startX) > 1e-5 || Math.abs(finalY - startY) > 1e-5;
+
+    if (needSettle) {
+      const durationMs = 220;
+      const ease = (t: number) => {
+        const x = Math.max(0, Math.min(1, t));
+        return 1 - Math.pow(1 - x, 2.5);
+      };
+      let startTime: number | null = null;
+      const tick = (now: number) => {
+        if (startTime === null) startTime = now;
+        const elapsed = now - startTime;
+        const t = ease(Math.min(1, elapsed / durationMs));
+        const x = startX + (finalX - startX) * t;
+        const y = startY + (finalY - startY) * t;
+        setDragPreview({ overlayId: drag.overlayId, x, y });
+        if (elapsed < durationMs) {
+          const rafId = requestAnimationFrame(tick);
+          settleRef.current = { rafId };
+        } else {
+          dispatch({ type: "UPDATE_OVERLAY", payload: { id: drag.overlayId, updates: { keyframes } } });
+          setDraggingOverlayId(null);
+          setDragPreview(null);
+          settleRef.current = null;
+        }
+      };
+      if (settleRef.current?.rafId != null) cancelAnimationFrame(settleRef.current.rafId);
+      settleRef.current = { rafId: 0 };
+      const rafId = requestAnimationFrame(tick);
+      settleRef.current = { rafId };
+    } else {
+      dispatch({ type: "UPDATE_OVERLAY", payload: { id: drag.overlayId, updates: { keyframes } } });
+      setDraggingOverlayId(null);
+      setDragPreview(null);
+    }
+
     dragState.current = null;
     setSnapGuides(null);
-  }, []);
+  }, [overlays, currentFrameIndex, state.snapToGrid, dragPreview, dispatch]);
 
   const handleClick = useCallback(
     (e: MouseEvent, overlay: Overlay) => {
@@ -481,6 +586,8 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
       e.preventDefault();
       e.stopPropagation();
       dragState.current = null;
+      setDraggingOverlayId(null);
+      setDragPreview(null);
       const targetTool = overlay.type === "image" ? "image" : "text";
       dispatch({ type: "SET_TOOL", payload: targetTool });
       dispatch({ type: "SELECT_OVERLAY", payload: overlay.id });
@@ -506,6 +613,9 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
         />
       )}
       {visibleOverlays.map(({ overlay, x, y, scale, rotation, opacity }) => {
+        const displayX = dragPreview?.overlayId === overlay.id ? dragPreview.x : x;
+        const displayY = dragPreview?.overlayId === overlay.id ? dragPreview.y : y;
+        const isDragging = draggingOverlayId === overlay.id;
         const isSelected = selectedOverlayId === overlay.id;
         const isOverlayImageType = overlay.type === "image";
         const activeToolForOverlay = isOverlayImageType ? isImageMode : isTextMode;
@@ -579,9 +689,13 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                   : ""
             )}
             style={{
-              left: `${x * 100}%`,
-              top: `${y * 100}%`,
-              transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation}deg)`,
+              left: `${displayX * 100}%`,
+              top: `${displayY * 100}%`,
+              transform: `translate(-50%, -50%) scale(${(isDragging ? 1.02 : 1) * scale}) rotate(${rotation}deg)`,
+              boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.35)" : undefined,
+              transition: dragPreview?.overlayId === overlay.id
+                ? "left 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), top 0.22s cubic-bezier(0.34, 1.2, 0.64, 1)"
+                : undefined,
               opacity,
               ...(isOverlayImageType
                 ? {}
@@ -607,13 +721,22 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
             onDoubleClick={(e) => handleDoubleClick(e, overlay)}
           >
             {isOverlayImageType ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={overlay.imageDataUrl ?? ""}
-                alt=""
-                draggable={false}
-                style={{ display: "block", maxWidth: "none", pointerEvents: "none", userSelect: "none" }}
-              />
+              overlay.imageDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={overlay.imageDataUrl}
+                  alt=""
+                  draggable={false}
+                  style={{ display: "block", maxWidth: "none", pointerEvents: "none", userSelect: "none" }}
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center min-w-[80px] min-h-[60px] rounded border border-dashed border-[var(--border-strong)] bg-[var(--muted)]/50 text-[var(--muted-foreground)] text-xs px-2 py-1 text-center"
+                  title="Image missing — re-upload in the panel"
+                >
+                  Missing image
+                </div>
+              )
             ) : editingOverlayId === overlay.id ? (
               <div
                 contentEditable="true"

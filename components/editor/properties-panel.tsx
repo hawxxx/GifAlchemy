@@ -54,9 +54,9 @@ export function PropertiesPanel({
     activeTool !== "batch";
 
   const sectionCardClass =
-    "content-visibility-auto relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-background/94 via-background/88 to-background/82 p-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.45),inset_0_1px_0_0_rgba(255,255,255,0.45),inset_0_-1px_0_0_rgba(15,23,42,0.05)] dark:shadow-[0_14px_30px_-24px_rgba(2,6,23,0.7),inset_0_1px_0_0_rgba(255,255,255,0.09),inset_0_-1px_0_0_rgba(0,0,0,0.24)]";
+    "content-visibility-auto relative overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 shadow-[var(--shadow-sm)]";
   const sectionTitleClass =
-    "mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72";
+    "mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]";
 
   return (
     <aside
