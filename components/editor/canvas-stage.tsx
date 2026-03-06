@@ -8,9 +8,11 @@ import { UploadZone } from "./upload-zone";
 import { SkeletonLoader } from "./skeleton-loader";
 import { OverlayRenderer } from "./overlay-renderer";
 import { FloatingTextToolbar } from "./floating-text-toolbar";
+import { createImageOverlay } from "@/core/application/commands/overlay-commands";
 import { useEditor } from "@/hooks/use-editor";
 import { useProcessor } from "@/hooks/use-processor";
 import { ERROR_MESSAGES } from "@/lib/constants";
+import { getAssetFile, listAssets, saveAsset, type StoredAsset } from "@/lib/asset-library";
 import { cn, formatBytes } from "@/lib/utils";
 import type { ProcessingProgress } from "@/core/domain/gif-types";
 
@@ -75,36 +77,7 @@ function ExportProgressOverlay({
   );
 }
 
-const UPLOAD_STORAGE_KEY = "gifalchemy:uploads";
-const MAX_RECENT = 6;
-
-interface RecentUpload {
-  name: string;
-  size: number;
-  dataUrl?: string;
-  addedAt: number;
-}
-
-function readRecentUploads(): RecentUpload[] {
-  try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(UPLOAD_STORAGE_KEY) : null;
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveRecentUpload(entry: RecentUpload): void {
-  try {
-    const existing = readRecentUploads().filter((e) => e.name !== entry.name);
-    const next = [entry, ...existing].slice(0, MAX_RECENT);
-    localStorage.setItem(UPLOAD_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    // Ignore storage quota errors
-  }
-}
+const MAX_RECENT = 12;
 
 function makeThumbnailDataUrl(imageData: ImageData, maxSize = 80): string {
   try {
@@ -132,16 +105,48 @@ function makeThumbnailDataUrl(imageData: ImageData, maxSize = 80): string {
   }
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read image asset."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => resolve({ width: 0, height: 0 });
+    image.src = dataUrl;
+  });
+}
+
 function EmptyUploadView({
   onFileAccepted,
   onUrlAccepted,
+  onAssetSelected,
   onError,
 }: {
   onFileAccepted: (file: File) => void;
   onUrlAccepted: (url: string) => Promise<void>;
+  onAssetSelected: (assetId: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const [recentUploads] = useState<RecentUpload[]>(() => readRecentUploads().slice(0, MAX_RECENT));
+  const [recentUploads, setRecentUploads] = useState<StoredAsset[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void listAssets(MAX_RECENT).then((items) => {
+      if (active) setRecentUploads(items);
+    }).catch(() => {
+      if (active) setRecentUploads([]);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 overflow-auto p-6">
@@ -157,14 +162,20 @@ function EmptyUploadView({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {recentUploads.map((item) => (
               <div
-                key={`${item.name}-${item.addedAt}`}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card/70 transition-colors hover:border-border hover:bg-card"
+                key={item.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/x-gifalchemy-asset-id", item.id);
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                onClick={() => void onAssetSelected(item.id)}
+                className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border/50 bg-card/70 transition-colors hover:border-border hover:bg-card"
               >
                 <div className="relative flex h-20 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#1a1a1e_0%_25%,#242428_0%_50%)_50%_/_12px_12px]">
-                  {item.dataUrl ? (
+                  {item.previewDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={item.dataUrl}
+                      src={item.previewDataUrl}
                       alt={item.name}
                       className="h-full w-full object-contain"
                     />
@@ -212,7 +223,6 @@ export function CanvasStage() {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
   const [showSafeArea, setShowSafeArea] = useState(false);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const cropDragRef = useRef<{
     mode: CropDragMode;
@@ -255,11 +265,13 @@ export function CanvasStage() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isPreviewMode) setIsPreviewMode(false);
+      if (e.key === "Escape" && state.isPreviewMode) {
+        dispatch({ type: "SET_PREVIEW_MODE", payload: false });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isPreviewMode]);
+  }, [dispatch, state.isPreviewMode]);
 
 
   const handleWheel = useCallback(
@@ -537,12 +549,11 @@ export function CanvasStage() {
       dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
       dispatch({ type: "PROCESSOR_READY" });
       const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
-      saveRecentUpload({
-        name: file.name,
-        size: file.size,
-        addedAt: Date.now(),
-        dataUrl: dataUrl || undefined,
-      });
+      await saveAsset({
+        file,
+        previewDataUrl: dataUrl || undefined,
+        kind: "source",
+      }).catch(() => null);
     } catch (e) {
       const msg = e instanceof Error ? e.message : ERROR_MESSAGES.PROCESSING_FAILED;
       dispatch({ type: "UPLOAD_ERROR", payload: msg });
@@ -552,6 +563,30 @@ export function CanvasStage() {
   const handleFileAccepted = useCallback(async (file: File) => {
     await completeImport(file);
   }, [completeImport]);
+
+  const handleCanvasImageAssetDrop = useCallback(async (assetId: string) => {
+    const file = await getAssetFile(assetId);
+    if (!file) {
+      dispatch({ type: "UPLOAD_ERROR", payload: "That asset is no longer available." });
+      return;
+    }
+    if (!file.type.match(/^image\/(png|webp|jpeg|jpg|gif)/)) {
+      await completeImport(file);
+      return;
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    const { width, height } = await getImageDimensions(dataUrl);
+    dispatch({
+      type: "ADD_OVERLAY",
+      payload: createImageOverlay(state.frames.length, {
+        content: file.name,
+        imageDataUrl: dataUrl,
+        imageWidth: width,
+        imageHeight: height,
+      }),
+    });
+    dispatch({ type: "SET_TOOL", payload: "image" });
+  }, [completeImport, dispatch, state.frames.length]);
 
   const handleUrlAccepted = useCallback(async (url: string) => {
     dispatch({ type: "UPLOAD_START" });
@@ -581,12 +616,11 @@ export function CanvasStage() {
       dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
       dispatch({ type: "PROCESSOR_READY" });
       const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
-      saveRecentUpload({
-        name: file.name,
-        size: file.size,
-        addedAt: Date.now(),
-        dataUrl: dataUrl || undefined,
-      });
+      await saveAsset({
+        file,
+        previewDataUrl: dataUrl || undefined,
+        kind: "source",
+      }).catch(() => null);
     } catch (e) {
       const msg = e instanceof Error ? e.message : ERROR_MESSAGES.PROCESSING_FAILED;
       dispatch({ type: "UPLOAD_ERROR", payload: msg });
@@ -599,6 +633,14 @@ export function CanvasStage() {
       <EmptyUploadView
         onFileAccepted={handleFileAccepted}
         onUrlAccepted={handleUrlAccepted}
+        onAssetSelected={async (assetId) => {
+          const file = await getAssetFile(assetId);
+          if (!file) {
+            dispatch({ type: "UPLOAD_ERROR", payload: "That asset is no longer available." });
+            return;
+          }
+          await completeImport(file);
+        }}
         onError={(msg) => dispatch({ type: "UPLOAD_ERROR", payload: msg })}
       />
     );
@@ -663,9 +705,11 @@ export function CanvasStage() {
   const crop = state.outputSettings.crop;
   const isCropToolActive = state.activeTool === "trim" || state.activeTool === "resize";
   const isResizeToolActive = state.activeTool === "resize";
+  const canvasBackgroundMode = state.outputSettings.backgroundMode ?? "transparent";
+  const canvasBackgroundColor = state.outputSettings.backgroundColor ?? "#10141A";
 
-  const effectiveShowRulers = isPreviewMode ? false : showRulers;
-  const effectiveShowSafeArea = isPreviewMode ? false : showSafeArea;
+  const effectiveShowRulers = state.isPreviewMode ? false : showRulers;
+  const effectiveShowSafeArea = state.isPreviewMode ? false : showSafeArea;
 
   const cropHandleStyles: Array<{ mode: CropDragMode; cursor: string; className: string; ariaLabel: string }> = [
     { mode: "nw", cursor: "nwse-resize", className: "-left-1.5 -top-1.5", ariaLabel: "Resize crop top left" },
@@ -685,7 +729,7 @@ export function CanvasStage() {
       ref={containerRef}
       className={cn(
         "relative flex h-full items-center justify-center overflow-hidden rounded-xl",
-        isPreviewMode ? "bg-black" : "bg-[#080a10]"
+        state.isPreviewMode ? "bg-black" : "bg-[#080a10]"
       )}
       onPointerDown={handlePanStart}
       onPointerMove={(e) => {
@@ -701,9 +745,37 @@ export function CanvasStage() {
         handleCropPointerUp();
       }}
       onContextMenu={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        if (
+          e.dataTransfer.types.includes("application/x-gifalchemy-asset-id") ||
+          e.dataTransfer.types.includes("application/x-gifalchemy-image-asset-id")
+        ) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDrop={(e) => {
+        const imageAssetId = e.dataTransfer.getData("application/x-gifalchemy-image-asset-id");
+        const assetId = e.dataTransfer.getData("application/x-gifalchemy-asset-id");
+        if (!imageAssetId && !assetId) return;
+        e.preventDefault();
+        if (imageAssetId && state.status === "ready") {
+          void handleCanvasImageAssetDrop(imageAssetId);
+          return;
+        }
+        if (assetId) {
+          void getAssetFile(assetId).then((file) => {
+            if (!file) {
+              dispatch({ type: "UPLOAD_ERROR", payload: "That asset is no longer available." });
+              return;
+            }
+            return completeImport(file);
+          });
+        }
+      }}
       style={{ cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : undefined }}
     >
-      {!isPreviewMode && (
+      {!state.isPreviewMode && (
         <>
           <div
             className="pointer-events-none absolute inset-0 rounded-xl opacity-45 transition-opacity duration-200 ease-out"
@@ -725,12 +797,23 @@ export function CanvasStage() {
       <div
         className="relative overflow-visible rounded-[10px] border border-white/12 shadow-[0_16px_46px_rgba(0,0,0,0.46),0_1px_0_rgba(255,255,255,0.05)_inset] transition-shadow duration-200"
         style={{
-          background: isPreviewMode ? "#0a0a0a" : CHECKERBOARD,
+          background:
+            canvasBackgroundMode === "solid"
+              ? canvasBackgroundColor
+              : state.isPreviewMode
+                ? "#0a0a0a"
+                : CHECKERBOARD,
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "center center",
         }}
       >
-        {!isPreviewMode && (
+        {canvasBackgroundMode === "transparent" && (
+          <div
+            className="pointer-events-none absolute inset-0 rounded-[10px] opacity-100"
+            style={{ background: CHECKERBOARD }}
+          />
+        )}
+        {!state.isPreviewMode && (
           <div
             className="pointer-events-none absolute -inset-10 rounded-[18px] -z-10"
             style={{
@@ -832,7 +915,7 @@ export function CanvasStage() {
             />
           </>
         )}
-        {!isPreviewMode && isCropToolActive && crop && (
+        {!state.isPreviewMode && isCropToolActive && crop && (
           <>
             <div
               className="absolute bg-black/45 pointer-events-none"
@@ -921,31 +1004,33 @@ export function CanvasStage() {
             frameCount={state.frames.length}
             width={w}
             height={h}
-            previewMode={isPreviewMode}
+            previewMode={state.isPreviewMode}
           />
         )}
       </div>
 
-      {/* Preview mode top bar */}
-      {isPreviewMode && (
-        <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/55 px-4 py-2 backdrop-blur-md">
-          <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
-          <button
-            type="button"
-            onClick={() => setIsPreviewMode(false)}
-            className="flex items-center gap-1 text-[11px] text-white/60 transition-colors duration-150 hover:text-white"
-          >
-            <X className="h-3 w-3" />
-            Exit
-          </button>
-        </div>
+      {state.isPreviewMode && (
+        <>
+          <div className="pointer-events-none absolute inset-0 z-40 rounded-xl bg-[radial-gradient(circle_at_center,rgba(2,6,14,0.08)_0%,rgba(2,6,14,0.42)_58%,rgba(2,6,14,0.82)_100%)] transition-opacity duration-200" />
+          <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/45 px-4 py-2 backdrop-blur-md">
+            <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: "SET_PREVIEW_MODE", payload: false })}
+              className="flex items-center gap-1 text-[11px] text-white/60 transition-colors duration-150 hover:text-white"
+            >
+              <X className="h-3 w-3" />
+              Exit Preview
+            </button>
+          </div>
+        </>
       )}
 
       {/* Floating zoom bar — bottom-right so it stays away from canvas media */}
       <div
         className={cn(
           "absolute bottom-4 right-4 z-[100] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)]/95 px-2 py-2 shadow-[var(--shadow-md)] backdrop-blur-sm transition-opacity duration-[var(--duration-ui)]",
-          isPreviewMode && "opacity-60"
+          state.isPreviewMode && "opacity-0 pointer-events-none"
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -1012,13 +1097,13 @@ export function CanvasStage() {
                 Safe
               </Button>
               <Button
-                variant={isPreviewMode ? "secondary" : "ghost"}
+                variant={state.isPreviewMode ? "secondary" : "ghost"}
                 size="sm"
                 className="h-7 gap-1 rounded-md px-2 text-xs"
-                onClick={() => setIsPreviewMode((v) => !v)}
+                onClick={() => dispatch({ type: "SET_PREVIEW_MODE", payload: !state.isPreviewMode })}
               >
                 <Eye className="h-3.5 w-3.5" />
-                {isPreviewMode ? "Exit" : "Preview"}
+                {state.isPreviewMode ? "Exit" : "Preview"}
               </Button>
               <span
                 className={cn(
@@ -1036,7 +1121,80 @@ export function CanvasStage() {
         </div>
       </div>
 
-      {!isPreviewMode && <FloatingTextToolbar />}
+      {state.isPreviewMode && (
+        <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-[120] mx-auto max-w-[680px] rounded-2xl border border-white/12 bg-black/58 px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl transition-all duration-200">
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 rounded-full border-white/10 bg-white/10 text-white hover:bg-white/16"
+              onClick={() => dispatch({ type: "SET_PLAYING", payload: !state.isPlaying })}
+            >
+              {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
+            </Button>
+            <div className="flex-1">
+              <Slider
+                aria-label="Preview progress"
+                min={0}
+                max={Math.max(0, state.frames.length - 1)}
+                step={1}
+                value={[state.currentFrameIndex]}
+                onValueChange={([frameIndex]) => dispatch({ type: "SET_FRAME", payload: frameIndex ?? 0 })}
+              />
+              <div className="mt-1 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-white/48">
+                <span>{formatPreviewTime(state.currentFrameIndex, state.frames)}</span>
+                <span>{formatPreviewTime(state.frames.length - 1, state.frames)}</span>
+              </div>
+            </div>
+            <div className="flex w-[108px] items-center gap-2">
+              <VolumeIcon />
+              <Slider
+                aria-label="Preview volume"
+                min={0}
+                max={1}
+                step={0.01}
+                value={[state.previewVolume]}
+                onValueChange={([next]) => dispatch({ type: "SET_PREVIEW_VOLUME", payload: next ?? 1 })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!state.isPreviewMode && <FloatingTextToolbar />}
     </div>
+  );
+}
+
+function formatPreviewTime(frameIndex: number, frames: Array<{ delay: number }>): string {
+  const clampedIndex = Math.max(0, Math.min(frameIndex, frames.length - 1));
+  const elapsedMs = frames.slice(0, clampedIndex + 1).reduce((sum, frame) => sum + Math.max(10, frame.delay), 0);
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function PlayIcon() {
+  return <div className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white" />;
+}
+
+function PauseIcon() {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="h-3.5 w-[3px] rounded-full bg-white" />
+      <span className="h-3.5 w-[3px] rounded-full bg-white" />
+    </div>
+  );
+}
+
+function VolumeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/72" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+      <path d="M15.5 9.5a4 4 0 0 1 0 5" />
+      <path d="M18 7a7 7 0 0 1 0 10" />
+    </svg>
   );
 }

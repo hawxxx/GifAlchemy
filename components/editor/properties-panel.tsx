@@ -7,6 +7,7 @@ import { OptimizeToolPanel } from "./optimize-tool-panel";
 import { StickersToolPanel } from "./stickers-tool-panel";
 import { TemplatesToolPanel } from "./templates-tool-panel";
 import { BatchToolPanel } from "./batch-tool-panel";
+import { AssetLibraryPanel } from "./asset-library-panel";
 import type { GifMetadata } from "@/core/domain/gif-types";
 import type { OutputSettings } from "@/core/domain/project";
 import type { ToolId } from "@/lib/constants";
@@ -168,6 +169,17 @@ export function PropertiesPanel({
           <p className="text-[13px] leading-relaxed text-muted-foreground/88">
             Output size is set in the Resize tool. Format: {outputSettings.format}.
           </p>
+        </section>
+
+        <section className={sectionCardClass}>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent dark:via-white/12"
+          />
+          <h3 className={sectionTitleClass}>
+            Library
+          </h3>
+          <AssetLibraryPanel />
         </section>
       </div>
     </aside>

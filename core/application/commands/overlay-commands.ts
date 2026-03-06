@@ -32,6 +32,18 @@ export function createTextOverlay(
       | "fontStyle"
       | "visible"
       | "locked"
+      | "fillType"
+      | "gradientFrom"
+      | "gradientTo"
+      | "gradientAngle"
+      | "textShadowColor"
+      | "textShadowBlur"
+      | "textShadowOffsetX"
+      | "textShadowOffsetY"
+      | "backgroundColor"
+      | "backgroundPaddingX"
+      | "backgroundPaddingY"
+      | "backgroundRadius"
     >
   >
 ): Overlay {
@@ -50,12 +62,64 @@ export function createTextOverlay(
     fontStyle: overrides?.fontStyle ?? "normal",
     textAlign: overrides?.textAlign ?? "center",
     color: overrides?.color ?? "#ffffff",
+    fillType: overrides?.fillType ?? "solid",
+    gradientFrom: overrides?.gradientFrom ?? "#ffffff",
+    gradientTo: overrides?.gradientTo ?? "#5B8CFF",
+    gradientAngle: overrides?.gradientAngle ?? 90,
     strokeWidth: overrides?.strokeWidth ?? 2,
     strokeColor: overrides?.strokeColor ?? "#000000",
+    textShadowColor: overrides?.textShadowColor ?? "#000000",
+    textShadowBlur: overrides?.textShadowBlur ?? 0,
+    textShadowOffsetX: overrides?.textShadowOffsetX ?? 0,
+    textShadowOffsetY: overrides?.textShadowOffsetY ?? 0,
+    backgroundColor: overrides?.backgroundColor ?? "#00000000",
+    backgroundPaddingX: overrides?.backgroundPaddingX ?? 0,
+    backgroundPaddingY: overrides?.backgroundPaddingY ?? 0,
+    backgroundRadius: overrides?.backgroundRadius ?? 0,
     keyframes: [first, last],
     effects: [],
     visible: overrides?.visible ?? true,
     locked: overrides?.locked ?? false,
+  };
+}
+
+export function createImageOverlay(
+  frameCount: number,
+  input: {
+    content: string;
+    imageDataUrl: string;
+    imageWidth?: number;
+    imageHeight?: number;
+    visible?: boolean;
+    locked?: boolean;
+  }
+): Overlay {
+  const first: Keyframe = { ...DEFAULT_KEYFRAME, frameIndex: 0 };
+  const last: Keyframe = {
+    ...DEFAULT_KEYFRAME,
+    frameIndex: Math.max(0, frameCount - 1),
+  };
+  return {
+    id: generateId(),
+    type: "image",
+    content: input.content,
+    imageDataUrl: input.imageDataUrl,
+    imageWidth: input.imageWidth,
+    imageHeight: input.imageHeight,
+    fontFamily: "system-ui",
+    fontSize: 32,
+    fontWeight: "normal",
+    fontStyle: "normal",
+    textAlign: "center",
+    color: "#ffffff",
+    strokeWidth: 0,
+    strokeColor: "#000000",
+    keyframes: [first, last],
+    effects: [],
+    inFrame: 0,
+    outFrame: Math.max(0, frameCount - 1),
+    visible: input.visible ?? true,
+    locked: input.locked ?? false,
   };
 }
 

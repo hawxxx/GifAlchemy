@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Trash2, Copy, Eye, EyeOff, Lock, Unlock, ImageIcon, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Trash2, Copy, Eye, EyeOff, Lock, Unlock, ImageIcon, Upload, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useOverlays } from "@/hooks/use-overlays";
 import { useEditor } from "@/hooks/use-editor";
-import type { Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
+import { createImageOverlay } from "@/core/application/commands/overlay-commands";
+import { getAssetFile, listAssets, saveAsset, type StoredAsset } from "@/lib/asset-library";
+import { toast } from "sonner";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -31,18 +33,42 @@ function getImageDimensions(dataUrl: string): Promise<{ width: number; height: n
 export function ImageOverlayPanel() {
   const { overlays, selectedOverlayId, removeOverlay, duplicateOverlay, updateOverlay, selectOverlay } =
     useOverlays();
-  const { state, dispatch } = useEditor();
+  const { state, dispatch, processor, projectRepo } = useEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [storedAssets, setStoredAssets] = useState<StoredAsset[]>([]);
+  const [recentProjects, setRecentProjects] = useState<Array<{ id: string; name: string; updatedAt: number; previewDataUrl?: string }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    void listAssets(24)
+      .then((assets) => {
+        if (active) setStoredAssets(assets);
+      })
+      .catch(() => {
+        if (active) setStoredAssets([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("gifalchemy:projects");
+      const parsed = raw ? JSON.parse(raw) : [];
+      setRecentProjects(Array.isArray(parsed) ? parsed.slice(0, 6) : []);
+    } catch {
+      setRecentProjects([]);
+    }
+  }, []);
 
   const imageOverlays = overlays.filter((o) => o.type === "image");
   const selectedOverlay = imageOverlays.find((o) => o.id === selectedOverlayId) ?? null;
 
-  const handleFiles = useCallback(
-    async (files: FileList | null) => {
-      if (!files || files.length === 0) return;
-      const file = files[0];
-      if (!file.type.match(/^image\/(png|webp|jpeg|jpg)/)) return;
+  const createOverlayFromFile = useCallback(
+    async (file: File) => {
       const dataUrl = await readFileAsDataUrl(file);
       const { width, height } = await getImageDimensions(dataUrl);
 
@@ -57,37 +83,34 @@ export function ImageOverlayPanel() {
         return;
       }
 
-      const frameCount = state.frames.length;
-      const id = `ol_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      const overlay: Overlay = {
-        id,
-        type: "image",
+      const overlay = createImageOverlay(state.frames.length, {
         content: file.name,
         imageDataUrl: dataUrl,
         imageWidth: width,
         imageHeight: height,
-        fontFamily: "system-ui",
-        fontSize: 32,
-        fontWeight: "normal",
-        fontStyle: "normal",
-        textAlign: "center",
-        color: "#ffffff",
-        strokeWidth: 0,
-        strokeColor: "#000000",
-        keyframes: [
-          { frameIndex: 0, x: 0.5, y: 0.5, scale: 1, rotation: 0, opacity: 1 },
-          { frameIndex: Math.max(0, frameCount - 1), x: 0.5, y: 0.5, scale: 1, rotation: 0, opacity: 1 },
-        ],
-        effects: [],
-        inFrame: 0,
-        outFrame: Math.max(0, frameCount - 1),
-        visible: true,
-        locked: false,
-      };
+      });
       dispatch({ type: "ADD_OVERLAY", payload: overlay });
       dispatch({ type: "SET_TOOL", payload: "image" });
+
+      const asset = await saveAsset({
+        file,
+        previewDataUrl: dataUrl,
+      }).catch(() => null);
+      if (asset) {
+        setStoredAssets((prev) => [asset, ...prev.filter((item) => item.id !== asset.id)].slice(0, 24));
+      }
     },
-    [dispatch, state.frames.length, selectedOverlay, updateOverlay]
+    [dispatch, selectedOverlay, state.frames.length, updateOverlay]
+  );
+
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      if (!file.type.match(/^image\/(png|webp|jpeg|jpg)/)) return;
+      await createOverlayFromFile(file);
+    },
+    [createOverlayFromFile]
   );
 
   const handleDrop = useCallback(
@@ -118,6 +141,46 @@ export function ImageOverlayPanel() {
     const keyframes = overlay.keyframes.map((k) => ({ ...k, opacity: value[0] }));
     updateOverlay(selectedOverlayId, { keyframes });
   };
+
+  const handleOpenProject = useCallback(async (id: string) => {
+    if (!projectRepo || !processor) return;
+    try {
+      const loaded = await projectRepo.load(id);
+      if (!loaded?.project || !loaded.fileBlob) {
+        toast.error("Project source file is missing.");
+        return;
+      }
+      const { project, fileBlob } = loaded;
+      const file = new File([fileBlob], project.sourceFile.name, {
+        type: project.sourceFile.type,
+        lastModified: project.updatedAt,
+      });
+      if (!processor.isReady) await processor.initialize();
+      const { frames, metadata } = await processor.decode(file);
+      dispatch({
+        type: "RESTORE_PROJECT",
+        payload: {
+          file,
+          frames,
+          metadata,
+          overlays: project.timeline.overlays,
+          outputSettings: project.outputSettings,
+          projectName: project.name,
+          trimStart: project.trimStart ?? 0,
+          trimEnd: project.trimEnd ?? Math.max(0, frames.length - 1),
+          playbackRate: project.playbackRate ?? 1,
+          snapshots: project.snapshots ?? [],
+        },
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.set("project", project.id);
+      url.searchParams.delete("intent");
+      window.history.replaceState({}, "", url.toString());
+      toast.success(`Opened ${project.name}`);
+    } catch {
+      toast.error("Could not open that saved project.");
+    }
+  }, [dispatch, processor, projectRepo]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -300,6 +363,103 @@ export function ImageOverlayPanel() {
           No image overlays yet. Upload one above.
         </p>
       )}
+
+      <div className="flex flex-col gap-2 rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
+              Uploaded assets
+            </p>
+            <p className="text-[11px] text-muted-foreground/70">
+              Drag onto the canvas or click to add as an image overlay.
+            </p>
+          </div>
+          <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+            {storedAssets.length}
+          </span>
+        </div>
+        {storedAssets.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {storedAssets.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/x-gifalchemy-image-asset-id", asset.id);
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                onClick={() => {
+                  void getAssetFile(asset.id).then((file) => {
+                    if (file) return createOverlayFromFile(file);
+                  });
+                }}
+                className="group flex flex-col overflow-hidden rounded-lg border border-border/55 bg-background/55 text-left transition-all duration-150 hover:border-primary/35 hover:bg-background/80"
+              >
+                <div className="flex h-20 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#191c21_0%_25%,#232730_0%_50%)_50%_/_12px_12px]">
+                  {asset.previewDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={asset.previewDataUrl} alt={asset.name} className="h-full w-full object-contain" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-muted-foreground/55" />
+                  )}
+                </div>
+                <div className="space-y-0.5 px-2 py-1.5">
+                  <p className="truncate text-[11px] font-medium text-foreground/92">{asset.name}</p>
+                  <p className="text-[10px] text-muted-foreground/75">
+                    {asset.width && asset.height ? `${asset.width}x${asset.height}` : "Asset"}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground/70">Uploaded assets will appear here and persist after refresh.</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
+              Saved projects
+            </p>
+            <p className="text-[11px] text-muted-foreground/70">
+              Jump back into recent work without leaving the editor.
+            </p>
+          </div>
+          <FolderOpen className="h-4 w-4 text-muted-foreground/60" />
+        </div>
+        {recentProjects.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {recentProjects.map((project) => (
+              <button
+                key={project.id}
+                type="button"
+                onClick={() => void handleOpenProject(project.id)}
+                className="group flex flex-col overflow-hidden rounded-lg border border-border/55 bg-background/55 text-left transition-all duration-150 hover:border-primary/35 hover:bg-background/80"
+              >
+                <div className="flex h-20 items-center justify-center overflow-hidden bg-[linear-gradient(180deg,rgba(18,22,28,0.92),rgba(9,12,16,0.98))]">
+                  {project.previewDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={project.previewDataUrl} alt={project.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <FolderOpen className="h-5 w-5 text-muted-foreground/55" />
+                  )}
+                </div>
+                <div className="space-y-0.5 px-2 py-1.5">
+                  <p className="truncate text-[11px] font-medium text-foreground/92">{project.name}</p>
+                  <p className="text-[10px] text-muted-foreground/75">
+                    {new Date(project.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] text-muted-foreground/70">Saved projects show up here after the first autosave.</p>
+        )}
+      </div>
     </div>
   );
 }
