@@ -397,6 +397,12 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...state, ...action.payload };
     case "RESTORE_PROJECT": {
       const p = action.payload;
+      const meta = p.metadata;
+      const out = { ...p.outputSettings };
+      if ((out.width === 0 || out.height === 0) && meta) {
+        out.width = meta.width ?? out.width;
+        out.height = meta.height ?? out.height;
+      }
       return {
         ...state,
         status: "ready",
@@ -408,7 +414,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
         overlays: p.overlays,
         selectedOverlayId: p.overlays[0]?.id ?? null,
         selectedOverlayIds: p.overlays[0]?.id ? [p.overlays[0].id] : [],
-        outputSettings: p.outputSettings,
+        outputSettings: out,
         projectName: p.projectName,
         trimStart: p.trimStart,
         trimEnd: p.trimEnd,

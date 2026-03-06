@@ -3,7 +3,7 @@ import type { GifFrame, GifMetadata, ProcessingResult } from "@/core/domain/gif-
 import type { OutputSettings, Overlay } from "@/core/domain/project";
 import { ERROR_MESSAGES, MAX_FILE_SIZE, SUPPORTED_FORMATS } from "@/lib/constants";
 
-const DECODE_TIMEOUT_MS = 30000;
+const DECODE_TIMEOUT_MS = 8000;
 
 function assertDecodedMedia(
   frames: GifFrame[],

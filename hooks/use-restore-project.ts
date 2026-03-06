@@ -38,8 +38,6 @@ export function useRestoreProject() {
         if (cancelled || !targetId) return;
 
         attemptedRestore.current = true;
-        dispatch({ type: "RESTORE_START" });
-        if (cancelled) return;
 
         let loaded = await projectRepo.load(targetId);
         if (cancelled) return;
