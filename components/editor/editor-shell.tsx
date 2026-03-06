@@ -21,7 +21,7 @@ const ONBOARDING_KEY = "gifalchemy:onboarding:v1";
 const ONBOARDING_TOUR_KEY = "gifalchemy:onboarding-tour:v1";
 
 export function EditorShell({ className }: { className?: string }) {
-  const { state, dispatch } = useEditor();
+  const { state, dispatch, projectRepo } = useEditor();
   const { saveStatus } = useAutosave();
   const urlRateInitialized = useRef(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -53,8 +53,48 @@ export function EditorShell({ className }: { className?: string }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const seen = window.localStorage.getItem(ONBOARDING_KEY);
-    if (!seen) setShowOnboarding(true);
-  }, []);
+    if (seen) return;
+
+    let cancelled = false;
+
+    const shouldSuppressOnboarding = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const hasExplicitProject = Boolean(params.get("project"));
+      const isExplicitNew = params.get("intent") === "new";
+      const hasEditorContent = state.frames.length > 0 || state.status !== "empty";
+
+      if (hasExplicitProject || hasEditorContent) return true;
+      if (isExplicitNew) return false;
+      if (!projectRepo) return false;
+
+      const savedProjects = await projectRepo.list();
+      return savedProjects.length > 0;
+    };
+
+    void shouldSuppressOnboarding()
+      .then((shouldSuppress) => {
+        if (!cancelled && !shouldSuppress) {
+          setShowOnboarding(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled && state.frames.length === 0 && state.status === "empty") {
+          setShowOnboarding(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectRepo, state.frames.length, state.status]);
+
+  useEffect(() => {
+    if (state.frames.length > 0 || state.status !== "empty") {
+      setShowOnboarding(false);
+      setShowTour(false);
+      setTourStep(0);
+    }
+  }, [state.frames.length, state.status]);
 
   useEffect(() => {
     const openShortcuts = () => setShowShortcuts(true);
@@ -68,7 +108,12 @@ export function EditorShell({ className }: { className?: string }) {
     }
     setShowOnboarding(false);
     if (typeof window !== "undefined" && !window.localStorage.getItem(ONBOARDING_TOUR_KEY)) {
-      setShowTour(true);
+      const params = new URLSearchParams(window.location.search);
+      const isExplicitNew = params.get("intent") === "new";
+      const hasEditorContent = state.frames.length > 0 || state.status !== "empty";
+      if (isExplicitNew || !hasEditorContent) {
+        setShowTour(true);
+      }
     }
   };
 
