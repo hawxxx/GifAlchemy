@@ -42,7 +42,7 @@ export function useAutosave() {
   const project: Project | null =
     state.file && state.metadata
       ? {
-          id: `local-${state.file.name}-${state.file.lastModified}`,
+          id: state.projectId ?? `local-${state.file.name}-${state.file.lastModified}`,
           name: state.projectName,
           sourceFile: {
             name: state.file.name,
@@ -67,7 +67,7 @@ export function useAutosave() {
   useEffect(() => {
     if (!service || !project) return;
     service.scheduleSave(project, state.file ?? null);
-  }, [service, state.file, state.outputSettings, state.overlays, state.projectName, state.trimStart, state.trimEnd, state.playbackRate, state.snapshots, state.metadata?.frameCount]);
+  }, [service, state.file, state.outputSettings, state.overlays, state.projectId, state.projectName, state.trimStart, state.trimEnd, state.playbackRate, state.snapshots, state.metadata?.frameCount]);
 
   const saveNow = project && service ? () => service.saveNow(project, state.file ?? null) : undefined;
   return { saveStatus, lastSavedAt, timeline, saveNow };

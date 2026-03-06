@@ -55,6 +55,7 @@ export function AssetLibraryPanel() {
     dispatch({
       type: "RESTORE_PROJECT",
       payload: {
+        projectId: project.id,
         file,
         frames,
         metadata,

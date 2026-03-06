@@ -42,6 +42,7 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export interface EditorState {
   status: EditorStatus;
+  projectId: string | null;
   file: File | null;
   frames: GifFrame[];
   metadata: GifMetadata | null;
@@ -81,6 +82,7 @@ const defaultOutputSettings: OutputSettings = {
 
 const initialState: EditorState = {
   status: "empty",
+  projectId: null,
   file: null,
   frames: [],
   metadata: null,
@@ -107,7 +109,10 @@ const initialState: EditorState = {
 
 export type EditorAction =
   | { type: "UPLOAD_START" }
-  | { type: "UPLOAD_SUCCESS"; payload: { file: File; frames: GifFrame[]; metadata: GifMetadata } }
+  | {
+      type: "UPLOAD_SUCCESS";
+      payload: { file: File; frames: GifFrame[]; metadata: GifMetadata; projectId?: string };
+    }
   | { type: "UPLOAD_ERROR"; payload: string }
   | { type: "SET_TOOL"; payload: ToolId | null }
   | { type: "UPDATE_OUTPUT_SETTINGS"; payload: Partial<OutputSettings> }
@@ -140,6 +145,7 @@ export type EditorAction =
   | {
       type: "RESTORE_PROJECT";
       payload: {
+        projectId: string;
         file: File;
         frames: GifFrame[];
         metadata: GifMetadata;
@@ -239,6 +245,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         status: "ready",
+        projectId: action.payload.projectId ?? `local-${file.name}-${file.lastModified}`,
         file,
         frames,
         metadata,
@@ -391,6 +398,7 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         status: "ready",
+        projectId: p.projectId,
         file: p.file,
         frames: p.frames,
         metadata: p.metadata,

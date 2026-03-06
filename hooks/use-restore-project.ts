@@ -78,6 +78,7 @@ export function useRestoreProject() {
         dispatch({
           type: "RESTORE_PROJECT",
           payload: {
+            projectId: project.id,
             file,
             frames,
             metadata,

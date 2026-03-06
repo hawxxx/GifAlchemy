@@ -53,10 +53,7 @@ export function useProjectPersistence() {
     if (state.status !== "ready" || state.frames.length === 0) return;
     if (!state.file) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const explicitProjectId = params.get("project");
-    // Fallback to autosave convention for brand-new sessions before explicit identity is set.
-    const projectId = explicitProjectId || `local-${state.file.name}-${state.file.lastModified}`;
+    const projectId = state.projectId || `local-${state.file.name}-${state.file.lastModified}`;
     const previewDataUrl = capturePreviewDataUrl(state.frames[0]);
 
     upsertProject({
@@ -67,5 +64,5 @@ export function useProjectPersistence() {
     });
   // Re-run when meaningful project state changes (not on every frame render).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.status, state.file, state.projectName, state.frames.length]);
+  }, [state.status, state.file, state.projectId, state.projectName, state.frames.length]);
 }

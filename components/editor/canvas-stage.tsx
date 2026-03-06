@@ -123,6 +123,14 @@ function getImageDimensions(dataUrl: string): Promise<{ width: number; height: n
   });
 }
 
+function syncProjectUrl(projectId: string) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("project", projectId);
+  url.searchParams.delete("intent");
+  window.history.replaceState({}, "", url.toString());
+}
+
 function EmptyUploadView({
   onFileAccepted,
   onUrlAccepted,
@@ -501,7 +509,8 @@ export function CanvasStage() {
   useEffect(() => {
     if (state.status === "ready" && state.frames.length > 0 && canvasRef.current) {
       const canvas = canvasRef.current;
-      const frame = state.frames[state.currentFrameIndex];
+      const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
+      const frame = state.frames[safeIndex];
       if (!frame) return;
       const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio : 1);
       const w = frame.imageData.width;
@@ -532,6 +541,7 @@ export function CanvasStage() {
       const { decodeMedia } = await import("@/core/application/commands/editor-commands");
       const startedAt = performance.now();
       const { frames, metadata } = await decodeMedia(processor, file);
+      const projectId = `local-${file.name}-${file.lastModified}`;
       const decodeMs = Math.max(0, performance.now() - startedAt);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -546,8 +556,9 @@ export function CanvasStage() {
           })
         );
       }
-      dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
+      dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata, projectId } });
       dispatch({ type: "PROCESSOR_READY" });
+      syncProjectUrl(projectId);
       const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
       await saveAsset({
         file,
@@ -599,6 +610,7 @@ export function CanvasStage() {
       const { importFromUrl } = await import("@/core/application/commands/editor-commands");
       const startedAt = performance.now();
       const { file, frames, metadata } = await importFromUrl(processor, url);
+      const projectId = `local-${file.name}-${file.lastModified}`;
       const decodeMs = Math.max(0, performance.now() - startedAt);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -613,8 +625,9 @@ export function CanvasStage() {
           })
         );
       }
-      dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata } });
+      dispatch({ type: "UPLOAD_SUCCESS", payload: { file, frames, metadata, projectId } });
       dispatch({ type: "PROCESSOR_READY" });
+      syncProjectUrl(projectId);
       const dataUrl = frames[0] ? makeThumbnailDataUrl(frames[0].imageData) : "";
       await saveAsset({
         file,

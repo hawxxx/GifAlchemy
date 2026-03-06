@@ -160,6 +160,7 @@ export function ImageOverlayPanel() {
       dispatch({
         type: "RESTORE_PROJECT",
         payload: {
+          projectId: project.id,
           file,
           frames,
           metadata,
