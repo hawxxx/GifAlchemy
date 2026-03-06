@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useLayoutEffect, useState, useCallback } from "react";
 import { Eye, ImageIcon, LoaderCircle, Minus, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -99,6 +99,20 @@ function makeThumbnailDataUrl(imageData: ImageData, maxSize = 80): string {
     if (!tctx) return "";
     tctx.putImageData(imageData, 0, 0);
     ctx.drawImage(temp, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
+function makeFrameDataUrl(imageData: ImageData): string {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.putImageData(imageData, 0, 0);
     return canvas.toDataURL("image/png");
   } catch {
     return "";
@@ -231,6 +245,7 @@ export function CanvasStage() {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [showRulers, setShowRulers] = useState(true);
   const [showSafeArea, setShowSafeArea] = useState(false);
+  const [frameDataUrl, setFrameDataUrl] = useState("");
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const cropDragRef = useRef<{
     mode: CropDragMode;
@@ -522,9 +537,11 @@ export function CanvasStage() {
     cropDragRef.current = null;
   }, []);
 
-  const drawCurrentFrame = useCallback(() => {
-    if (state.status !== "ready" || state.frames.length === 0 || !canvasRef.current) return;
+  // Draw current frame to canvas. Runs in useLayoutEffect so the GIF is visible before paint.
+  useLayoutEffect(() => {
+    if (state.status !== "ready" || state.frames.length === 0) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
     const frame = state.frames[safeIndex];
     if (!frame?.imageData) return;
@@ -532,36 +549,49 @@ export function CanvasStage() {
     const h = frame.imageData.height;
     if (w <= 0 || h <= 0) return;
     const dpr = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio : 1);
-    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+    try {
+      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const temp = document.createElement("canvas");
+      temp.width = w;
+      temp.height = h;
+      const tempCtx = temp.getContext("2d");
+      if (!tempCtx) return;
+      tempCtx.putImageData(frame.imageData, 0, 0);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.drawImage(temp, 0, 0);
+      ctx.restore();
+    } catch {
+      // Fallback: draw imageData directly (may only fill logical size at 1:1)
+      const ctx = canvas.getContext("2d");
+      if (ctx && canvas.width === w && canvas.height === h) {
+        ctx.putImageData(frame.imageData, 0, 0);
+      }
     }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const temp = document.createElement("canvas");
-    temp.width = w;
-    temp.height = h;
-    const tempCtx = temp.getContext("2d");
-    if (!tempCtx) return;
-    tempCtx.putImageData(frame.imageData, 0, 0);
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.drawImage(temp, 0, 0);
-    ctx.restore();
-  }, [state.status, state.frames, state.currentFrameIndex]);
+  }, [state.status, state.frames, state.currentFrameIndex, state.projectId]);
 
   useEffect(() => {
-    if (state.status !== "ready" || state.frames.length === 0) return;
-    drawCurrentFrame();
-    if (!canvasRef.current) {
-      const raf = requestAnimationFrame(() => drawCurrentFrame());
-      return () => cancelAnimationFrame(raf);
+    if (state.status !== "ready" || state.frames.length === 0) {
+      setFrameDataUrl("");
+      return;
     }
-  }, [state.status, state.frames, state.currentFrameIndex, state.projectId, drawCurrentFrame]);
+    const safeIndex = Math.max(0, Math.min(state.currentFrameIndex, state.frames.length - 1));
+    const activeFrame = state.frames[safeIndex];
+    if (!activeFrame?.imageData) {
+      setFrameDataUrl("");
+      return;
+    }
+    setFrameDataUrl(makeFrameDataUrl(activeFrame.imageData));
+  }, [state.currentFrameIndex, state.frames, state.projectId, state.status]);
 
   const completeImport = useCallback(async (file: File) => {
     dispatch({ type: "UPLOAD_START" });
@@ -875,9 +905,21 @@ export function CanvasStage() {
             boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.045), inset 0 0 28px rgba(14,20,32,0.34)",
           }}
         />
+        {frameDataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={frameDataUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="block max-w-full max-h-full select-none"
+            style={{ width: w, height: h }}
+          />
+        ) : null}
         <canvas
+          key={`canvas-${state.projectId ?? ""}-${state.frames.length}`}
           ref={canvasRef}
-          className="block max-w-full max-h-full"
+          className="pointer-events-none absolute inset-0 block opacity-0"
           style={{ width: w, height: h }}
         />
         {effectiveShowRulers && (
