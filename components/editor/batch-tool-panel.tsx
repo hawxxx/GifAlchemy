@@ -35,126 +35,133 @@ export function BatchToolPanel() {
       .forEach((o) => removeOverlay(o.id));
 
   return (
-    <div className="space-y-4">
-      <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">Batch actions</Label>
-
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] text-muted-foreground">Selection</p>
-          <p className="text-[11px] font-medium text-foreground">{selectionCount} layer(s)</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Selection</Label>
+           <span className="text-[10px] font-bold text-white/80 bg-black/40 px-1.5 py-0.5 rounded">{selectionCount}</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={groupSelected}
             disabled={selectionCount < 2}
           >
-            Group selected
+            Group
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={ungroupSelected}
             disabled={selectionCount < 1}
           >
-            Ungroup selected
+            Ungroup
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={() => setGroupLocked(true)}
             disabled={selectionCount < 1}
           >
-            Lock group
+            Lock
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={() => setGroupLocked(false)}
             disabled={selectionCount < 1}
           >
-            Unlock group
+            Unlock
           </Button>
         </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Align selected</p>
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("left")} disabled={selectionCount < 2}>Left</Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("center")} disabled={selectionCount < 2}>Center</Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("right")} disabled={selectionCount < 2}>Right</Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("top")} disabled={selectionCount < 2}>Top</Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("middle")} disabled={selectionCount < 2}>Middle</Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={() => alignSelection("bottom")} disabled={selectionCount < 2}>Bottom</Button>
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Align</Label>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("left")} disabled={selectionCount < 2}>Left</Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("center")} disabled={selectionCount < 2}>Center</Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("right")} disabled={selectionCount < 2}>Right</Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("top")} disabled={selectionCount < 2}>Top</Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("middle")} disabled={selectionCount < 2}>Middle</Button>
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={() => alignSelection("bottom")} disabled={selectionCount < 2}>Bottom</Button>
         </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Distribute selected</p>
-        <div className="grid grid-cols-2 gap-2 mt-2">
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Distribute</Label>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg gap-1 border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] gap-1.5 border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={() => distributeSelection("horizontal")}
             disabled={selectionCount < 3}
           >
-            <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
-            Horizontal
+            <AlignHorizontalDistributeCenter className="h-3.5 w-3.5 text-white/60" />
+            Horiz.
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg gap-1 border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+            className="h-8 rounded-[6px] gap-1.5 border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
             onClick={() => distributeSelection("vertical")}
             disabled={selectionCount < 3}
           >
-            <AlignVerticalDistributeCenter className="h-3.5 w-3.5" />
-            Vertical
+            <AlignVerticalDistributeCenter className="h-3.5 w-3.5 text-white/60" />
+            Vert.
           </Button>
         </div>
       </div>
 
-      <div className="pt-2">
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Global</Label>
+        </div>
+        
         <Button
           type="button"
-          variant={state.snapToGrid ? "default" : "outline"}
+          variant="outline"
           size="sm"
           className={cn(
-            "w-full h-9 rounded-lg text-[11px] font-medium transition-colors mb-2",
+            "w-full h-8 rounded-[6px] text-[10px] font-bold tracking-wider uppercase transition-all shadow-sm active:scale-95",
             state.snapToGrid 
-              ? "" 
-              : "border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              ? "bg-primary text-primary-foreground hover:bg-primary/90 border-transparent gap-2" 
+              : "border border-white/5 bg-black/20 hover:bg-white/10 hover:border-white/10 hover:text-white"
           )}
           onClick={() => dispatch({ type: "SET_SNAP_TO_GRID", payload: !state.snapToGrid })}
         >
-          Nudge snap 8px grid: {state.snapToGrid ? "On" : "Off"}
+          {state.snapToGrid && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+          Snap to Grid (8px)
         </Button>
 
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={showAll}>
-            Show all
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={showAll}>
+            Show All
           </Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={hideAll}>
-            Hide all
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={hideAll}>
+            Hide All
           </Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={unlockAll}>
-            Unlock all
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={unlockAll}>
+            Unlock All
           </Button>
-          <Button type="button" variant="outline" size="sm" className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors" onClick={lockAll}>
-            Lock all
+          <Button type="button" variant="outline" size="sm" className="h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95" onClick={lockAll}>
+            Lock All
           </Button>
         </div>
 
@@ -162,24 +169,24 @@ export function BatchToolPanel() {
           type="button"
           variant="outline"
           size="sm"
-          className="w-full h-8 mb-2 rounded-lg border border-white/10 bg-transparent text-[11px] text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+          className="w-full h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
           onClick={clearAllEffects}
         >
-          Clear all effects
+          Clear Effects
         </Button>
 
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="w-full h-8 rounded-lg border border-red-500/30 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 text-[11px] transition-colors"
+          className="w-full h-8 rounded-[6px] border border-red-500/20 bg-red-500/10 text-[10px] font-bold tracking-wider uppercase text-red-400 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-300 transition-all shadow-sm active:scale-95"
           onClick={deleteHidden}
         >
-          Delete hidden unlocked layers
+          Delete Hidden & Unlocked
         </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground opacity-80 mt-4 leading-relaxed">
+      <p className="text-[10px] text-white/30 px-1 font-medium leading-relaxed">
         Multi-select in timeline with Ctrl/Cmd click. Locked layers are skipped.
       </p>
     </div>

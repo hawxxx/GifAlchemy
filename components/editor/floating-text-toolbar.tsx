@@ -59,12 +59,12 @@ function ToolbarBtn({
       title={title}
       onClick={onClick}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-lg border border-transparent transition-all duration-150 ease-out active:scale-[0.97]",
-        "text-white/68 hover:border-white/20 hover:bg-white/[0.09] hover:text-white",
+        "flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent transition-all duration-200 ease-out active:scale-[0.96]",
+        "text-white/60 hover:border-white/10 hover:bg-white/[0.06] hover:text-white",
         active &&
-          "border-primary/45 bg-primary/15 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)]",
+          "border-primary/30 bg-primary/15 text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
         danger &&
-          "hover:border-destructive/48 hover:bg-destructive/14 hover:text-destructive"
+          "hover:border-destructive/30 hover:bg-destructive/15 hover:text-destructive"
       )}
     >
       {children}
@@ -80,7 +80,7 @@ function Sep() {
 
 function ControlGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-xl border border-white/12 bg-white/[0.035] px-1 py-0.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16)]">
+    <div className="flex items-center gap-0.5 rounded-[10px] border border-white/5 bg-white/[0.02] px-1 py-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
       {children}
     </div>
   );
@@ -219,16 +219,12 @@ export function FloatingTextToolbar() {
 
   return (
     <div
-      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 p-1.5 text-white shadow-2xl backdrop-blur-xl select-none"
+      className="fixed z-[100] flex items-center gap-2 rounded-[14px] border border-white/10 bg-[#0a0a0a]/90 p-1.5 text-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl select-none"
       style={{ left: pos.x, top: pos.y }}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/14"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent"
+        className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
 
       {/* Grip */}

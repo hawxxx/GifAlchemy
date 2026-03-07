@@ -114,6 +114,10 @@ export interface Overlay {
   visible?: boolean;
   /** When true, layer edits/movement/removal are blocked until unlocked. */
   locked?: boolean;
+  /** When true, keyframe interpolation is disabled (stepped motion). */
+  disableTweening?: boolean;
+  /** Name of the premium text preset applied. */
+  textPreset?: string;
 }
 
 export interface Keyframe {

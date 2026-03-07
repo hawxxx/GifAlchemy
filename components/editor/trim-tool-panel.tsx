@@ -204,120 +204,134 @@ export function TrimToolPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground/80 leading-relaxed">
+    <div className="flex flex-col gap-4">
+      <p className="text-[11px] text-white/40 leading-relaxed font-medium">
         Export only frames in this range. Playback still shows the full timeline.
       </p>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Start frame</Label>
-          <Input
-            type="number"
-            min={0}
-            max={lastFrame}
-            value={trimStart}
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (!Number.isNaN(v)) setTrim(v, trimEnd);
-            }}
-            className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
-          />
+
+      {/* Frame Range Inputs */}
+      <div className="flex gap-3">
+        <div className="flex-1 space-y-1.5">
+          <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50">Start Frame</Label>
+          <div className="relative flex items-center">
+            <Input
+              type="number"
+              min={0}
+              max={lastFrame}
+              value={trimStart}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!Number.isNaN(v)) setTrim(v, trimEnd);
+              }}
+              className="h-8 rounded-md border-white/10 bg-black/20 pl-2 pr-6 text-xs text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium"
+            />
+          </div>
         </div>
-        <div>
-          <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">End frame</Label>
-          <Input
-            type="number"
-            min={trimStart}
-            max={lastFrame}
-            value={trimEnd}
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (!Number.isNaN(v)) setTrim(trimStart, v);
-            }}
-            className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
-          />
+        <div className="flex-1 space-y-1.5">
+          <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50">End Frame</Label>
+          <div className="relative flex items-center">
+            <Input
+              type="number"
+              min={trimStart}
+              max={lastFrame}
+              value={trimEnd}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (!Number.isNaN(v)) setTrim(trimStart, v);
+              }}
+              className="h-8 rounded-md border-white/10 bg-black/20 pl-2 pr-6 text-xs text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all font-medium"
+            />
+          </div>
         </div>
       </div>
-      <div className="rounded-xl border border-white/5 bg-black/10 p-3 space-y-3">
+
+      <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Range</Label>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            Frames {trimStart}–{trimEnd} ({trimmedCount} of {frameCount})
+          <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Range</Label>
+          <span className="text-[10px] font-bold text-white/70 tabular-nums tracking-wide">
+            {trimStart} – {trimEnd} <span className="text-white/30 font-medium">({trimmedCount} of {frameCount})</span>
           </span>
         </div>
-        <div className="space-y-2">
-          <div>
-            <span className="text-[10px] text-muted-foreground">Start</span>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-[10px] font-medium text-white/40">Start</span>
+            </div>
             <Slider
               value={[trimStart]}
               min={0}
               max={lastFrame}
               step={1}
               onValueChange={([v]) => setTrim(v ?? 0, trimEnd)}
+              className="[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
             />
           </div>
-          <div>
-            <span className="text-[10px] text-muted-foreground">End</span>
+          <div className="space-y-1.5">
+             <div className="flex justify-between">
+              <span className="text-[10px] font-medium text-white/40">End</span>
+             </div>
             <Slider
               value={[trimEnd]}
               min={trimStart}
               max={lastFrame}
               step={1}
               onValueChange={([v]) => setTrim(trimStart, v ?? lastFrame)}
+              className="[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
             />
           </div>
         </div>
       </div>
+      
       <button
         type="button"
         onClick={() => dispatch({ type: "SET_TRIM", payload: { trimStart: 0, trimEnd: lastFrame } })}
         className={cn(
-          "w-full rounded-lg border border-white/10 bg-transparent py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground",
-          trimStart === 0 && trimEnd === lastFrame && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-muted-foreground"
+          "h-8 w-full rounded-md border border-white/10 bg-white/[0.02] text-[11px] font-medium text-white/60 transition-all hover:bg-white/[0.05] hover:text-white active:scale-[0.98]",
+          trimStart === 0 && trimEnd === lastFrame && "opacity-50 cursor-not-allowed hover:bg-white/[0.02] hover:text-white/60 active:scale-100"
         )}
       >
         Reset to full timeline
       </button>
 
-      <div className="border-t border-white/10 pt-4 space-y-3">
+      <div className="border-t border-white/5 pt-4 space-y-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] mt-1">
         <div className="flex items-center justify-between">
-          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Crop</Label>
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Crop</Label>
           {!crop ? (
             <button
               type="button"
               onClick={initCrop}
-              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+              className="text-[10px] font-bold tracking-wide uppercase text-primary hover:text-primary/80 transition-colors"
             >
-              Enable crop
+              Enable
             </button>
           ) : (
             <button
               type="button"
               onClick={() => dispatch({ type: "UPDATE_OUTPUT_SETTINGS", payload: { crop: null } })}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="text-[10px] font-bold tracking-wide uppercase text-white/40 hover:text-white transition-colors"
             >
-              Disable crop
+              Disable
             </button>
           )}
         </div>
 
         {crop && metadata && (
-          <>
-            <p className="text-[11px] text-muted-foreground">
-              Drag crop box directly on the canvas, or fine-tune values below.
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-medium text-white/40 leading-relaxed">
+              Drag crop box directly on the canvas, or fine-tune here.
             </p>
-            <div className="space-y-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Aspect</Label>
-              <div className="grid grid-cols-4 gap-1.5">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Aspect</Label>
+              <div className="flex gap-1.5">
                 {CROP_RATIO_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
                     type="button"
                     className={cn(
-                      "h-8 rounded-lg border text-[11px] font-medium transition-colors",
+                      "flex-1 h-7 rounded border text-[10px] font-bold transition-all duration-150 tracking-wide",
                       (crop.aspectRatioPreset ?? "free") === preset.id
                         ? "border-primary bg-primary/20 text-primary shadow-sm"
-                        : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                        : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
                     )}
                     onClick={() => setCropAspectPreset(preset.id)}
                   >
@@ -326,32 +340,35 @@ export function TrimToolPanel() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 pt-1">
+            
+            <div className="flex gap-1.5 pt-1">
               <button
                 type="button"
-                className="h-8 rounded-lg border border-white/10 bg-black/20 text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                className="flex-1 h-7 rounded border border-white/10 bg-black/20 text-[10px] font-bold tracking-wide text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-150"
                 onClick={() => rotateCrop(-90)}
               >
-                Rotate -90°
+                -90°
               </button>
               <button
                 type="button"
-                className="h-8 rounded-lg border border-white/10 bg-black/20 text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                className="flex-1 h-7 rounded border border-white/10 bg-black/20 text-[10px] font-bold tracking-wide text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-150"
                 onClick={() => rotateCrop(90)}
               >
-                Rotate +90°
+                +90°
               </button>
-              <div className="h-8 rounded-lg border border-white/5 bg-white/5 text-[11px] font-medium text-foreground flex items-center justify-center tabular-nums">
+              <div className="w-10 shrink-0 h-7 rounded border border-white/5 bg-white/5 text-[10px] font-bold tracking-wide text-white flex items-center justify-center tabular-nums">
                 {(crop.rotation ?? 0)}°
               </div>
-
+            </div>
+            
+            <div className="flex gap-1.5">
               <button
                 type="button"
                 className={cn(
-                  "h-8 rounded-lg border text-[11px] font-medium transition-colors",
+                  "flex-1 h-7 rounded border text-[10px] font-bold tracking-wide transition-all duration-150",
                   crop.flipX
                     ? "border-primary bg-primary/20 text-primary shadow-sm"
-                    : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                    : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
                 )}
                 onClick={() => updateCrop({ flipX: !crop.flipX })}
               >
@@ -360,10 +377,10 @@ export function TrimToolPanel() {
               <button
                 type="button"
                 className={cn(
-                  "h-8 rounded-lg border text-[11px] font-medium transition-colors",
+                  "flex-1 h-7 rounded border text-[10px] font-bold tracking-wide transition-all duration-150",
                   crop.flipY
                     ? "border-primary bg-primary/20 text-primary shadow-sm"
-                    : "border-white/10 bg-black/20 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                    : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
                 )}
                 onClick={() => updateCrop({ flipY: !crop.flipY })}
               >
@@ -371,76 +388,78 @@ export function TrimToolPanel() {
               </button>
               <button
                 type="button"
-                className="h-8 rounded-lg border border-white/10 bg-black/20 text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                className="flex-[1.5] h-7 rounded border border-white/10 bg-black/20 text-[10px] font-bold tracking-wide text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-150"
                 onClick={() => updateCrop({ rotation: 0, flipX: false, flipY: false })}
               >
-                Reset xf
+                Reset XF
               </button>
             </div>
             
-            <div className="rounded-xl border border-white/5 bg-black/10 p-3 mt-2 grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">X Pos</Label>
+            {/* Dimensions Grid */}
+            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2 mt-1 grid grid-cols-2 gap-x-2 gap-y-2">
+              <div className="flex items-center justify-between px-1">
+                <Label className="text-[10px] font-medium text-white/40 tracking-wider">X</Label>
                 <Input
                   type="number"
                   min={0}
                   max={metadata.width - 1}
                   value={crop.x}
                   onChange={(e) => updateCrop({ x: Number(e.target.value) || 0 })}
-                  className="h-7 rounded-md bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="h-6 w-14 rounded bg-black/20 border-white/10 text-[10px] font-medium text-white/80 px-1 text-right focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:bg-black/40"
                 />
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Y Pos</Label>
+              <div className="flex items-center justify-between px-1">
+                <Label className="text-[10px] font-medium text-white/40 tracking-wider">Y</Label>
                 <Input
                   type="number"
                   min={0}
                   max={metadata.height - 1}
                   value={crop.y}
                   onChange={(e) => updateCrop({ y: Number(e.target.value) || 0 })}
-                  className="h-7 rounded-md bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="h-6 w-14 rounded bg-black/20 border-white/10 text-[10px] font-medium text-white/80 px-1 text-right focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:bg-black/40"
                 />
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Width</Label>
+              <div className="flex items-center justify-between px-1">
+                <Label className="text-[10px] font-medium text-white/40 tracking-wider">W</Label>
                 <Input
                   type="number"
                   min={1}
                   max={metadata.width}
                   value={crop.width}
                   onChange={(e) => updateCrop({ width: Number(e.target.value) || 1 })}
-                  className="h-7 rounded-md bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="h-6 w-14 rounded bg-black/20 border-white/10 text-[10px] font-medium text-white/80 px-1 text-right focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:bg-black/40"
                 />
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Height</Label>
+              <div className="flex items-center justify-between px-1">
+                <Label className="text-[10px] font-medium text-white/40 tracking-wider">H</Label>
                 <Input
                   type="number"
                   min={1}
                   max={metadata.height}
                   value={crop.height}
                   onChange={(e) => updateCrop({ height: Number(e.target.value) || 1 })}
-                  className="h-7 rounded-md bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
+                  className="h-6 w-14 rounded bg-black/20 border-white/10 text-[10px] font-medium text-white/80 px-1 text-right focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:bg-black/40"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
+            
+            <div className="flex gap-2 w-full mt-1">
               <button
                 type="button"
-                className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                className="flex-1 h-8 rounded-md border border-white/10 bg-white/[0.02] text-[10px] font-bold tracking-wide uppercase text-white/60 hover:bg-white/[0.05] hover:text-white transition-all duration-150 active:scale-[0.98]"
                 onClick={fitCropToContent}
               >
-                Fit crop to content
+                Auto-Fit
               </button>
               <button
                 type="button"
-                className="h-8 rounded-lg border border-white/10 bg-transparent text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors"
+                className="flex-1 h-8 rounded-md border border-white/10 bg-white/[0.02] text-[10px] font-bold tracking-wide uppercase text-white/60 hover:bg-white/[0.05] hover:text-white transition-all duration-150 active:scale-[0.98]"
                 onClick={resetCrop}
               >
-                Reset crop
+                Reset
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

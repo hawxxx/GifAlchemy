@@ -29,17 +29,17 @@ export function OnboardingModal({ open, onClose, onOpenShortcuts }: OnboardingMo
       }
     >
       <section>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-3 ml-1">
           {EDITOR_LABELS.onboarding.tipHeading}
         </h3>
-        <ul className="mt-2 space-y-2 text-sm text-foreground">
-          <li className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+        <ul className="space-y-2.5">
+          <li className="rounded-[12px] border border-white/5 bg-white/[0.02] p-4 text-sm text-foreground/90 leading-relaxed shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             {EDITOR_LABELS.onboarding.tipUpload}
           </li>
-          <li className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+          <li className="rounded-[12px] border border-white/5 bg-white/[0.02] p-4 text-sm text-foreground/90 leading-relaxed shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             {EDITOR_LABELS.onboarding.tipTrim}
           </li>
-          <li className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+          <li className="rounded-[12px] border border-white/5 bg-white/[0.02] p-4 text-sm text-foreground/90 leading-relaxed shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             {EDITOR_LABELS.onboarding.tipExport}
           </li>
         </ul>

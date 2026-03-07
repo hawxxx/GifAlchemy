@@ -7,6 +7,7 @@ import { CanvasStage } from "./canvas-stage";
 import { PropertiesPanel } from "./properties-panel";
 import { TimelinePanel } from "./timeline-panel";
 import { NextStepsMenu } from "./next-steps-menu";
+import { HUDCommandPalette } from "./hud-command-palette";
 import { OnboardingModal } from "./onboarding-modal";
 import { KeyboardShortcutsModal } from "./keyboard-shortcuts-modal";
 import { GuidedOnboarding } from "./guided-onboarding";
@@ -161,10 +162,11 @@ export function EditorShell({ className }: { className?: string }) {
 
       <div
         className={cn(
-          "grid min-h-0 flex-1 gap-4 overflow-hidden border-y border-white/5 px-4 py-4 transition-colors duration-[var(--duration-ui)]",
-          "bg-background/40 backdrop-blur-md",
+          "grid min-h-0 flex-1 gap-4 overflow-hidden border-y border-white/[0.04] px-4 py-4 transition-colors duration-[var(--duration-ui)]",
+          "bg-[#07090d]/60 backdrop-blur-3xl",
+          "shadow-[inset_0_4px_24px_rgba(0,0,0,0.5),inset_0_-4px_24px_rgba(0,0,0,0.5)]",
           "[grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_minmax(0,1fr)_minmax(220px,auto)]",
-          "md:[grid-template-columns:88px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
+          "md:[grid-template-columns:80px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
         )}
       >
         <div
@@ -183,11 +185,21 @@ export function EditorShell({ className }: { className?: string }) {
         </div>
 
         <div className={cn(
-          "relative surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[#090b0f] shadow-2xl transition-all duration-[var(--duration-ui)]",
-          state.isPreviewMode && "ring-1 ring-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.6)]"
+          "relative surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#090b10] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.8)] transition-all duration-[var(--duration-ui)]",
+          state.isPreviewMode && "ring-1 ring-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.7)]"
         )}>
           {/* Deep dotted grid background */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
+          <div className={cn(
+            "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:16px_16px] transition-all duration-700",
+            state.snapToGrid ? "opacity-100 scale-100" : "opacity-0 scale-110",
+            "[mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_90%)]"
+          )} />
+          
+          {/* Active Grid Overlay - Progressive disclosure */}
+          {state.snapToGrid && (
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] animate-fade-in" />
+          )}
+
           <CanvasStage />
         </div>
 
@@ -206,10 +218,11 @@ export function EditorShell({ className }: { className?: string }) {
       </div>
 
       <div className={cn(
-        "shrink-0 border-t border-white/5 bg-background/50 backdrop-blur-md px-4 pb-4 pt-0 transition-opacity duration-[var(--duration-ui)]",
+        "shrink-0 border-t border-white/[0.03] bg-background/60 backdrop-blur-2xl px-4 pb-4 pt-1 transition-opacity duration-[var(--duration-ui)]",
+        "shadow-[0_-8px_32px_rgba(0,0,0,0.3)]",
         state.isPreviewMode && "pointer-events-none opacity-10"
       )}>
-        <div className="animate-panel-in h-[160px] overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl backdrop-blur-2xl transition-all duration-[var(--duration-ui)] md:h-[188px]">
+        <div className="animate-panel-in h-[160px] overflow-hidden rounded-[24px] border border-white/10 bg-black/40 shadow-[0_12px_44px_-12px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-3xl transition-all duration-[var(--duration-ui)] md:h-[200px]">
           <TimelinePanel />
         </div>
       </div>
@@ -226,6 +239,7 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <HUDCommandPalette />
       {showTour && (
         <GuidedOnboarding
           stepIndex={tourStep}

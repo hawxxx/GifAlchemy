@@ -39,4 +39,10 @@ export const ANIMATION_PRESETS: AnimationPresetOption[] = [
   { id: "neon-glow", label: "Neon Glow", description: "Purple neon glow text-shadow effect" },
   { id: "glitch", label: "Glitch", description: "Rapid shake and color-channel shift" },
   { id: "rainbow", label: "Rainbow", description: "Cycle through rainbow colors" },
+  { id: "deep-burn", label: "Deep Burn", description: "Vibrant orange/red burn with glow" },
+  { id: "ghosting", label: "Ghosting", description: "Slow, ethereal opacity pulsing" },
+  { id: "sketch", label: "Sketch", description: "High-contrast hand-drawn pencil look" },
+  { id: "neon-pulse", label: "Neon Pulse", description: "Rapid rhythmic neon glow pulsing" },
+  { id: "scanner", label: "Scanner", description: "Vertical light bar sweep effect" },
+  { id: "chrome", label: "Chrome", description: "Polished metallic reflection shine" },
 ];

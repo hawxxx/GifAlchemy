@@ -90,54 +90,61 @@ export function StickersToolPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-1">Sticker packs</Label>
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search stickers"
-          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 focus-visible:border-primary/40 transition-colors"
-          aria-label="Search stickers"
-        />
-        <Select value={category} onValueChange={(value) => setCategory(value as StickerCategory)}>
-          <SelectTrigger className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] hover:bg-white/5 transition-colors">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent className="border-white/10 bg-black/60 backdrop-blur-xl">
-            <SelectItem value="all" className="text-[11px]">All categories</SelectItem>
-            <SelectItem value="reaction" className="text-[11px]">Reactions</SelectItem>
-            <SelectItem value="mood" className="text-[11px]">Moods</SelectItem>
-            <SelectItem value="shape" className="text-[11px]">Shapes</SelectItem>
-            <SelectItem value="symbol" className="text-[11px]">Symbols</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Color</Label>
-          <input
-            type="color"
-            value={tint}
-            onChange={(e) => setTint(e.target.value)}
-            className="h-7 w-10 cursor-pointer rounded-lg border border-white/10 bg-black/20 p-0.5"
-            aria-label="Sticker tint color"
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Stickers & Emojis</Label>
+        </div>
+        <div className="flex flex-col gap-2">
+           <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search stickers..."
+            className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+            aria-label="Search stickers"
           />
+          <Select value={category} onValueChange={(value) => setCategory(value as StickerCategory)}>
+            <SelectTrigger className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 hover:bg-white/5 hover:border-white/20 transition-all focus:ring-1 focus:ring-primary/20">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-black/80 backdrop-blur-xl">
+              <SelectItem value="all" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">All categories</SelectItem>
+              <SelectItem value="reaction" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Reactions</SelectItem>
+              <SelectItem value="mood" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Moods</SelectItem>
+              <SelectItem value="shape" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Shapes</SelectItem>
+              <SelectItem value="symbol" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Symbols</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground/80">
-          <span>{filtered.length} results</span>
-          <span>★/✓/◆ are tintable</span>
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+         <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Tint Color</Label>
+           <div className="flex gap-2 items-center">
+             <input
+              type="color"
+              value={tint}
+              onChange={(e) => setTint(e.target.value)}
+              className="h-6 w-6 rounded border-0 cursor-pointer p-0 bg-transparent"
+              aria-label="Sticker tint color"
+            />
+            <span className="text-[9px] font-mono text-white/40 tracking-wider bg-black/20 px-1 py-0.5 rounded border border-white/5">{tint.toUpperCase()}</span>
+           </div>
+         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-1 text-[9px] font-bold tracking-widest text-white/30 uppercase">
+          <span>{filtered.length} Results</span>
+          <span>★/✓/◆ Tintable</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
           {filtered.map((sticker) => (
             <button
               key={sticker.id}
               type="button"
-              className="h-11 rounded-xl border border-white/5 bg-black/20 text-xl transition-all hover:bg-white/10 hover:border-white/15 hover:-translate-y-0.5"
+              className="h-10 rounded-md border border-white/5 bg-black/20 text-lg transition-all hover:bg-white/10 hover:border-white/15 hover:scale-105 active:scale-95 shadow-sm"
               onClick={() => addSticker(sticker)}
               title={`Add ${sticker.glyph} (${sticker.pack})`}
               aria-label={`Add ${sticker.glyph} sticker`}
@@ -145,12 +152,12 @@ export function StickersToolPanel() {
               {sticker.glyph}
             </button>
           ))}
-          {filtered.length === 0 && (
-            <div className="col-span-4 rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] text-muted-foreground">
-              No stickers match your search.
-            </div>
-          )}
         </div>
+        {filtered.length === 0 && (
+          <div className="rounded border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] font-medium text-white/40">
+            No stickers match search.
+          </div>
+        )}
       </div>
     </div>
   );

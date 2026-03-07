@@ -170,25 +170,25 @@ export function TextToolPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <FontLoader />
       {/* Layer list */}
       {overlays.length > 0 && (
-        <div className="space-y-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/90">
-              Text layers
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+              Text Layers
             </p>
             {hasMultiSelection && (
               <div className="flex items-center gap-1">
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] font-medium text-white/40 mr-1">
                   {multiSelectedIds.length} selected
                 </span>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all rounded"
                   onClick={() => applyBatchVisibility(false)}
                 >
                   Hide
@@ -197,7 +197,7 @@ export function TextToolPanel() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all rounded"
                   onClick={() => applyBatchVisibility(true)}
                 >
                   Show
@@ -206,7 +206,7 @@ export function TextToolPanel() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all rounded"
                   onClick={() => applyBatchLock(true)}
                 >
                   Lock
@@ -215,179 +215,180 @@ export function TextToolPanel() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px]"
+                  className="h-6 px-2 text-[10px] font-semibold text-white/60 hover:bg-white/10 hover:text-white transition-all rounded"
                   onClick={() => applyBatchLock(false)}
                 >
                   Unlock
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-[10px] text-destructive hover:text-destructive"
+                  className="h-6 px-2 text-[10px] font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 active:scale-95 transition-all rounded"
                   onClick={removeBatch}
                 >
-                  Delete
+                  Del
                 </Button>
               </div>
             )}
           </div>
-          {overlays.map((overlay) => {
-            const isPrimarySelected = (selectedOverlayId ?? overlays[0]?.id) === overlay.id;
-            const isMultiSelected = multiSelectedSet.has(overlay.id);
-            const isSelected = isPrimarySelected || isMultiSelected;
-            return (
-              <div
-                key={overlay.id}
-                className={cn(
-                  "group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-100 border border-transparent",
-                  isSelected
-                    ? "bg-primary/10 border-primary/30 text-primary-foreground"
-                    : "hover:bg-white/5 hover:border-white/10 text-muted-foreground",
-                  overlay.locked && "opacity-70"
-                )}
-                draggable={overlay.locked !== true}
-                onDragStart={(e) => {
-                  if (overlay.locked) {
+          <div className="rounded-lg border border-white/5 bg-white/[0.02] p-1.5 space-y-1">
+            {overlays.map((overlay) => {
+              const isPrimarySelected = (selectedOverlayId ?? overlays[0]?.id) === overlay.id;
+              const isMultiSelected = multiSelectedSet.has(overlay.id);
+              const isSelected = isPrimarySelected || isMultiSelected;
+              return (
+                <div
+                  key={overlay.id}
+                  className={cn(
+                    "group flex items-center gap-1 px-1.5 py-1.5 rounded cursor-pointer transition-colors duration-100",
+                    isSelected
+                      ? "bg-primary/20 text-white"
+                      : "hover:bg-white/[0.04] text-white/60 hover:text-white/90",
+                    overlay.locked && "opacity-60"
+                  )}
+                  draggable={overlay.locked !== true}
+                  onDragStart={(e) => {
+                    if (overlay.locked) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.dataTransfer.setData("text/plain", overlay.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    if (overlay.locked) return;
                     e.preventDefault();
-                    return;
-                  }
-                  e.dataTransfer.setData("text/plain", overlay.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-                onDragOver={(e) => {
-                  if (overlay.locked) return;
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = "move";
-                }}
-                onDrop={(e) => {
-                  if (overlay.locked) return;
-                  e.preventDefault();
-                  const fromId = e.dataTransfer.getData("text/plain");
-                  if (fromId) reorderOverlays(fromId, overlay.id);
-                }}
-                onClick={(e) => {
-                  if (e.shiftKey) {
-                    setMultiSelectedIds((prev) =>
-                      prev.includes(overlay.id)
-                        ? prev.filter((id) => id !== overlay.id)
-                        : [...prev, overlay.id]
-                    );
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(e) => {
+                    if (overlay.locked) return;
+                    e.preventDefault();
+                    const fromId = e.dataTransfer.getData("text/plain");
+                    if (fromId) reorderOverlays(fromId, overlay.id);
+                  }}
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      setMultiSelectedIds((prev) =>
+                        prev.includes(overlay.id)
+                          ? prev.filter((id) => id !== overlay.id)
+                          : [...prev, overlay.id]
+                      );
+                      selectOverlay(overlay.id);
+                      return;
+                    }
+                    setMultiSelectedIds([overlay.id]);
                     selectOverlay(overlay.id);
-                    return;
-                  }
-                  setMultiSelectedIds([overlay.id]);
-                  selectOverlay(overlay.id);
-                }}
-                title="Click to select. Shift+click for multi-select. Drag to reorder."
-              >
-                <button
-                  className={cn(
-                    "shrink-0 p-0.5 rounded hover:bg-background/20 transition-opacity",
-                    overlay.visible === false && "opacity-50"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateOverlay(overlay.id, {
-                      visible: overlay.visible === false,
-                    });
                   }}
-                  aria-label={overlay.visible === false ? "Show layer" : "Hide layer"}
-                  title={overlay.visible === false ? "Show layer" : "Hide layer"}
+                  title="Click to select. Shift+click for multi-select. Drag to reorder."
                 >
-                  {overlay.visible === false ? (
-                    <EyeOff className="h-3 w-3" />
-                  ) : (
-                    <Eye className="h-3 w-3" />
-                  )}
-                </button>
-                <button
-                  className={cn(
-                    "shrink-0 p-0.5 rounded hover:bg-background/20 transition-opacity",
-                    overlay.locked && "text-amber-500"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateOverlay(overlay.id, {
-                      locked: overlay.locked !== true,
-                    });
-                  }}
-                  aria-label={overlay.locked ? "Unlock layer" : "Lock layer"}
-                  title={overlay.locked ? "Unlock layer" : "Lock layer"}
-                >
-                  {overlay.locked ? (
-                    <Lock className="h-3 w-3" />
-                  ) : (
-                    <Unlock className="h-3 w-3" />
-                  )}
-                </button>
-                <Type className="h-3 w-3 shrink-0" />
-                <span className="text-xs truncate flex-1">{overlay.content || "Text"}</span>
-                <button
-                  className={cn(
-                    "transition-opacity hover:text-foreground",
-                    isSelected
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    duplicateOverlay(overlay.id);
-                  }}
-                  aria-label="Duplicate"
-                  title="Duplicate layer"
-                >
-                  <Copy className="h-3 w-3" />
-                </button>
-                <button
-                  className={cn(
-                    "transition-opacity",
-                    isSelected
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
-                    overlay.locked
-                      ? "cursor-not-allowed text-muted-foreground/40"
-                      : "hover:text-destructive"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeOverlay(overlay.id);
-                  }}
-                  disabled={overlay.locked}
-                  aria-label="Remove"
-                  title={overlay.locked ? "Unlock layer to remove" : "Remove layer"}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
+                  <button
+                    className={cn(
+                      "shrink-0 p-0.5 rounded transition-opacity",
+                      overlay.visible === false ? "opacity-30 hover:opacity-100 text-white" : "opacity-0 group-hover:opacity-100 text-white/50 hover:text-white"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOverlay(overlay.id, {
+                        visible: overlay.visible === false,
+                      });
+                    }}
+                    aria-label={overlay.visible === false ? "Show layer" : "Hide layer"}
+                    title={overlay.visible === false ? "Show layer" : "Hide layer"}
+                  >
+                    {overlay.visible === false ? (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                  <button
+                    className={cn(
+                      "shrink-0 p-0.5 rounded transition-opacity",
+                      overlay.locked ? "text-amber-500/80 opacity-100 hover:text-amber-400" : "opacity-0 group-hover:opacity-100 text-white/50 hover:text-white"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateOverlay(overlay.id, {
+                        locked: overlay.locked !== true,
+                      });
+                    }}
+                    aria-label={overlay.locked ? "Unlock layer" : "Lock layer"}
+                    title={overlay.locked ? "Unlock layer" : "Lock layer"}
+                  >
+                    {overlay.locked ? (
+                      <Lock className="h-3 w-3" />
+                    ) : (
+                      <Unlock className="h-3 w-3" />
+                    )}
+                  </button>
+                  <Type className="h-3 w-3 shrink-0 ml-1 mr-1 opacity-50" />
+                  <span className="text-[11px] font-semibold truncate flex-1">{overlay.content || "Text"}</span>
+                  <button
+                    className={cn(
+                      "transition-opacity p-0.5 rounded bg-transparent hover:bg-white/10 active:scale-95 text-white/50 hover:text-white",
+                      isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      duplicateOverlay(overlay.id);
+                    }}
+                    aria-label="Duplicate"
+                    title="Duplicate layer"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                  <button
+                    className={cn(
+                      "transition-opacity p-0.5 rounded bg-transparent hover:bg-red-500/20 active:scale-95 text-white/50",
+                      isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+                      overlay.locked
+                        ? "cursor-not-allowed text-white/20 hover:text-white/20 hover:bg-transparent"
+                        : "hover:text-red-400"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeOverlay(overlay.id);
+                    }}
+                    disabled={overlay.locked}
+                    aria-label="Remove"
+                    title={overlay.locked ? "Unlock layer to remove" : "Remove layer"}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Add button */}
       <Button
         variant="outline"
-        size="sm"
-        className="w-full h-9 rounded-lg gap-2 border-dashed border-white/20 bg-black/10 text-muted-foreground hover:bg-white/5 hover:text-foreground hover:border-white/30 transition-all duration-150 ease-out active:scale-[0.98]"
+        className="w-full h-8 rounded-lg gap-2 border border-white/10 bg-white/[0.02] text-[11px] font-bold tracking-wide uppercase text-white/60 hover:bg-white/[0.05] hover:text-white hover:border-white/20 transition-all duration-150 ease-out active:scale-[0.98]"
         onClick={() => addOverlay()}
         disabled={state.frames.length === 0}
       >
-        <Plus className="h-4 w-4" />
-        Add text layer
+        <Plus className="h-3.5 w-3.5" />
+        New Text Layer
       </Button>
 
       {selected && (
-        <div className="space-y-4 pt-4 border-t border-white/10 mt-4">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Edit selected</p>
+        <div className="flex flex-col gap-4 mt-2">
+          {/* Header */}
+          <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Properties</p>
             <button
               type="button"
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+                "inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-colors",
                 selectedLocked
                   ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
-                  : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/80"
               )}
               onClick={() =>
                 updateOverlay(selected.id, {
@@ -395,459 +396,467 @@ export function TextToolPanel() {
                 })
               }
             >
-              {selectedLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+              {selectedLocked ? <Lock className="h-2.5 w-2.5" /> : <Unlock className="h-2.5 w-2.5" />}
               {selectedLocked ? "Locked" : "Unlocked"}
             </button>
           </div>
           {selectedLocked && (
-            <p className="text-[11px] text-amber-500/80 leading-relaxed bg-amber-500/5 p-2 rounded-md border border-amber-500/10">
-              Layer is locked. Unlock it to edit text, style, keyframes, or effects.
+            <p className="text-[10px] font-medium text-amber-500/80 leading-relaxed bg-amber-500/[0.05] p-2 rounded-md border border-amber-500/10">
+              Layer is locked. Unlock to edit styles & effects.
             </p>
           )}
 
-          {/* Content */}
-          <div>
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5 block">Content</Label>
-            <Input
-              ref={contentInputRef}
-              value={selected.content}
-              onChange={(e) => updateOverlay(selected.id, { content: e.target.value })}
-              className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
-              placeholder="Enter text…"
-              disabled={selectedLocked}
-            />
+          {/* Text Input */}
+          <div className="flex flex-col gap-1.5">
+            <div className="relative">
+              <Input
+                ref={contentInputRef}
+                value={selected.content}
+                onChange={(e) => updateOverlay(selected.id, { content: e.target.value })}
+                className="h-9 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                placeholder="Type something..."
+                disabled={selectedLocked}
+              />
+            </div>
           </div>
 
-          {/* Font + style */}
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 min-w-0">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5 block">Font</Label>
-              <div>
-                <FontPicker
-                  value={selected.fontFamily}
-                  onChange={(v) => updateOverlay(selected.id, { fontFamily: v })}
-                  fonts={FONT_OPTIONS}
+          {/* Typography Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Font</Label>
+              <Input
+                type="text"
+                value={selected.fontFamily}
+                onChange={(e) => updateOverlay(selected.id, { fontFamily: e.target.value })}
+                className="h-8 rounded-md border-white/10 bg-black/20 text-xs text-white/90 focus-visible:ring-1 focus-visible:ring-primary/20 hover:border-white/20 transition-all"
+                placeholder="Impact, Arial"
+                disabled={selectedLocked}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Size</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={selected.fontSize}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (!isNaN(v) && v >= 1) updateOverlay(selected.id, { fontSize: v });
+                  }}
+                  className="h-8 rounded-md border-white/10 bg-black/20 text-xs text-white/90 focus-visible:ring-1 focus-visible:ring-primary/20 hover:border-white/20 transition-all pl-2 pr-6"
                   disabled={selectedLocked}
-                  className="h-8 bg-black/20 border-white/10"
                 />
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-medium text-white/30 uppercase tracking-widest">PX</span>
               </div>
-            </div>
-            {/* Bold / Italic toggles */}
-            <div className="flex gap-1">
-              <button
-                type="button"
-                aria-label="Bold"
-                onClick={() =>
-                  updateOverlay(selected.id, {
-                    fontWeight: selected.fontWeight === "bold" ? "normal" : "bold",
-                  })
-                }
-                disabled={selectedLocked}
-                className={cn(
-                  "h-8 w-8 flex items-center justify-center rounded-lg border text-sm font-bold transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 active:scale-95",
-                  selectedLocked && "cursor-not-allowed opacity-50",
-                  selected.fontWeight === "bold"
-                    ? "border-primary bg-primary/20 text-primary shadow-sm"
-                    : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20 text-muted-foreground active:bg-white/10"
-                )}
-              >
-                <Bold className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Italic"
-                onClick={() =>
-                  updateOverlay(selected.id, {
-                    fontStyle: selected.fontStyle === "italic" ? "normal" : "italic",
-                  })
-                }
-                disabled={selectedLocked}
-                className={cn(
-                  "h-8 w-8 flex items-center justify-center rounded-lg border text-sm italic transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 active:scale-95",
-                  selectedLocked && "cursor-not-allowed opacity-50",
-                  selected.fontStyle === "italic"
-                    ? "border-primary bg-primary/20 text-primary shadow-sm"
-                    : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20 text-muted-foreground active:bg-white/10"
-                )}
-              >
-                <Italic className="h-4 w-4" />
-              </button>
             </div>
           </div>
 
-          {/* Font size */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Size</Label>
-              <input
-                type="number"
+          {/* Sliders Grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            {/* Font Size Slider */}
+            <div className="space-y-1.5 col-span-2">
+              <Slider
+                value={[selected.fontSize]}
                 min={8}
-                max={120}
+                max={160}
                 step={1}
-                value={selected.fontSize}
                 disabled={selectedLocked}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (!isNaN(v) && v >= 8 && v <= 120) {
-                    updateOverlay(selected.id, { fontSize: v });
-                  }
-                }}
-                className="h-6 w-14 rounded-md border border-white/10 bg-black/20 px-1.5 text-center text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                onValueChange={([v]) => updateOverlay(selected.id, { fontSize: v ?? 32 })}
+                className="[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
               />
             </div>
-            <Slider
-              value={[selected.fontSize]}
-              min={8}
-              max={120}
-              step={1}
-              disabled={selectedLocked}
-              onValueChange={([v]) => updateOverlay(selected.id, { fontSize: v ?? 32 })}
-            />
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Line height</Label>
-              <span className="text-xs font-medium text-muted-foreground tabular-nums">{selectedLineHeight.toFixed(2)}</span>
-            </div>
-            <Slider
-              value={[selectedLineHeight]}
-              min={0.8}
-              max={3}
-              step={0.05}
-              disabled={selectedLocked}
-              onValueChange={([v]) => updateSelectedOverlay({ lineHeight: Number((v ?? 1.2).toFixed(2)) })}
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Letter spacing</Label>
-              <span className="text-xs font-medium text-muted-foreground tabular-nums">{selectedLetterSpacing.toFixed(1)}px</span>
-            </div>
-            <Slider
-              value={[selectedLetterSpacing]}
-              min={-8}
-              max={24}
-              step={0.5}
-              disabled={selectedLocked}
-              onValueChange={([v]) => updateSelectedOverlay({ letterSpacing: Number((v ?? 0).toFixed(1)) })}
-            />
-          </div>
-
-          {/* Alignment */}
-          <div>
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5 block">Alignment</Label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(["left", "center", "right"] as const).map((align) => (
-                <Button
-                  key={align}
-                  type="button"
-                  variant={(selected.textAlign ?? "center") === align ? "default" : "outline"}
-                  size="sm"
-                  className={cn(
-                    "h-8 rounded-lg text-xs capitalize border",
-                    (selected.textAlign ?? "center") === align
-                      ? "bg-primary/20 text-primary border-primary/30"
-                      : "bg-black/20 text-muted-foreground border-white/10 hover:bg-white/5 hover:border-white/20"
-                  )}
-                  disabled={selectedLocked}
-                  onClick={() => updateOverlay(selected.id, { textAlign: align })}
-                >
-                  {align}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Text color */}
-          <div>
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5 block">Text color</Label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={selected.color}
-                onChange={(e) => updateOverlay(selected.id, { color: e.target.value })}
-                className="w-8 h-8 rounded-lg border border-white/10 cursor-pointer p-0.5 bg-black/20"
-                disabled={selectedLocked}
-              />
-              <div className="flex gap-1.5">
-                {COLORS_QUICK.map((c) => (
-                  <button
-                    key={c}
-                    aria-label={c}
-                    disabled={selectedLocked}
-                    className={cn(
-                      "w-6 h-6 rounded-md border-2 transition-all duration-150 hover:scale-110",
-                      selectedLocked && "cursor-not-allowed opacity-60 hover:scale-100",
-                      selected.color === c
-                        ? "border-primary scale-110 shadow-sm"
-                        : "border-white/10 hover:border-white/30"
-                    )}
-                    style={{ background: c }}
-                    onClick={() => updateOverlay(selected.id, { color: c })}
-                  />
-                ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] font-medium text-white/50 tracking-wide">Line Hg.</Label>
+                <span className="text-[10px] font-bold text-white/70 tabular-nums">{selectedLineHeight.toFixed(2)}</span>
               </div>
+              <Slider
+                value={[selectedLineHeight]}
+                min={0.8}
+                max={3}
+                step={0.05}
+                disabled={selectedLocked}
+                onValueChange={([v]) => updateSelectedOverlay({ lineHeight: Number((v ?? 1.2).toFixed(2)) })}
+                className="[&_[data-slot=range]]:bg-white/30 [&_[data-slot=thumb]]:h-2.5 [&_[data-slot=thumb]]:w-2.5 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] font-medium text-white/50 tracking-wide">Spacing</Label>
+                <span className="text-[10px] font-bold text-white/70 tabular-nums">{selectedLetterSpacing.toFixed(1)}</span>
+              </div>
+              <Slider
+                value={[selectedLetterSpacing]}
+                min={-8}
+                max={24}
+                step={0.5}
+                disabled={selectedLocked}
+                onValueChange={([v]) => updateSelectedOverlay({ letterSpacing: Number((v ?? 0).toFixed(1)) })}
+                className="[&_[data-slot=range]]:bg-white/30 [&_[data-slot=thumb]]:h-2.5 [&_[data-slot=thumb]]:w-2.5 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
+              />
             </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Fill style</Label>
-              <div className="grid grid-cols-2 gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
-                {(["solid", "gradient"] as const).map((fillType) => (
+          {/* Stepped Motion Toggle */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+             <div className="flex flex-col gap-0.5">
+               <Label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">Stepped Motion</Label>
+               <span className="text-[9px] text-white/20">Disable interpolation</span>
+             </div>
+             <button
+               type="button"
+               onClick={() => updateSelectedOverlay({ disableTweening: !selected.disableTweening })}
+               disabled={selectedLocked}
+               className={cn(
+                 "h-7 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all active:scale-95",
+                 selected.disableTweening
+                   ? "bg-amber-500/20 text-amber-500 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                   : "bg-white/5 text-white/30 border border-white/5 hover:bg-white/10 hover:text-white/60"
+               )}
+             >
+               {selected.disableTweening ? "Active" : "Off"}
+             </button>
+          </div>
+
+          {/* Formatting Row */}
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Align</Label>
+              <div className="flex gap-1">
+                {(["left", "center", "right"] as const).map((align) => (
                   <button
-                    key={fillType}
+                    key={align}
                     type="button"
                     className={cn(
-                      "h-6 rounded-md px-2 text-[10px] font-medium capitalize transition-colors",
-                      (selected.fillType ?? "solid") === fillType
-                        ? "bg-primary/20 text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                      "flex-1 h-7 rounded border text-[10px] font-bold capitalize transition-all duration-150 active:scale-95",
+                      (selected.textAlign ?? "center") === align
+                        ? "border-primary bg-primary/20 text-primary shadow-sm"
+                        : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
                     )}
                     disabled={selectedLocked}
-                    onClick={() => updateSelectedOverlay({ fillType })}
+                    onClick={() => updateOverlay(selected.id, { textAlign: align })}
                   >
-                    {fillType}
+                    {align.charAt(0).toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
-            {(selected.fillType ?? "solid") === "gradient" ? (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">From</Label>
-                  <input
+
+            <div className="flex flex-col gap-1.5">
+               <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Style</Label>
+               <div className="flex gap-1">
+                <button
+                  type="button"
+                  aria-label="Bold"
+                  onClick={() =>
+                    updateOverlay(selected.id, {
+                      fontWeight: selected.fontWeight === "bold" ? "normal" : "bold",
+                    })
+                  }
+                  disabled={selectedLocked}
+                  className={cn(
+                    "h-7 w-8 flex items-center justify-center rounded border transition-all duration-150 active:scale-95",
+                    selectedLocked && "cursor-not-allowed opacity-50",
+                    selected.fontWeight === "bold"
+                      ? "border-primary bg-primary/20 text-primary shadow-sm"
+                      : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
+                  )}
+                >
+                  <Bold className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Italic"
+                  onClick={() =>
+                    updateOverlay(selected.id, {
+                      fontStyle: selected.fontStyle === "italic" ? "normal" : "italic",
+                    })
+                  }
+                  disabled={selectedLocked}
+                  className={cn(
+                    "h-7 w-8 flex items-center justify-center rounded border transition-all duration-150 active:scale-95",
+                    selectedLocked && "cursor-not-allowed opacity-50",
+                    selected.fontStyle === "italic"
+                      ? "border-primary bg-primary/20 text-primary shadow-sm"
+                      : "border-white/10 bg-black/20 text-white/50 hover:bg-white/[0.04] hover:text-white"
+                  )}
+                >
+                  <Italic className="h-3.5 w-3.5" />
+                </button>
+               </div>
+            </div>
+          </div>
+
+          {/* Color & Fill */}
+          <div className="grid grid-cols-2 gap-3 pb-3 border-b border-white/5">
+             <div className="flex flex-col gap-1.5">
+               <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Color</Label>
+               <div className="flex gap-2 items-center">
+                 <input
+                  type="color"
+                  value={selected.color}
+                  onChange={(e) => updateOverlay(selected.id, { color: e.target.value })}
+                  className="w-7 h-7 rounded-md border-0 p-0 cursor-pointer bg-transparent"
+                  disabled={selectedLocked}
+                />
+                <span className="text-[10px] font-mono text-white/60 tracking-wider bg-black/20 px-1.5 py-1 rounded border border-white/5">{selected.color?.toUpperCase()}</span>
+               </div>
+             </div>
+             <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Fill Type</Label>
+                <div className="flex p-0.5 rounded-lg border border-white/10 bg-black/20">
+                  {(["solid", "gradient"] as const).map((fillType) => (
+                    <button
+                      key={fillType}
+                      type="button"
+                      className={cn(
+                        "flex-1 h-6 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors",
+                        (selected.fillType ?? "solid") === fillType
+                          ? "bg-white/10 text-white shadow-sm"
+                          : "text-white/40 hover:text-white/80"
+                      )}
+                      disabled={selectedLocked}
+                      onClick={() => updateSelectedOverlay({ fillType })}
+                    >
+                      {fillType}
+                    </button>
+                  ))}
+                </div>
+             </div>
+          </div>
+
+          {(selected.fillType ?? "solid") === "gradient" && (
+            <div className="flex gap-3 bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
+               <div className="flex-1 flex flex-col gap-1">
+                 <Label className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Grad From</Label>
+                 <div className="flex gap-2 items-center">
+                   <input
                     type="color"
                     value={selected.gradientFrom ?? "#ffffff"}
                     disabled={selectedLocked}
                     onChange={(e) => updateSelectedOverlay({ gradientFrom: e.target.value })}
-                    className="h-8 w-full rounded-lg border border-white/10 cursor-pointer bg-black/20 p-1"
+                    className="h-6 w-6 rounded border-0 cursor-pointer p-0 bg-transparent"
                   />
-                </div>
-                <div>
-                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">To</Label>
-                  <input
+                  <span className="text-[9px] font-mono text-white/40 tracking-wider">{(selected.gradientFrom ?? "#ffffff").toUpperCase()}</span>
+                 </div>
+               </div>
+               <div className="flex-1 flex flex-col gap-1">
+                 <Label className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Grad To</Label>
+                 <div className="flex gap-2 items-center">
+                   <input
                     type="color"
                     value={selected.gradientTo ?? "#5B8CFF"}
                     disabled={selectedLocked}
                     onChange={(e) => updateSelectedOverlay({ gradientTo: e.target.value })}
-                    className="h-8 w-full rounded-lg border border-white/10 cursor-pointer bg-black/20 p-1"
+                    className="h-6 w-6 rounded border-0 cursor-pointer p-0 bg-transparent"
                   />
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Stroke */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Stroke</Label>
-              <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                {selected.strokeWidth ?? 0}px
-              </span>
+                  <span className="text-[9px] font-mono text-white/40 tracking-wider">{(selected.gradientTo ?? "#5B8CFF").toUpperCase()}</span>
+                 </div>
+               </div>
             </div>
-            <Slider
-              value={[selected.strokeWidth ?? 0]}
-              min={0}
-              max={12}
-              step={0.5}
-              disabled={selectedLocked}
-              onValueChange={([v]) => updateOverlay(selected.id, { strokeWidth: v ?? 0 })}
-            />
-            {(selected.strokeWidth ?? 0) > 0 && (
-              <div className="flex items-center gap-2 pt-2">
-                <Label className="text-[11px] text-muted-foreground">Color</Label>
-                <input
-                  type="color"
-                  value={selected.strokeColor ?? "#000000"}
-                  onChange={(e) => updateOverlay(selected.id, { strokeColor: e.target.value })}
-                  className="w-7 h-7 rounded-md border border-white/10 cursor-pointer p-0.5 bg-black/20 ml-2"
+          )}
+
+          {/* Shadow & Stroke */}
+          <div className="flex flex-col gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+            <div className="grid grid-cols-2 gap-4">
+               {/* Stroke settings */}
+               <div className="space-y-2">
+                 <div className="flex items-center justify-between">
+                   <Label className="text-[10px] font-semibold text-white/50 tracking-wider">Stroke Width</Label>
+                   <span className="text-[10px] font-bold text-white/70 tabular-nums">{selected.strokeWidth ?? 0}</span>
+                 </div>
+                 <Slider
+                   value={[selected.strokeWidth ?? 0]}
+                   min={0}
+                   max={20}
+                   step={0.5}
+                   disabled={selectedLocked}
+                   onValueChange={([v]) => updateOverlay(selected.id, { strokeWidth: v ?? 0 })}
+                   className="[&_[data-slot=range]]:bg-white/30 [&_[data-slot=thumb]]:h-2.5 [&_[data-slot=thumb]]:w-2.5 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
+                 />
+                 {(selected.strokeWidth ?? 0) > 0 && (
+                   <div className="flex items-center gap-2 pt-1">
+                     <input
+                        type="color"
+                        value={selected.strokeColor ?? "#000000"}
+                        onChange={(e) => updateOverlay(selected.id, { strokeColor: e.target.value })}
+                        className="w-5 h-5 rounded border-0 cursor-pointer p-0 bg-transparent"
+                        disabled={selectedLocked}
+                      />
+                      <span className="text-[9px] font-mono text-white/40">{selected.strokeColor ?? "#000000"}</span>
+                   </div>
+                 )}
+               </div>
+               
+               {/* Shadow Settings */}
+               <div className="space-y-2">
+                 <div className="flex items-center justify-between">
+                   <Label className="text-[10px] font-semibold text-white/50 tracking-wider">Shadow Blur</Label>
+                   <span className="text-[10px] font-bold text-white/70 tabular-nums">{selected.textShadowBlur ?? 0}</span>
+                 </div>
+                 <Slider
+                   value={[selected.textShadowBlur ?? 0]}
+                   min={0}
+                   max={64}
+                   step={1}
+                   disabled={selectedLocked}
+                   onValueChange={([v]) => updateSelectedOverlay({ textShadowBlur: v ?? 0 })}
+                   className="[&_[data-slot=range]]:bg-white/30 [&_[data-slot=thumb]]:h-2.5 [&_[data-slot=thumb]]:w-2.5 [&_[data-slot=thumb]]:border-none [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/10"
+                 />
+                  {!!(selected.textShadowBlur ?? 0) && (
+                   <div className="flex items-center gap-2 pt-1">
+                     <input
+                        type="color"
+                        value={selected.textShadowColor ?? "#000000"}
+                        onChange={(e) => updateSelectedOverlay({ textShadowColor: e.target.value })}
+                        className="w-5 h-5 rounded border-0 cursor-pointer p-0 bg-transparent"
+                        disabled={selectedLocked}
+                      />
+                      <span className="text-[9px] font-mono text-white/40">{selected.textShadowColor ?? "#000000"}</span>
+                   </div>
+                 )}
+               </div>
+            </div>
+             
+            <div className="h-px bg-white/5 my-2" />
+            
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50">Bg Chip</Label>
+              <div className="flex items-center gap-2">
+                {(selected.backgroundColor ?? "#00000000") !== "#00000000" && (
+                   <input
+                    type="color"
+                    value={selected.backgroundColor}
+                    onChange={(e) => updateSelectedOverlay({ backgroundColor: e.target.value })}
+                    className="h-5 w-5 rounded border-0 cursor-pointer bg-transparent p-0"
+                    disabled={selectedLocked}
+                  />
+                )}
+                <button
+                  type="button"
+                  className={cn(
+                    "h-6 px-3 rounded text-[9px] font-bold uppercase tracking-wider transition-colors",
+                    (selected.backgroundColor ?? "#00000000") !== "#00000000"
+                      ? "bg-white/10 text-white hover:bg-white/20"
+                      : "bg-black/20 border border-white/10 text-white/40 hover:bg-white/5"
+                  )}
                   disabled={selectedLocked}
-                />
-                <div className="flex gap-1.5 ml-1">
-                  {["#000000", "#ffffff", "#ef4444", "#3b82f6"].map((c) => (
-                    <button
-                      key={c}
-                      aria-label={c}
+                  onClick={() =>
+                    updateSelectedOverlay({
+                      backgroundColor:
+                        (selected.backgroundColor ?? "#00000000") === "#00000000" ? "#10141A" : "#00000000",
+                      backgroundPaddingX: 14,
+                      backgroundPaddingY: 8,
+                      backgroundRadius: 12,
+                    })
+                  }
+                >
+                  {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Enable" : "Enabled"}
+                </button>
+              </div>
+            <div className="space-y-3 pt-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Premium Styles</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {["glass-sticker", "cyber-neon", "modern-type", "floating", "deep-burn", "sketch"].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => updateSelectedOverlay({ textPreset: (selected as any).textPreset === preset ? "none" : preset })}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all",
+                      (selected as any).textPreset === preset
+                        ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
+                        : "border-white/5 bg-white/[0.02] text-white/30 hover:border-white/10 hover:bg-white/5 hover:text-white/60"
+                    )}
+                  >
+                    <div className={cn("h-1.5 w-1.5 rounded-full", (selected as any).textPreset === preset ? "bg-primary animate-pulse" : "bg-white/10")} />
+                    {preset.replace("-", " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+          {/* Text Effects Grid */}
+          <div className="space-y-3">
+             <div className="flex items-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-4">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Text Effects</Label>
+             </div>
+             <div className="grid grid-cols-4 gap-1.5">
+               {ANIMATION_PRESETS.map((p) => (
+                 <EffectCard
+                   key={p.id}
+                   id={p.id}
+                   label={p.label}
+                   selected={activeEffect === p.id}
+                   onSelect={() => {
+                     if (selectedLocked) return;
+                     if ((p.id as string) === "none") {
+                       clearEffect(selected.id);
+                     } else {
+                       const nextStart = selected.effects[0]?.startFrame ?? 0;
+                       const nextEnd = selected.effects[0]?.endFrame ?? frameLast;
+                       bakeEffect(
+                         selected.id,
+                         p.id as AnimationPresetType,
+                         Math.max(0, Math.min(frameLast, nextStart)),
+                         Math.max(
+                           Math.max(0, Math.min(frameLast, nextStart)),
+                           Math.max(0, Math.min(frameLast, nextEnd))
+                         )
+                       );
+                     }
+                   }}
+                 />
+               ))}
+             </div>
+             
+             {activeEffect !== ("none" as any) && (
+                <div className="grid grid-cols-2 gap-3 mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-bold uppercase tracking-widest text-white/40 block">Start Fr.</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={frameLast}
+                      value={effectStart}
                       disabled={selectedLocked}
-                      className={cn(
-                        "w-5 h-5 rounded border-2 transition-all duration-150 hover:scale-110",
-                        selectedLocked && "cursor-not-allowed opacity-60 hover:scale-100",
-                        (selected.strokeColor ?? "#000000") === c
-                          ? "border-primary scale-110 shadow-sm"
-                          : "border-white/10 hover:border-white/30"
-                      )}
-                      style={{ background: c }}
-                      onClick={() => updateOverlay(selected.id, { strokeColor: c })}
+                      onChange={(e) => {
+                        const nextStart = Math.max(0, Math.min(frameLast, Number(e.target.value) || 0));
+                        const nextEnd = Math.max(nextStart, Math.min(frameLast, effectEnd));
+                        bakeEffect(selected.id, activeEffect as AnimationPresetType, nextStart, nextEnd);
+                      }}
+                      className="h-7 rounded bg-black/20 border-white/10 text-[11px] font-bold text-white/80 focus-visible:ring-1 pr-1 pl-2 text-right focus-visible:ring-primary/40 focus-visible:bg-black/30 placeholder:text-white/30"
                     />
-                  ))}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-bold uppercase tracking-widest text-white/40 block">End Fr.</Label>
+                    <Input
+                      type="number"
+                      min={effectStart}
+                      max={frameLast}
+                      value={effectEnd}
+                      disabled={selectedLocked}
+                      onChange={(e) => {
+                        const nextEnd = Math.max(effectStart, Math.min(frameLast, Number(e.target.value) || effectStart));
+                        bakeEffect(selected.id, activeEffect as AnimationPresetType, effectStart, nextEnd);
+                      }}
+                      className="h-7 rounded bg-black/20 border-white/10 text-[11px] font-bold text-white/80 focus-visible:ring-1 pr-1 pl-2 text-right focus-visible:ring-primary/40 focus-visible:bg-black/30 placeholder:text-white/30"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3 mt-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Shadow blur</Label>
-              <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                {selected.textShadowBlur ?? 0}px
-              </span>
-            </div>
-            <Slider
-              value={[selected.textShadowBlur ?? 0]}
-              min={0}
-              max={32}
-              step={1}
-              disabled={selectedLocked}
-              onValueChange={([v]) => updateSelectedOverlay({ textShadowBlur: v ?? 0 })}
-            />
-            {!!(selected.textShadowBlur ?? 0) && (
-              <div className="flex items-center justify-between pt-1">
-                <Label className="text-[11px] text-muted-foreground">Shadow color</Label>
-                <input
-                  type="color"
-                  value={selected.textShadowColor ?? "#000000"}
-                  onChange={(e) => updateSelectedOverlay({ textShadowColor: e.target.value })}
-                  className="h-7 w-12 rounded-md border border-white/10 cursor-pointer bg-black/20 p-0.5"
-                  disabled={selectedLocked}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Background chip</Label>
-              <span className="text-xs font-medium text-muted-foreground">
-                {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Off" : "On"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={(selected.backgroundColor && selected.backgroundColor !== "#00000000")
-                  ? selected.backgroundColor
-                  : "#10141a"}
-                onChange={(e) => updateSelectedOverlay({ backgroundColor: e.target.value })}
-                className="h-8 w-12 rounded-lg border border-white/10 cursor-pointer bg-black/20 p-0.5"
-                disabled={selectedLocked}
-              />
-              <button
-                type="button"
-                className="h-8 flex-1 rounded-lg border border-white/10 bg-transparent text-[11px] font-medium text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={selectedLocked}
-                onClick={() =>
-                  updateSelectedOverlay({
-                    backgroundColor:
-                      (selected.backgroundColor ?? "#00000000") === "#00000000" ? "#10141A" : "#00000000",
-                    backgroundPaddingX: (selected.backgroundPaddingX ?? 0) || 14,
-                    backgroundPaddingY: (selected.backgroundPaddingY ?? 0) || 8,
-                    backgroundRadius: (selected.backgroundRadius ?? 0) || 12,
-                  })
-                }
-              >
-                {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Enable" : "Disable"}
-              </button>
-            </div>
-          </div>
-
-          {/* Text effects grid */}
-          <div className="pt-2 border-t border-white/10 mt-4 space-y-3">
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Text effect</Label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {ANIMATION_PRESETS.map((p) => (
-                <EffectCard
-                  key={p.id}
-                  id={p.id}
-                  label={p.label}
-                  selected={activeEffect === p.id}
-                  onSelect={() => {
-                    if (selectedLocked) return;
-                    if ((p.id as string) === "none") {
-                      clearEffect(selected.id);
-                    } else {
-                      const nextStart = selected.effects[0]?.startFrame ?? 0;
-                      const nextEnd = selected.effects[0]?.endFrame ?? frameLast;
-                      bakeEffect(
-                        selected.id,
-                        p.id as AnimationPresetType,
-                        Math.max(0, Math.min(frameLast, nextStart)),
-                        Math.max(
-                          Math.max(0, Math.min(frameLast, nextStart)),
-                          Math.max(0, Math.min(frameLast, nextEnd))
-                        )
-                      );
-                    }
-                  }}
-                />
-              ))}
-            </div>
-            {activeEffect !== "none" && (
-              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-white/5 bg-black/10 p-3">
-                <div>
-                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">Start frame</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={frameLast}
-                    value={effectStart}
-                    disabled={selectedLocked}
-                    onChange={(e) => {
-                      const nextStart = Math.max(0, Math.min(frameLast, Number(e.target.value) || 0));
-                      const nextEnd = Math.max(nextStart, Math.min(frameLast, effectEnd));
-                      bakeEffect(selected.id, activeEffect as AnimationPresetType, nextStart, nextEnd);
-                    }}
-                    className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1 block">End frame</Label>
-                  <Input
-                    type="number"
-                    min={effectStart}
-                    max={frameLast}
-                    value={effectEnd}
-                    disabled={selectedLocked}
-                    onChange={(e) => {
-                      const nextEnd = Math.max(effectStart, Math.min(frameLast, Number(e.target.value) || effectStart));
-                      bakeEffect(selected.id, activeEffect as AnimationPresetType, effectStart, nextEnd);
-                    }}
-                    className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              className="h-9 flex-1 flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-transparent text-[11px] font-medium text-foreground hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => duplicateOverlay(selected.id)}
-              disabled={selectedLocked}
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Duplicate
-            </button>
-            <button
-              type="button"
-              className="h-9 flex-1 flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => removeOverlay(selected.id)}
-              disabled={selectedLocked}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Remove
-            </button>
+              )}
           </div>
         </div>
       )}
 
       {overlays.length === 0 && state.frames.length > 0 && (
-        <p className="text-xs text-muted-foreground text-center py-2">
-          Click Add text layer to start
-        </p>
+        <div className="flex flex-col items-center justify-center p-8 text-center bg-white/[0.02] rounded-lg border border-white/5 border-dashed">
+           <Type className="h-6 w-6 text-white/20 mb-2" />
+           <p className="text-[11px] font-medium text-white/40">Click New Text Layer to begin</p>
+        </div>
       )}
     </div>
   );

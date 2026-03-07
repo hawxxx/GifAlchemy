@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { AlertTriangle, Download } from "lucide-react";
+import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -243,12 +243,12 @@ export function ExportButton() {
         <div className="flex flex-col items-end gap-0.5">
           <div className="flex items-center gap-2">
             <Select onValueChange={applyExportPreset} disabled={!state.metadata || exporting}>
-              <SelectTrigger className="h-8 w-[112px] rounded-lg text-xs" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
+              <SelectTrigger className="h-9 w-[120px] rounded-[10px] border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-200 hover:bg-white/[0.06] focus:ring-1 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-black/50" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
                 <SelectValue placeholder={EDITOR_LABELS.export.presetPlaceholder} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-white/10 bg-[#121212]/95 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] text-white/90">
                 {RESIZE_PRESETS.map((preset) => (
-                  <SelectItem key={preset.id} value={preset.id}>
+                  <SelectItem key={preset.id} value={preset.id} className="focus:bg-white/10 focus:text-white rounded-md mx-1 my-0.5 max-w-[calc(100%-8px)]">
                     {preset.label}
                   </SelectItem>
                 ))}
@@ -272,18 +272,56 @@ export function ExportButton() {
             <Button
               variant="default"
               size="sm"
-              className="rounded-lg gap-2 focus-visible:ring-2 focus-visible:ring-ring"
+              className="group relative h-10 overflow-hidden rounded-[12px] px-6 font-semibold tracking-wide text-white shadow-[0_8px_20px_-4px_rgba(var(--primary-rgb),0.4),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all duration-300 hover:shadow-[0_12px_28px_-4px_rgba(var(--primary-rgb),0.6),inset_0_1px_0_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none focus-visible:ring-1 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black min-w-[140px]"
               disabled={!canExport || exporting}
               onClick={handleExport}
               aria-label={EDITOR_LABELS.export.primaryIdle}
             >
-              <Download className="h-4 w-4" />
-              {exporting ? EDITOR_LABELS.export.primaryBusy : EDITOR_LABELS.export.primaryIdle}
+              {/* Dynamic animated gradient background */}
+              {!exporting && (
+                <div className="absolute inset-0 bg-[linear-gradient(110deg,var(--primary),45%,#60a5fa,55%,var(--primary))] bg-[length:200%_100%] animate-shimmer opacity-95 transition-opacity group-hover:opacity-100" />
+              )}
+
+              {/* Liquid Progress Background */}
+              {exporting && (
+                <>
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-primary transition-all duration-300 ease-out" 
+                    style={{ width: `${state.processingProgress * 100}%` }}
+                  />
+                  <div 
+                    className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] bg-[length:200%_100%] animate-shimmer opacity-30" 
+                  />
+                  {/* Wave effect at the edge of progress */}
+                  <div 
+                    className="absolute inset-y-0 w-8 blur-md bg-white/40 mix-blend-overlay transition-all duration-300"
+                    style={{ left: `calc(${state.processingProgress * 100}% - 16px)` }}
+                  />
+                </>
+              )}
+
+              {/* Subtle inner top highlight */}
+              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
+              
+              <div className="relative z-10 flex items-center justify-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] w-full">
+                {exporting ? (
+                   <>
+                     <span className="text-[14px] font-black italic tracking-tighter opacity-80 mr-1">
+                       {Math.round(state.processingProgress * 100)}%
+                     </span>
+                     <span className="animate-pulse">{EDITOR_LABELS.export.primaryBusy}</span>
+                   </>
+                ) : (
+                   <>
+                     <Download className="h-4.5 w-4.5 text-white group-hover:-translate-y-0.5 transition-transform duration-300" />
+                     <span>{EDITOR_LABELS.export.primaryIdle}</span>
+                   </>
+                )}
+              </div>
             </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground" aria-live="polite">
-            {EDITOR_LABELS.export.estimatePrefix}:{" "}
-            {estimatedOutputSize ? formatBytes(estimatedOutputSize) : EDITOR_LABELS.export.estimateUnknown}
+          <p className="mr-1 text-[10px] font-medium tracking-wide text-muted-foreground/80 lowercase" aria-live="polite">
+            ~ {estimatedOutputSize ? formatBytes(estimatedOutputSize) : EDITOR_LABELS.export.estimateUnknown}
           </p>
         </div>
       </div>

@@ -45,19 +45,23 @@ function ExportProgressOverlay({
       : null;
 
   return (
-    <div className="relative flex items-center justify-center h-full">
-      <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl backdrop-blur-sm">
-        <div className="rounded-xl border border-border bg-card px-6 py-5 shadow-lg min-w-[280px] max-w-[90vw]">
-          <p className="text-sm font-semibold text-foreground mb-2">{phase}</p>
-          <div className="h-2.5 rounded-full bg-muted overflow-hidden mb-3">
+    <div className="relative flex items-center justify-center h-full animate-[fade-in_220ms_ease-out]">
+      <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-2xl backdrop-blur-xl">
+        <div className="relative isolate overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(20,25,33,0.94),rgba(10,13,18,0.96))] px-7 py-6 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] min-w-[300px] max-w-[90vw]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(91,140,255,0.1),transparent_60%)]" />
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">Processing</p>
+          <p className="text-[15px] font-medium text-white/92 mb-4">{phase}</p>
+          <div className="h-2 rounded-full bg-white/[0.04] shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)] overflow-hidden mb-4 border border-white/[0.02]">
             <div
-              className="h-full bg-primary transition-all duration-300 ease-out"
+              className="h-full bg-primary relative transition-all duration-300 ease-out shadow-[0_0_12px_rgba(91,140,255,0.6)]"
               style={{ width: `${percent}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.3)_50%,transparent)] translate-x-[-100%] animate-[shimmer_1.5s_infinite]" />
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground tabular-nums">
-              <span className="font-medium text-foreground">{percent}%</span>
+          <div className="flex items-center justify-between gap-4 mt-1">
+            <p className="text-[12px] text-white/60 tabular-nums">
+              <span className="font-medium text-white/90">{percent}%</span>
               {estimatedRemainingSec !== null && (
                 <> · ~{estimatedRemainingSec}s left</>
               )}
@@ -66,7 +70,7 @@ function ExportProgressOverlay({
               type="button"
               variant="outline"
               size="sm"
-              className="shrink-0 rounded-lg"
+              className="h-8 rounded-lg border-white/10 bg-white/[0.04] px-3 text-[11px] font-medium text-white hover:bg-white/[0.08] transition-all duration-150 active:scale-95"
               onClick={onCancel}
             >
               Cancel
@@ -721,15 +725,15 @@ export function CanvasStage() {
   if (state.status === "loading" || (state.status === "ready" && !state.frames.length)) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="flex min-w-[220px] flex-col items-center gap-4 rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(20,25,33,0.94),rgba(10,13,18,0.96))] px-7 py-6 shadow-[0_20px_60px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] animate-[fade-in_220ms_ease-out]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-            <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+        <div className="flex min-w-[280px] flex-col items-center gap-5 rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(19,24,31,0.96),rgba(11,14,19,0.98))] px-8 py-7 shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl animate-[fade-in_220ms_ease-out]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_32px_rgba(0,0,0,0.2)]">
+            <LoaderCircle className="h-6 w-6 animate-spin text-primary" />
           </div>
-          <div className="space-y-1 text-center">
-            <p className="text-sm font-medium text-white/92">Preparing frames</p>
-            <p className="text-xs text-muted-foreground">Decoding media and building the editor preview.</p>
+          <div className="space-y-1.5 text-center">
+            <p className="text-[15px] font-semibold tracking-[-0.01em] text-white/96">Preparing frames</p>
+            <p className="text-[13px] leading-5 text-white/50">Decoding media and building the timeline preview.</p>
           </div>
-          <div className="w-full max-w-[160px]">
+          <div className="w-full max-w-[180px] opacity-60">
             <SkeletonLoader />
           </div>
         </div>
@@ -740,13 +744,13 @@ export function CanvasStage() {
   if (state.status === "error") {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
-        <div className="max-w-md animate-[fade-in_220ms_ease-out] rounded-[24px] border border-[rgba(216,104,104,0.22)] bg-[linear-gradient(180deg,rgba(43,25,28,0.82),rgba(22,15,18,0.96))] p-5 text-center shadow-[0_24px_56px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Import failed</p>
-          <p className="text-sm text-white/88 mb-3">{state.error}</p>
+        <div className="max-w-[320px] animate-[fade-in_220ms_ease-out] rounded-[24px] border border-red-500/20 bg-[linear-gradient(180deg,rgba(43,25,28,0.96),rgba(22,15,18,0.98))] px-7 py-6 text-center shadow-[0_32px_80px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-red-400">Import failed</p>
+          <p className="text-[14px] leading-relaxed text-white/88 mb-5">{state.error}</p>
           <Button
             variant="outline"
             size="sm"
-            className="rounded-lg border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+            className="h-9 rounded-xl border-white/10 bg-white/[0.04] px-5 text-[12px] font-medium text-white hover:bg-white/[0.08] transition-all duration-150 active:scale-95"
             onClick={() => dispatch({ type: "RESET" })}
           >
             Retry
@@ -850,19 +854,25 @@ export function CanvasStage() {
     >
       {!state.isPreviewMode && (
         <>
+          {/* Main Background with subtle depth */}
+          <div className="absolute inset-0 z-0 rounded-xl bg-[#0a0c10]" />
+          
+          {/* Premium Dotted Grid */}
           <div
-            className="pointer-events-none absolute inset-0 z-0 rounded-xl opacity-45 transition-opacity duration-200 ease-out"
+            className="pointer-events-none absolute inset-0 z-0 rounded-xl opacity-[0.15]"
             style={{
-              backgroundImage:
-                "linear-gradient(180deg, rgba(15,18,26,0.9), rgba(8,10,16,0.95)), linear-gradient(rgba(122,138,162,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(122,138,162,0.06) 1px, transparent 1px)",
-              backgroundSize: "100% 100%, 24px 24px, 24px 24px",
+              backgroundImage: "radial-gradient(circle, #7a8aa2 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+              backgroundPosition: "-1px -1px"
             }}
           />
+
+          {/* Vignette/Glow for focus */}
           <div
             className="pointer-events-none absolute inset-0 z-0 rounded-xl transition-opacity duration-200 ease-out"
             style={{
               background:
-                "radial-gradient(circle at 50% 48%, rgba(176,198,230,0.12) 0%, rgba(15,18,26,0.28) 50%, rgba(4,6,10,0.74) 100%)",
+                "radial-gradient(circle at 50% 50%, rgba(91,140,255,0.03) 0%, transparent 70%)",
             }}
           />
         </>
@@ -1202,42 +1212,80 @@ export function CanvasStage() {
         </div>
       </div>
 
+      {/* Cinema Backdrop Transition */}
+      <div 
+        className={cn(
+          "pointer-events-none absolute inset-0 z-[110] bg-[#050608] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          state.isPreviewMode ? "opacity-90 backdrop-blur-md" : "opacity-0"
+        )}
+      />
+
       {state.isPreviewMode && (
-        <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-[120] mx-auto max-w-[680px] rounded-2xl border border-white/12 bg-black/58 px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl transition-all duration-200">
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              className="h-9 w-9 rounded-full border-white/10 bg-white/10 text-white hover:bg-white/16"
-              onClick={() => dispatch({ type: "SET_PLAYING", payload: !state.isPlaying })}
-            >
-              {state.isPlaying ? <PauseIcon /> : <PlayIcon />}
-            </Button>
-            <div className="flex-1">
-              <Slider
-                aria-label="Preview progress"
-                min={0}
-                max={Math.max(0, state.frames.length - 1)}
-                step={1}
-                value={[state.currentFrameIndex]}
-                onValueChange={([frameIndex]) => dispatch({ type: "SET_FRAME", payload: frameIndex ?? 0 })}
-              />
-              <div className="mt-1 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-white/48">
-                <span>{formatPreviewTime(state.currentFrameIndex, state.frames)}</span>
-                <span>{formatPreviewTime(state.frames.length - 1, state.frames)}</span>
+        <div className="pointer-events-auto absolute inset-x-0 bottom-8 z-[120] mx-auto max-w-[720px] px-6">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden rounded-[28px] border border-white/10 bg-[#0d121a]/80 p-4 shadow-[0_48px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-3xl">
+            <div className="flex items-center gap-5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-full bg-primary text-white shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] transition-all hover:bg-primary/90 hover:scale-110 active:scale-95"
+                onClick={() => dispatch({ type: "SET_PLAYING", payload: !state.isPlaying })}
+              >
+                {state.isPlaying ? (
+                  <div className="flex gap-1.5">
+                    <div className="h-4 w-1.5 rounded-full bg-white" />
+                    <div className="h-4 w-1.5 rounded-full bg-white" />
+                  </div>
+                ) : (
+                  <PlayIcon />
+                )}
+              </Button>
+              
+              <div className="flex-1 space-y-2">
+                <div className="group/progress relative pt-2">
+                  <Slider
+                    aria-label="Preview progress"
+                    min={0}
+                    max={Math.max(0, state.frames.length - 1)}
+                    step={1}
+                    value={[state.currentFrameIndex]}
+                    onValueChange={([frameIndex]) => dispatch({ type: "SET_FRAME", payload: frameIndex ?? 0 })}
+                    className="[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:bg-white [&_[data-slot=thumb]]:shadow-[0_0_15px_rgba(var(--primary-rgb),0.6)]"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    {formatPreviewTime(state.currentFrameIndex, state.frames)}
+                  </span>
+                  <div className="flex h-1.5 w-1.5 rounded-full bg-primary/20 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    {formatPreviewTime(state.frames.length - 1, state.frames)}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="flex w-[108px] items-center gap-2">
-              <VolumeIcon />
-              <Slider
-                aria-label="Preview volume"
-                min={0}
-                max={1}
-                step={0.01}
-                value={[state.previewVolume]}
-                onValueChange={([next]) => dispatch({ type: "SET_PREVIEW_VOLUME", payload: next ?? 1 })}
-              />
+              
+              <div className="flex items-center gap-3 rounded-2xl bg-black/40 p-2 pl-4">
+                <VolumeIcon />
+                <Slider
+                  aria-label="Preview volume"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={[state.previewVolume]}
+                  onValueChange={([next]) => dispatch({ type: "SET_PREVIEW_VOLUME", payload: next ?? 1 })}
+                  className="w-20 sm:w-28 [&_[data-slot=range]]:bg-white/40 [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3"
+                />
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full text-white/30 hover:bg-white/10 hover:text-white transition-all"
+                onClick={() => dispatch({ type: "SET_PREVIEW_MODE", payload: false })}
+                title="Exit Preview"
+              >
+                <LogoutIcon />
+              </Button>
             </div>
           </div>
         </div>
@@ -1257,15 +1305,23 @@ function formatPreviewTime(frameIndex: number, frames: Array<{ delay: number }>)
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function PlayIcon() {
-  return <div className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white" />;
+  return <div className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white transition-transform group-hover:scale-110" />;
 }
 
 function PauseIcon() {
   return (
-    <div className="flex items-center gap-1">
-      <span className="h-3.5 w-[3px] rounded-full bg-white" />
-      <span className="h-3.5 w-[3px] rounded-full bg-white" />
+    <div className="flex gap-1.5 transition-transform group-hover:scale-110">
+      <div className="h-4 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
+      <div className="h-4 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
     </div>
   );
 }

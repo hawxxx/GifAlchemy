@@ -36,35 +36,35 @@ export function NextStepsMenu({ options = DEFAULT_OPTIONS }: { options?: NextSte
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-1">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
       {open && (
         <div
           className={cn(
-            "rounded-xl border border-border bg-background/95 backdrop-blur shadow-lg p-2 min-w-[220px]",
-            "animate-in fade-in-0 slide-in-from-bottom-2 duration-200"
+            "rounded-[16px] border border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl shadow-[0_0_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] p-3 min-w-[240px]",
+            "animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200 origin-bottom-right"
           )}
         >
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground px-2 py-1 mb-1">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80 px-1 py-1 mb-2 font-medium">
             {EDITOR_LABELS.nextSteps.heading}
           </p>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-col gap-1.5">
             {options.map((opt) => (
               <button
                 key={opt.letter}
                 type="button"
                 onClick={() => copyAndToast(opt.letter, opt.goal)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium",
-                  "bg-primary text-primary-foreground hover:opacity-90 transition-opacity",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  "inline-flex items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-xs font-medium text-white/90",
+                  "bg-white/[0.04] border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-150 active:scale-[0.98]",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 group"
                 )}
                 title={`${opt.goal} (${opt.scope}) - ${opt.files}`}
                 aria-label={`${opt.letter}. ${opt.goal}`}
               >
-                <span className="w-5 h-5 rounded bg-white/20 flex items-center justify-center font-bold">
+                <span className="w-5 h-5 rounded-[6px] bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] border border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors">
                   {opt.letter}
                 </span>
-                <span className="truncate max-w-[140px]">{opt.goal}</span>
+                <span className="truncate max-w-[170px]">{opt.goal}</span>
               </button>
             ))}
           </div>
@@ -72,8 +72,8 @@ export function NextStepsMenu({ options = DEFAULT_OPTIONS }: { options?: NextSte
       )}
       <Button
         variant="secondary"
-        size="sm"
-        className="rounded-full h-9 w-9 p-0 shadow-md focus-visible:ring-2 focus-visible:ring-ring"
+        size="icon"
+        className="rounded-full h-10 w-10 shadow-[0_4px_12px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] focus-visible:ring-1 focus-visible:ring-primary/40 bg-[#1a1f2e] hover:bg-[#252b3d] border border-white/10 text-white/80 transition-all duration-200"
         onClick={() => setOpen((o) => !o)}
         title={open ? EDITOR_LABELS.nextSteps.close : EDITOR_LABELS.nextSteps.open}
         aria-label={open ? EDITOR_LABELS.nextSteps.close : EDITOR_LABELS.nextSteps.open}

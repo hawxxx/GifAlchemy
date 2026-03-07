@@ -111,18 +111,21 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
   const totalH = THUMB_ROW_H + RULER_H + totalRows * TRACK_H;
   return (
     <div
-      className="absolute top-0 z-20 pointer-events-none group"
+      className="absolute top-0 z-20 pointer-events-none group transform-gpu transition-transform duration-75"
       style={{ left: `${pct}%`, height: totalH }}
     >
-      {/* Pulsing radial glow for playhead */}
-      <div className="absolute top-0 left-1/2 h-full w-[36px] -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(255,111,97,0.35)_0%,transparent_70%)] animate-pulse" />
+      {/* Scrubber cap / handle */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[14px] h-[18px] rounded-b-[7px] bg-primary shadow-[0_4px_16px_rgba(var(--primary-rgb),0.5),inset_0_1px_0_rgba(255,255,255,0.4)] flex items-end justify-center pb-[4px] border border-white/20 z-10 transition-transform group-hover:scale-y-110">
+        {/* Inner grip dot */}
+        <div className="w-[3px] h-[3px] rounded-full bg-white shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+      </div>
       
-      {/* triangle notch */}
-      <div className="absolute -top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#ff6f61] drop-shadow-[0_0_4px_rgba(255,111,97,0.55)]" />
-      {/* vertical glow + core line */}
-      <div className="absolute top-0 left-1/2 h-full w-[3px] -translate-x-[1.5px] bg-[#ff6f61]/18 blur-[0.4px]" />
-      <div className="absolute top-0 left-1/2 h-full w-px -translate-x-px bg-white/95" />
-      <div className="absolute top-0 left-1/2 h-full w-px -translate-x-px bg-[#ff6f61]/85" />
+      {/* Glowing core line */}
+      <div className="absolute top-0 left-1/2 h-full w-[1px] -translate-x-[0.5px] bg-white/90 flex flex-col items-center">
+         {/* Drop shadow / glow along the line */}
+         <div className="absolute top-0 h-full w-[12px] bg-primary/25 blur-[5px] rounded-full" />
+         <div className="absolute top-0 h-full w-[3px] bg-primary/40 blur-[1px] rounded-full" />
+      </div>
     </div>
   );
 }
@@ -612,177 +615,203 @@ export function TimelinePanel() {
   return (
     <div className="flex h-full select-none flex-col overflow-hidden relative">
       {/* ── Controls bar ─────────────────────────────────────────────────── */}
-      <div className="flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/25 px-3 backdrop-blur-[1px]">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 rounded-md transition-colors duration-150 hover:bg-white/12"
-          onClick={togglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 rounded-md transition-colors duration-150 hover:bg-white/12"
-          onClick={stop}
-          aria-label="Stop"
-        >
-          <Square className="h-3 w-3" />
-        </Button>
-
-        <span className="ml-1 text-xs tabular-nums text-muted-foreground/95">
-          {formatTime(currentFrameIndex, avgDelay)}&nbsp;/&nbsp;
-          {formatTime(frameCount - 1, avgDelay)}
-        </span>
-        <span className="text-xs text-muted-foreground/70">
-          ({currentFrameIndex + 1} / {frameCount})
-        </span>
-
-        <span
-          className="hidden sm:inline text-[10px] text-muted-foreground/45 ml-1 tabular-nums"
-          title="Press A/D to step through frames (when not editing text)"
-        >
-          A/D: prev/next
-        </span>
-
-        <div className="ml-2 flex items-center gap-1 rounded-md border border-white/12 bg-black/25 px-1.5 py-0.5">
-          <button
-            type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.max(0.25, playbackRate - 0.25) })}
-            disabled={playbackRate <= 0.25}
-            title="Decrease speed"
-            aria-label="Decrease playback speed"
+      <div className="relative flex h-12 shrink-0 items-center justify-between border-b border-white/8 bg-[#0a0a0a]/90 px-4 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+        {/* Left section: Time & Frame Info */}
+        <div className="flex flex-1 items-center gap-3">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[13px] font-medium tabular-nums tracking-wide text-white/90">
+              {formatTime(currentFrameIndex, avgDelay)}
+            </span>
+            <span className="text-[11px] font-medium tabular-nums text-white/40">
+              / {formatTime(frameCount - 1, avgDelay)}
+            </span>
+          </div>
+          <div className="h-3.5 w-px bg-white/10" />
+          <div className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.03] px-2 py-0.5 text-[10px] tabular-nums tracking-[0.05em] text-white/50">
+            <span className="text-white/80">{currentFrameIndex + 1}</span>
+            <span className="text-white/30">/</span>
+            <span>{frameCount}</span>
+            <span className="ml-1 uppercase tracking-widest text-white/30">frames</span>
+          </div>
+          <span
+            className="hidden sm:inline text-[10px] text-muted-foreground/40 ml-1 font-medium tracking-wide"
+            title="Press A/D to step through frames (when not editing text)"
           >
-            <Minus className="h-3 w-3" />
-          </button>
-          
-          <span className="min-w-8 text-center text-[10px] font-medium tabular-nums text-muted-foreground">
-            {playbackRate.toFixed(2).replace(/\.?0+$/, '')}x
+            A/D: Step
           </span>
-
-          <button
-            type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.min(3, playbackRate + 0.25) })}
-            disabled={playbackRate >= 3}
-            title="Increase speed"
-            aria-label="Increase playback speed"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
         </div>
-        <div className="ml-2 flex items-center gap-1 rounded-md border border-white/12 bg-black/25 px-1.5 py-0.5">
-          <button
-            type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => applyTimelineZoom(Math.round((timelineZoom - 0.25) * 20) / 20)}
-            disabled={timelineZoom <= 1}
-            title="Zoom out timeline"
-            aria-label="Zoom out timeline"
-          >
-            <Minus className="h-3 w-3" />
-          </button>
-          <Slider
-            min={1}
-            max={4}
-            step={0.05}
-            value={[timelineZoom]}
-            onValueChange={([v]) => {
-              if (v !== undefined && Number.isFinite(v)) applyTimelineZoom(v);
-            }}
-            className="w-20 [&_[data-slot=range]]:bg-primary/80 [&_[data-slot=thumb]]:h-3.5 [&_[data-slot=thumb]]:w-3.5 [&_[data-slot=track]]:h-1 [&_[data-slot=track]]:bg-white/18"
-            aria-label="Timeline zoom"
-          />
-          <button
-            type="button"
-            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => applyTimelineZoom(Math.round((timelineZoom + 0.25) * 20) / 20)}
-            disabled={timelineZoom >= 4}
-            title="Zoom in timeline"
-            aria-label="Zoom in timeline"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
-          <span className="min-w-7 rounded bg-white/10 px-1 py-0.5 text-center text-[10px] font-medium tabular-nums text-muted-foreground">
-            {timelineZoom === 1 ? "1×" : `${parseFloat(timelineZoom.toFixed(1))}×`}
-          </span>
-          <div className="mx-0.5 h-3 w-px bg-white/15" />
+
+        {/* Center section: The Premium Control Island */}
+        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(24,28,36,0.8),rgba(14,16,21,0.9))] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl">
+          {/* Play/Stop */}
+          <div className="flex items-center gap-0.5 pl-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full transition-all duration-200",
+                isPlaying
+                  ? "bg-primary text-primary-foreground shadow-[0_0_12px_rgba(var(--primary),0.5)]"
+                  : "text-white/85 hover:bg-white/10 hover:text-white"
+              )}
+              onClick={togglePlay}
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full text-white/60 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+              onClick={stop}
+              aria-label="Stop"
+            >
+              <Square className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="mx-1 h-4 w-[1px] bg-white/10" />
+
+          {/* Speed Control */}
+          <div className="flex items-center gap-1 px-1">
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.max(0.25, playbackRate - 0.25) })}
+              disabled={playbackRate <= 0.25}
+              title="Decrease speed"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+            <span className="w-9 text-center text-[11px] font-semibold tabular-nums text-white/90">
+              {playbackRate.toFixed(2).replace(/\.?0+$/, '')}x
+            </span>
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.min(3, playbackRate + 0.25) })}
+              disabled={playbackRate >= 3}
+              title="Increase speed"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
+
+          <div className="mx-1 h-4 w-[1px] bg-white/10" />
+
+          {/* Zoom Control */}
+          <div className="flex items-center gap-1.5 pr-2">
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => applyTimelineZoom(Math.round((timelineZoom - 0.25) * 20) / 20)}
+              disabled={timelineZoom <= 1}
+              title="Zoom out"
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+            <Slider
+              min={1}
+              max={4}
+              step={0.05}
+              value={[timelineZoom]}
+              onValueChange={([v]) => {
+                if (v !== undefined && Number.isFinite(v)) applyTimelineZoom(v);
+              }}
+              className="w-20 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3.5 [&_[data-slot=thumb]]:w-3.5 [&_[data-slot=thumb]]:border-none [&_[data-slot=thumb]]:bg-white [&_[data-slot=thumb]]:shadow-[0_2px_8px_rgba(0,0,0,0.4)] [&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:rounded-full [&_[data-slot=track]]:bg-black/60 [&_[data-slot=track]]:shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] cursor-ew-resize"
+              aria-label="Zoom slider"
+            />
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-white/50 transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => applyTimelineZoom(Math.round((timelineZoom + 0.25) * 20) / 20)}
+              disabled={timelineZoom >= 4}
+              title="Zoom in"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+            <div className="ml-0.5 flex items-center h-full">
+               <span className="w-7 text-center text-[10px] font-bold tabular-nums text-white/60">
+                 {timelineZoom === 1 ? "1×" : `${parseFloat(timelineZoom.toFixed(1))}×`}
+               </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-1 h-6 px-2 rounded-full bg-white/[0.08] text-[9px] font-bold uppercase tracking-widest text-white/70 transition-all duration-200 hover:bg-white/20 hover:text-white border border-white/5 active:scale-95"
+                  onClick={fitTimelineZoom}
+                  title="Fit timeline to view"
+                >
+                  Fit
+                </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right section: Action Buttons */}
+        <div className="flex flex-1 items-center justify-end gap-1.5">
+          {selectedOverlay && (
+            <div className="flex items-center gap-1.5 mr-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 rounded-lg bg-white/[0.03] px-3 text-[11px] font-medium text-white/70 border border-white/5 transition-all duration-200 hover:bg-white/[0.08] hover:text-white active:scale-95"
+                onClick={copyKeyframeAtCurrentFrame}
+                disabled={!selectedFrameKeyframe || selectedOverlay.locked}
+                title="Copy Keyframe"
+              >
+                <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-black/40">
+                  <Copy className="h-2.5 w-2.5" />
+                </div>
+                Copy KF
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-2 rounded-lg bg-white/[0.03] px-3 text-[11px] font-medium text-white/70 border border-white/5 transition-all duration-200 hover:bg-white/[0.08] hover:text-white active:scale-95"
+                onClick={pasteKeyframeAtCurrentFrame}
+                disabled={!copiedKeyframe || selectedOverlay.locked}
+                title="Paste Keyframe"
+              >
+                <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-black/40">
+                  <ClipboardPaste className="h-2.5 w-2.5" />
+                </div>
+                Paste KF
+              </Button>
+              <div className="h-4 w-px bg-white/10 mx-1" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-lg bg-white/[0.03] p-0 text-white/70 border border-white/5 transition-all duration-200 hover:bg-white/[0.08] hover:text-white active:scale-95"
+                onClick={() => duplicateOverlay(selectedOverlay.id)}
+                title="Duplicate layer"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 rounded-lg bg-red-500/10 p-0 text-red-400 border border-red-500/10 transition-all duration-200 hover:bg-red-500/20 hover:text-red-300 active:scale-95"
+                onClick={() => removeOverlay(selectedOverlay.id)}
+                disabled={selectedOverlay.locked}
+                title="Remove layer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 rounded-md px-2 text-[10px] font-medium text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-            onClick={fitTimelineZoom}
-            title="Fit timeline to trimmed range"
+            className="h-8 gap-1.5 rounded-lg bg-primary/10 px-3 text-[11px] font-semibold tracking-wide text-primary border border-primary/20 transition-all duration-200 hover:bg-primary/20 hover:text-primary-foreground active:scale-95 shadow-[0_4px_12px_rgba(var(--primary),0.1)]"
+            onClick={() => addOverlay()}
+            disabled={frameCount === 0}
+            title="Add new text layer"
           >
-            Fit
+            <Plus className="h-3.5 w-3.5" />
+            Add Layer
           </Button>
         </div>
-
-        <div className="flex-1" />
-
-        {selectedOverlay && (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-              onClick={copyKeyframeAtCurrentFrame}
-              disabled={!selectedFrameKeyframe || selectedOverlay.locked}
-              title="Copy keyframe at current frame"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Copy KF
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-              onClick={pasteKeyframeAtCurrentFrame}
-              disabled={!copiedKeyframe || selectedOverlay.locked}
-              title="Paste copied keyframe to current frame"
-            >
-              <ClipboardPaste className="h-3.5 w-3.5" />
-              Paste KF
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-              onClick={() => duplicateOverlay(selectedOverlay.id)}
-              title="Duplicate selected layer"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Duplicate
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 rounded-md text-xs text-destructive transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => removeOverlay(selectedOverlay.id)}
-              disabled={selectedOverlay.locked}
-              title="Remove selected layer"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Remove
-            </Button>
-          </>
-        )}
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-          onClick={() => addOverlay()}
-          disabled={frameCount === 0}
-          title="Add text layer"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add text
-        </Button>
       </div>
 
       {/* ── Label + Track layout ─────────────────────────────────────────── */}
@@ -1043,7 +1072,7 @@ export function TimelinePanel() {
 
           {/* Ruler */}
           <div
-            className="relative overflow-hidden border-b border-white/10 bg-white/[0.06]"
+            className="relative overflow-hidden border-b border-white/10 bg-black/20"
             style={{ height: RULER_H }}
           >
             {rulerTicks.map((tick) => {
@@ -1057,13 +1086,13 @@ export function TimelinePanel() {
                 >
                   <span
                     className={cn(
-                      "mt-[3px] text-[9px] leading-none",
-                      isMajor ? "text-foreground/75" : "text-muted-foreground/70"
+                      "mt-[2px] text-[8px] font-bold tracking-tighter tabular-nums",
+                      isMajor ? "text-white/60" : "text-white/25"
                     )}
                   >
                     {tick}
                   </span>
-                  <div className={cn("mt-[3px] w-px", isMajor ? "h-[9px] bg-white/50" : "h-[6px] bg-white/35")} />
+                  <div className={cn("mt-[2px] w-[1px]", isMajor ? "h-[10px] bg-white/40" : "h-[6px] bg-white/15")} />
                 </div>
               );
             })}
@@ -1085,8 +1114,8 @@ export function TimelinePanel() {
               <div
                 key={overlay.id}
                 className={cn(
-                  "relative border-b border-white/[0.08] transition-colors duration-150",
-                  isSelected ? "bg-primary/[0.1]" : "hover:bg-white/[0.04]"
+                  "relative border-b border-white/[0.06] transition-colors duration-200",
+                  isSelected ? "bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]" : "hover:bg-white/[0.02]"
                 )}
                 style={{ height: TRACK_H }}
                 onClick={(e) => handleOverlaySelect(overlay.id, e.metaKey || e.ctrlKey)}
@@ -1094,9 +1123,9 @@ export function TimelinePanel() {
                 {/* Overlay duration bar */}
                 <div
                   className={cn(
-                    "absolute bottom-[5px] top-[5px] flex cursor-grab items-center overflow-hidden rounded-md border px-1.5 shadow-[0_1px_5px_rgba(0,0,0,0.22)] transition-[filter,box-shadow] duration-150 active:cursor-grabbing hover:brightness-105",
-                    isLocked && "cursor-not-allowed active:cursor-not-allowed",
-                    isSelected && "shadow-[0_0_0_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(0,0,0,0.26)]",
+                    "absolute bottom-[5px] top-[5px] flex cursor-grab items-center overflow-hidden rounded-[8px] border px-2 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-150 active:cursor-grabbing hover:brightness-110 active:scale-[0.99]",
+                    isLocked && "cursor-not-allowed active:cursor-not-allowed filter grayscale opacity-60",
+                    isSelected && "ring-[1.5px] ring-white/60 ring-offset-1 ring-offset-black/50 shadow-[0_4px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.3)]",
                     c.bar
                   )}
                   style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
@@ -1107,19 +1136,23 @@ export function TimelinePanel() {
                   {!isLocked && (
                     <>
                       <div
-                        className="absolute bottom-0 left-0 top-0 z-10 w-2 cursor-ew-resize border-r border-white/28 bg-black/18 transition-colors duration-150 hover:bg-black/30"
+                        className="absolute bottom-0 left-0 top-0 z-10 w-2.5 cursor-ew-resize border-r border-white/20 bg-black/20 transition-all duration-150 hover:bg-black/40 hover:w-3 flex items-center justify-center group"
                         onPointerDown={(e) => handleBarTrimDown(e, overlay, "start")}
                         onPointerMove={(e) => handleBarTrimMove(e, overlay)}
                         onPointerUp={handleBarTrimUp}
                         title="Trim layer start"
-                      />
+                      >
+                        <div className="w-[1.5px] h-3 bg-white/40 rounded-full group-hover:bg-white/70" />
+                      </div>
                       <div
-                        className="absolute bottom-0 right-0 top-0 z-10 w-2 cursor-ew-resize border-l border-white/28 bg-black/18 transition-colors duration-150 hover:bg-black/30"
+                        className="absolute bottom-0 right-0 top-0 z-10 w-2.5 cursor-ew-resize border-l border-white/20 bg-black/20 transition-all duration-150 hover:bg-black/40 hover:w-3 flex items-center justify-center group"
                         onPointerDown={(e) => handleBarTrimDown(e, overlay, "end")}
                         onPointerMove={(e) => handleBarTrimMove(e, overlay)}
                         onPointerUp={handleBarTrimUp}
                         title="Trim layer end"
-                      />
+                      >
+                        <div className="w-[1.5px] h-3 bg-white/40 rounded-full group-hover:bg-white/70" />
+                      </div>
                     </>
                   )}
                   <span className={cn("text-[10px] font-medium truncate leading-none select-none pr-5", c.text)}>
@@ -1144,6 +1177,26 @@ export function TimelinePanel() {
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
+
+                  {/* Keyframe connection line */}
+                  {(() => {
+                    const kfs = (Array.isArray(overlay.keyframes) ? overlay.keyframes : [])
+                      .filter(kf => Boolean(kf) && Number.isFinite(kf.frameIndex))
+                      .sort((a, b) => a.frameIndex - b.frameIndex);
+                    if (kfs.length < 2) return null;
+                    const range = end - start;
+                    if (range <= 0) return null;
+                    const firstKf = kfs[0];
+                    const lastKf = kfs[kfs.length - 1];
+                    const startPct = ((firstKf.frameIndex - start) / range) * 100;
+                    const endPct = ((lastKf.frameIndex - start) / range) * 100;
+                    return (
+                      <div 
+                        className="absolute top-1/2 -translate-y-[0.5px] h-[1px] bg-white/15 pointer-events-none"
+                        style={{ left: `${startPct}%`, width: `${endPct - startPct}%` }}
+                      />
+                    );
+                  })()}
 
                   {/* Keyframe diamonds — draggable */}
                   {(() => {

@@ -133,7 +133,7 @@ const BUILTIN_TEMPLATES: SavedTemplate[] = [
         color: "#facc15",
         strokeWidth: 3,
         strokeColor: "#000000",
-        effect: "bounce",
+        effect: "bounce" as AnimationPresetType,
       },
       {
         content: "🔥",
@@ -143,7 +143,7 @@ const BUILTIN_TEMPLATES: SavedTemplate[] = [
         color: "#ffffff",
         strokeWidth: 0,
         strokeColor: "#000000",
-        effect: "pulse",
+        effect: "pulse" as AnimationPresetType,
       },
       {
         content: "NEW DROP",
@@ -153,7 +153,7 @@ const BUILTIN_TEMPLATES: SavedTemplate[] = [
         color: "#ffffff",
         strokeWidth: 2,
         strokeColor: "#000000",
-        effect: "flicker",
+        effect: "flicker" as AnimationPresetType,
       },
     ],
   },
@@ -172,7 +172,7 @@ const BUILTIN_TEMPLATES: SavedTemplate[] = [
         color: "#ffffff",
         strokeWidth: 2,
         strokeColor: "#000000",
-        effect: "scale-in",
+        effect: "scale-in" as AnimationPresetType,
       },
       {
         content: "subtitle goes here",
@@ -182,7 +182,7 @@ const BUILTIN_TEMPLATES: SavedTemplate[] = [
         color: "#d4d4d8",
         strokeWidth: 1,
         strokeColor: "#000000",
-        effect: "fade-in",
+        effect: "fade-in" as AnimationPresetType,
       },
     ],
   },
@@ -310,119 +310,133 @@ export function TemplatesToolPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-1">Template browser</Label>
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search templates"
-          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
-          aria-label="Search templates"
-        />
-        <Select value={scope} onValueChange={(value) => setScope(value as TemplateScope)}>
-          <SelectTrigger className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] hover:bg-white/5 transition-colors">
-            <SelectValue placeholder="Template source" />
-          </SelectTrigger>
-          <SelectContent className="border-white/10 bg-black/60 backdrop-blur-xl">
-            <SelectItem value="all" className="text-[11px]">All templates</SelectItem>
-            <SelectItem value="built-in" className="text-[11px]">Built-in</SelectItem>
-            <SelectItem value="custom" className="text-[11px]">Custom</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Template Library</Label>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search templates..."
+            className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+            aria-label="Search templates"
+          />
+          <Select value={scope} onValueChange={(value) => setScope(value as TemplateScope)}>
+            <SelectTrigger className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 hover:bg-white/5 hover:border-white/20 transition-all focus:ring-1 focus:ring-primary/20">
+              <SelectValue placeholder="Template source" />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-black/80 backdrop-blur-xl">
+              <SelectItem value="all" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">All templates</SelectItem>
+              <SelectItem value="built-in" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Built-in</SelectItem>
+              <SelectItem value="custom" className="text-xs font-medium focus:bg-white/10 focus:text-white cursor-pointer rounded-sm">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="space-y-2">
-        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-72 space-y-2 overflow-y-auto pr-1 mt-1 custom-scrollbar">
           {templates.map((template) => (
             <button
               key={template.id}
               type="button"
               onClick={() => applyTemplate(template)}
-              className="w-full rounded-xl border border-white/8 bg-black/20 p-2.5 text-left transition-all hover:bg-white/10 hover:border-white/15 hover:-translate-y-0.5"
+              className="group w-full rounded-md border border-white/5 bg-black/20 p-2 text-left transition-all hover:bg-white/10 hover:border-white/15 hover:shadow-sm active:scale-[0.98]"
             >
-              <div className="mb-2.5 overflow-hidden rounded-lg border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] bg-black/40">
+              <div className="mb-2 overflow-hidden rounded bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border border-white/5 group-hover:border-white/10 transition-colors">
                 <Image
                   src={template.previewDataUrl ?? templatePreviewDataUrl(template.name, template.layers)}
                   alt={`${template.name} preview`}
-                  className="h-20 w-full object-cover"
+                  className="h-20 w-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                   width={240}
                   height={80}
                   loading="lazy"
                 />
               </div>
-              <p className="text-[13px] font-medium text-white/90">{template.name}</p>
-              <p className="text-[11px] leading-relaxed text-muted-foreground/80 mt-0.5">{template.description ?? "No description"}</p>
-              <p className="mt-1.5 inline-block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded-full">
-                {template.source}
-              </p>
+              <div className="flex items-center justify-between gap-2 px-0.5">
+                 <p className="text-[11px] font-bold text-white/90 truncate">{template.name}</p>
+                 <span className="shrink-0 text-[8px] font-bold uppercase tracking-widest text-white/30 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                  {template.source}
+                </span>
+              </div>
+              <p className="text-[10px] font-medium text-white/40 mt-0.5 px-0.5 truncate">{template.description ?? "No description"}</p>
             </button>
           ))}
           {templates.length === 0 && (
-            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] text-muted-foreground">
-              No templates match your search.
+            <div className="rounded border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] font-medium text-white/40 mt-2">
+              No templates match search.
             </div>
           )}
         </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Save template from overlays</Label>
-        <Input
-          value={templateName}
-          onChange={(e) => setTemplateName(e.target.value)}
-          placeholder="Template name"
-          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
-          aria-label="Template name"
-        />
-        <Button
-          type="button"
-          size="sm"
-          className="w-full h-8 rounded-lg text-[11px] bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-muted-foreground"
-          onClick={saveCurrentAsTemplate}
-          disabled={state.overlays.length === 0}
-        >
-          Save current overlays as template
-        </Button>
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Save Current Overlays</Label>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Input
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="Name your template..."
+            className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+            aria-label="Template name"
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="w-full h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95"
+            onClick={saveCurrentAsTemplate}
+            disabled={state.overlays.length === 0}
+          >
+            Save as Template
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
-        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Restore points</Label>
-        <Input
-          value={snapshotName}
-          onChange={(e) => setSnapshotName(e.target.value)}
-          placeholder="Restore point label"
-          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
-          aria-label="Restore point label"
-        />
-        <Button
-          type="button"
-          size="sm"
-          className="w-full h-8 rounded-lg text-[11px] bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-muted-foreground"
-          onClick={createRestorePoint}
-          disabled={state.frames.length === 0}
-        >
-          Create restore point
-        </Button>
+      <div className="flex flex-col gap-3 rounded border border-white/5 bg-white/[0.02] p-3">
+        <div className="flex items-center justify-between shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] border-t border-white/5 pt-1 mb-0.5">
+           <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Restore Points</Label>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Input
+            value={snapshotName}
+            onChange={(e) => setSnapshotName(e.target.value)}
+            placeholder="Label (e.g., Before text)"
+            className="h-8 rounded-md border-white/10 bg-black/20 text-xs font-medium text-white/90 placeholder:text-white/20 hover:border-white/20 focus-visible:border-primary/50 focus-visible:bg-black/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+            aria-label="Restore point label"
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="w-full h-8 rounded-[6px] border border-white/5 bg-black/20 text-[10px] font-bold tracking-wider uppercase disabled:opacity-20 hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-sm active:scale-95 text-primary hover:text-primary-foreground hover:bg-primary/80 hover:border-primary"
+            onClick={createRestorePoint}
+            disabled={state.frames.length === 0}
+          >
+            Create Snapshot
+          </Button>
+        </div>
 
-        <div className="max-h-32 space-y-1 overflow-y-auto pr-1 mt-2">
+        <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1 mt-1 custom-scrollbar">
           {projectSnapshots.map((snapshot) => (
             <div
               key={snapshot.id}
-              className="flex items-center justify-between rounded-lg border border-white/8 bg-black/20 px-2.5 py-1.5 transition-colors hover:border-white/15"
+              className="group flex flex-col gap-2 rounded border border-white/5 bg-black/20 px-2 py-2 transition-all hover:bg-white/5 hover:border-white/10"
             >
-              <div className="min-w-0">
-                <p className="truncate text-[11px] font-medium text-white/90">{snapshot.label}</p>
-                <p className="text-[10px] text-muted-foreground/80 mt-0.5">
-                  {new Date(snapshot.createdAt).toLocaleString()}
-                </p>
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0 flex flex-col">
+                  <p className="truncate text-[11px] font-bold text-white/90">{snapshot.label}</p>
+                  <p className="text-[9px] font-medium text-white/40 mt-0.5 tabular-nums">
+                    {new Date(snapshot.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • {new Date(snapshot.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
               </div>
-              <div className="ml-2 flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-6 rounded-md px-2 text-[10px] border-white/10 bg-transparent text-white/70 hover:bg-white/10 hover:text-white font-medium"
+                  className="flex-1 h-6 rounded border border-white/5 bg-black/40 text-[9px] font-bold uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/10 hover:border-white/10 transition-all"
                   onClick={() => restoreProjectSnapshot(snapshot.id)}
                 >
                   Restore
@@ -431,16 +445,18 @@ export function TemplatesToolPanel() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 rounded-md px-2 text-[10px] text-muted-foreground hover:bg-red-500/20 hover:text-red-400 function-medium"
+                  className="shrink-0 h-6 px-2 rounded border border-transparent bg-transparent text-[9px] font-bold uppercase tracking-wider text-white/30 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all"
                   onClick={() => deleteProjectSnapshot(snapshot.id)}
                 >
-                  Remove
+                  Delete
                 </Button>
               </div>
             </div>
           ))}
           {projectSnapshots.length === 0 && (
-            <p className="text-[11px] text-muted-foreground">No restore points yet.</p>
+            <div className="rounded border border-dashed border-white/10 bg-black/20 px-3 py-4 text-center text-[10px] font-medium text-white/40 mt-1">
+              No snapshots yet.
+            </div>
           )}
         </div>
       </div>

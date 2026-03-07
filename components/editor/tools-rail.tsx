@@ -64,9 +64,9 @@ export function ToolsRail({
     <TooltipProvider delayDuration={400}>
       <aside
         className={cn(
-          "animate-panel-in flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-white/10 px-2 py-2",
-          "bg-black/40 backdrop-blur-xl shadow-2xl transition-all duration-300",
-          "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-2",
+          "animate-panel-in flex w-full items-center gap-1.5 overflow-x-auto rounded-[24px] border border-white/10 px-2 py-2",
+          "bg-[#0d121a]/60 backdrop-blur-[32px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-300",
+          "md:w-auto md:flex-col md:overflow-visible md:px-2 md:py-3",
           className
         )}
       >
@@ -74,83 +74,102 @@ export function ToolsRail({
           <div
             key={gi}
             className={cn(
-              "flex items-center rounded-xl border border-transparent p-0.5 transition-colors duration-200",
+              "flex items-center transition-colors duration-200",
               "md:w-full md:flex-col",
-              gi > 0 && "ml-0.5 md:ml-0 md:mt-1.5"
+              gi > 0 && "ml-1 md:ml-0 md:mt-2"
             )}
           >
             {gi > 0 && (
-              <div className="mx-1 h-7 border-l border-white/10 md:mx-2 md:my-1.5 md:h-auto md:w-full md:border-l-0 md:border-t" />
+              <div className="mx-1 h-8 border-l border-white/[0.08] md:mx-0 md:my-2 md:h-px md:w-full md:border-l-0 md:border-t" />
             )}
-            {group.map((id) => {
-              const isActive = activeTool === id;
-              const Icon = TOOL_ICONS[id];
-              return (
-                <div
-                  key={id}
-                  className="relative flex items-center justify-center px-0.5 md:w-full md:px-0.5 md:py-0.5"
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (id === "image") {
-                            const shouldOpenAssets = !isActive || !imageAssetsOpen;
-                            onSelectTool(shouldOpenAssets ? "image" : null);
-                            if (shouldOpenAssets && typeof window !== "undefined") {
-                              window.dispatchEvent(new CustomEvent("gifalchemy:open-image-assets"));
+            <div className="flex items-center gap-1 md:flex-col md:w-full">
+              {group.map((id) => {
+                const isActive = activeTool === id;
+                const Icon = TOOL_ICONS[id];
+                return (
+                  <div
+                    key={id}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const x = e.clientX - rect.left - rect.width / 2;
+                      const y = e.clientY - rect.top - rect.height / 2;
+                      e.currentTarget.style.setProperty("--mx", `${x * 0.35}px`);
+                      e.currentTarget.style.setProperty("--my", `${y * 0.35}px`);
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.setProperty("--mx", "0px");
+                      e.currentTarget.style.setProperty("--my", "0px");
+                    }}
+                    className="relative flex items-center justify-center md:w-full group/magnetic"
+                    style={{ perspective: "1000px" }}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (id === "image") {
+                              const shouldOpenAssets = !isActive || !imageAssetsOpen;
+                              onSelectTool(shouldOpenAssets ? "image" : null);
+                              if (shouldOpenAssets && typeof window !== "undefined") {
+                                window.dispatchEvent(new CustomEvent("gifalchemy:open-image-assets"));
+                              }
+                              return;
                             }
-                            return;
-                          }
-                          const nextTool = isActive ? null : id;
-                          onSelectTool(nextTool);
-                        }}
-                        aria-label={TOOL_LABELS[id]}
-                        className={cn(
-                          "group relative flex h-10 w-10 items-center justify-center rounded-xl border border-transparent transition-all duration-200 ease-out",
-                          "md:h-auto md:w-full md:flex-col md:gap-1 md:rounded-xl md:px-1.5 md:py-2.5",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                          "active:scale-[0.97]",
-                          "before:absolute before:left-1/2 before:top-0.5 before:h-0.5 before:w-4 before:-translate-x-1/2 before:rounded-full before:bg-primary/80 before:opacity-0 before:transition-opacity before:duration-150",
-                          "md:before:left-0.5 md:before:top-1/2 md:before:h-4 md:before:w-0.5 md:before:-translate-x-0 md:before:-translate-y-1/2",
-                          isActive
-                            ? [
-                                "border-primary/40 bg-primary/15 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_12px_rgba(0,0,0,0.2)]",
-                                "before:opacity-100",
-                              ]
-                            : "text-white/60 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/5 hover:text-white"
-                        )}
-                      >
-                        {Icon && (
-                          <Icon
-                            className={cn(
-                              "h-[18px] w-[18px] md:h-5 md:w-5 shrink-0 transition-transform duration-200",
-                              "group-active:scale-95 text-current",
-                              !isActive && "group-hover:text-white"
-                            )}
-                          />
-                        )}
-                        <span
+                            const nextTool = isActive ? null : id;
+                            onSelectTool(nextTool);
+                          }}
+                          aria-label={TOOL_LABELS[id]}
                           className={cn(
-                            "hidden max-w-full truncate text-center text-[11px] font-medium tracking-[0.02em] md:block mt-0.5",
-                            isActive ? "text-primary" : "text-white/60 group-hover:text-white"
+                            "group relative flex h-11 w-11 items-center justify-center rounded-[18px] border border-transparent transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                            "md:h-auto md:w-full md:flex-col md:gap-1.5 md:px-1.5 md:py-3",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d121a]",
+                            "active:scale-95 active:rotate-[-2deg]",
+                            "before:absolute before:left-0 before:top-1/2 before:h-2/3 before:w-0.5 before:-translate-y-1/2 before:rounded-r-full before:bg-primary before:opacity-0 before:transition-all before:duration-300 before:content-['']",
+                            isActive
+                              ? [
+                                  "border-primary/50 bg-primary/20 text-primary shadow-[0_8px_24px_-4px_rgba(var(--primary-rgb),0.3),inset_0_1px_0_rgba(255,255,255,0.15)]",
+                                  "before:opacity-100 before:h-8",
+                                ]
+                              : "text-white/40 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white"
                           )}
+                          style={{
+                            transform: "translate3d(var(--mx, 0), var(--my, 0), 0)",
+                          }}
                         >
-                          {TOOL_LABELS[id]}
-                        </span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="right"
-                      className="rounded-md border-border/60 md:hidden"
-                    >
-                      {TOOL_LABELS[id]}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              );
-            })}
+                          {Icon && (
+                            <Icon
+                              className={cn(
+                                "h-5 w-5 md:h-[22px] md:w-[22px] shrink-0 transition-all duration-300",
+                                "group-active:scale-90 text-current",
+                                isActive ? "scale-110 drop-shadow-[0_0_12px_rgba(var(--primary-rgb),0.5)]" : "group-hover:scale-110 group-hover:text-white"
+                              )}
+                            />
+                          )}
+                          <span
+                            className={cn(
+                              "hidden max-w-full truncate text-center text-[9px] uppercase font-black tracking-[0.08em] md:block mt-1",
+                              isActive ? "text-primary opacity-100" : "text-white/30 opacity-60 group-hover:opacity-100 group-hover:text-white"
+                            )}
+                          >
+                            {TOOL_LABELS[id]}
+                          </span>
+                          
+                          {/* Magnetic Reflection Glare */}
+                          <div className="absolute inset-0 pointer-events-none rounded-[18px] opacity-0 group-hover/magnetic:opacity-100 transition-opacity bg-[radial-gradient(circle_at_var(--mx)_var(--my),rgba(255,255,255,0.1)_0%,transparent_70%)]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        className="rounded-lg border-white/10 bg-[#0d121a]/95 backdrop-blur-xl px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest md:hidden"
+                      >
+                        {TOOL_LABELS[id]}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
       </aside>

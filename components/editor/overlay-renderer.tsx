@@ -85,6 +85,11 @@ function interpolate(overlay: Overlay, frameIndex: number): InterpolatedState {
 
   const prev = [...kfs].reverse().find((k) => k.frameIndex <= frameIndex)!;
   const next = kfs.find((k) => k.frameIndex > frameIndex)!;
+
+  if (overlay.disableTweening) {
+    return prev;
+  }
+
   const tRaw = (frameIndex - prev.frameIndex) / (next.frameIndex - prev.frameIndex);
   const t = easeProgress(tRaw, prev.easingToNext ?? "linear");
 
@@ -677,12 +682,65 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
           "rainbow": "ef-rainbow 2s linear infinite",
           "neon-glow": "ef-neon-glow 1.5s ease-in-out infinite",
           "glitch": "ef-glitch 0.8s step-end infinite",
+          "deep-burn": "ef-deep-burn 3s ease-in-out infinite",
+          "ghosting": "ef-ghosting 4s ease infinite",
+          "neon-pulse": "ef-neon-glow 0.8s ease-in-out infinite",
+          "scanner": "ef-scanner 2s linear infinite",
         };
-        const activeEffectType = overlay.effects[0]?.type;
+        const activeEffectType = overlay.effects[0]?.type as string | undefined;
         const effectAnimation =
           activeEffectType && activeEffectType in effectAnim
             ? effectAnim[activeEffectType]
             : undefined;
+
+        // --- Phase 14: Premium Text Presets ---
+        const presetStyles: Record<string, CSSProperties> = {
+          "modern-type": {
+            textTransform: "uppercase",
+            letterSpacing: "0.2em",
+            fontWeight: 900,
+            textShadow: `0 0 20px ${overlay.color}40, 0 0 40px ${overlay.color}20`,
+          },
+          "glass-sticker": {
+            backgroundColor: "rgba(255, 255, 255, 0.05)",
+            backdropFilter: "blur(12px)",
+            border: "1px border-white/10",
+            padding: "8px 16px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+          },
+          "cyber-neon": {
+            textShadow: `0 0 10px ${overlay.color}, 0 0 20px ${overlay.color}, 0 0 40px ${overlay.color}80`,
+            filter: "brightness(1.5) contrast(1.2)",
+          },
+          "floating": {
+            filter: "drop-shadow(0 15px 25px rgba(0,0,0,0.6))",
+          },
+          "deep-burn": {
+            filter: "saturate(2) contrast(1.5) drop-shadow(0 0 10px rgba(255,69,0,0.5))",
+            backgroundImage: "linear-gradient(to bottom, #ff8c00, #ff4500)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+          },
+          "sketch": {
+            filter: "grayscale(1) contrast(3) brightness(1.2)",
+            textShadow: "1px 1px 0px #fff, -1px -1px 0px #000",
+            fontFamily: "monospace",
+          },
+          "chrome": {
+            backgroundImage: "linear-gradient(to bottom, #d1d5db 0%, #ffffff 45%, #4b5563 50%, #9ca3af 100%)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5)) brightness(1.1)",
+          },
+          "neon-pulse": {
+             textShadow: `0 0 15px ${overlay.color}, 0 0 30px ${overlay.color}`,
+             filter: "brightness(1.5)",
+          },
+        };
+
+        const activePreset = ov.textPreset; // Assuming textPreset exists on overlay or extension
+        const presetStyle = activePreset && activePreset in presetStyles ? presetStyles[activePreset] : {};
 
         const textBoxStyles: CSSProperties = {
           display: "inline-block",
@@ -696,7 +754,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
           <div
             key={overlay.id}
             className={cn(
-              "absolute origin-center select-none",
+              "absolute origin-center select-none ring-offset-0",
               isOverlayImageType ? "" : "whitespace-pre-wrap",
               overlayInteractionEnabled ? "pointer-events-auto" : "pointer-events-none",
               overlay.locked
@@ -705,9 +763,9 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                   ? "cursor-move"
                   : "cursor-pointer",
               showHandles
-                ? "border-2 border-dashed border-blue-400/70 rounded-sm"
+                ? "ring-1 ring-primary rounded-sm shadow-[0_0_12px_rgba(var(--primary-rgb),0.25)]"
                 : isSelected && activeToolForOverlay
-                  ? "outline outline-2 outline-offset-2 outline-blue-400/80 rounded-sm"
+                  ? "ring-1 ring-primary/40 rounded-sm"
                   : ""
             )}
             style={{
@@ -732,7 +790,8 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                     fontStyle: overlay.fontStyle ?? "normal",
                     textAlign: overlay.textAlign ?? "center",
                     ...textFillStyles,
-                    textShadow,
+                    textShadow: presetStyle.textShadow || textShadow,
+                    ...presetStyle,
                     WebkitTextStroke:
                       (overlay.strokeWidth ?? 0) > 0
                         ? `${overlay.strokeWidth}px ${overlay.strokeColor ?? "#000000"}`
@@ -832,34 +891,42 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                     top: 0,
                     left: "50%",
                     width: 1,
-                    height: 28,
+                    height: 24,
                     transform: "translate(-50%, -100%)",
-                    background: "rgba(37, 99, 235, 0.9)",
-                    boxShadow: "0 0 0 1px rgba(255,255,255,0.55)",
+                    background: "var(--primary)",
+                    opacity: 0.6,
                   }}
                 />
                 {/* Rotate handle */}
                 <div
-                  className="absolute h-4 w-4 rounded-full bg-white border-2 border-blue-600 shadow-md z-[90] flex items-center justify-center"
-                  aria-label="Rotate text"
-                  title="Rotate text"
+                  className="absolute h-4.5 w-4.5 rounded-full bg-white border border-primary/40 shadow-[0_2px_10px_rgba(0,0,0,0.4)] z-[90] flex items-center justify-center group transition-all active:scale-90 hover:scale-110"
+                  aria-label="Rotate"
+                  title="Rotate"
                   style={{
                     top: 0,
                     left: "50%",
-                    transform: "translate(-50%, calc(-100% - 28px))",
-                    cursor: "crosshair",
+                    transform: "translate(-50%, calc(-100% - 24px))",
+                    cursor: "grab",
                   }}
-                  onPointerDown={(e) => handleRotatePointerDown(e, overlay, rotation)}
+                  onPointerDown={(e) => {
+                    const el = e.currentTarget;
+                    el.style.cursor = 'grabbing';
+                    handleRotatePointerDown(e, overlay, rotation);
+                  }}
                   onPointerMove={handleRotatePointerMove}
-                  onPointerUp={handleRotatePointerUp}
+                  onPointerUp={(e) => {
+                    const el = e.currentTarget;
+                    el.style.cursor = 'grab';
+                    handleRotatePointerUp();
+                  }}
                 >
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 20 20"
-                    className="h-2.5 w-2.5 text-blue-700 drop-shadow-[0_0_1px_rgba(255,255,255,0.9)] pointer-events-none"
+                    className="h-2.5 w-2.5 text-primary pointer-events-none transition-transform group-hover:rotate-12"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
@@ -871,7 +938,7 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                 {RESIZE_HANDLES.map((h) => (
                   <div
                     key={h.id}
-                    className="absolute h-3 w-3 rounded-sm bg-blue-400 border-2 border-white shadow z-[90]"
+                    className="absolute h-2.5 w-2.5 rounded-full bg-white border border-primary shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-[90] transition-all hover:scale-125 focus:ring-1 focus:ring-primary/50"
                     style={{
                       ...h.style,
                       transform: `translate(${h.tx}, ${h.ty})`,
@@ -888,6 +955,29 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
         );
       })}
 
+      {/* Smart Guides Rendering Overlay */}
+      {snapGuides && (
+        <div className="absolute inset-0 pointer-events-none z-[100] animate-fade-in">
+          {snapGuides.vertical !== undefined && (
+            <div
+              className="absolute top-0 bottom-0 border-l border-primary/50 shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)] transition-opacity duration-150 animate-pulse"
+              style={{ left: `${snapGuides.vertical * 100}%` }}
+            >
+              <div className="absolute top-0 h-1 w-1 -translate-x-1/2 rounded-full bg-primary shadow-glow" />
+              <div className="absolute bottom-0 h-1 w-1 -translate-x-1/2 rounded-full bg-primary shadow-glow" />
+            </div>
+          )}
+          {snapGuides.horizontal !== undefined && (
+            <div
+              className="absolute left-0 right-0 border-t border-primary/50 shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)] transition-opacity duration-150 animate-pulse"
+              style={{ top: `${snapGuides.horizontal * 100}%` }}
+            >
+              <div className="absolute left-0 h-1 w-1 -translate-y-1/2 rounded-full bg-primary shadow-glow" />
+              <div className="absolute right-0 h-1 w-1 -translate-y-1/2 rounded-full bg-primary shadow-glow" />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
