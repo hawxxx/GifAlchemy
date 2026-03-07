@@ -9,12 +9,16 @@ Core app routes live in `app/` (editor entry at `app/(editor)/editor/page.tsx`).
 - `npm run lint` - run ESLint (`next/core-web-vitals` + TypeScript rules).
 - `npm run build` - production build.
 - `npm start` - run the production build.
+- `npm run test:smoke` - run Playwright smoke coverage.
+- `npm run test:smoke:headed` - run Playwright smoke coverage with a visible browser.
+
+When validating UI/editor changes, start and stop `npm run dev` as needed without asking the user to manage it manually. Use the running dev server for browser checks and Playwright validation.
 
 ## Coding Style & Naming Conventions
 Use TypeScript with strict checks (`tsconfig.json`). Prefer functional React components and hooks. Use 2-space indentation and keep files in kebab-case (example: `text-tool-panel.tsx`). Export component names in PascalCase and hook names with `use*` (example: `use-overlays.ts`). Use path alias imports via `@/*` when practical.
 
 ## Testing Guidelines
-There is currently no dedicated automated test framework configured. Before opening a PR, run `npm run lint` and manually verify key flows in `/editor` (upload, timeline scrub, text overlay edits, and export). If adding non-trivial logic, include a brief manual test checklist in the PR.
+Playwright smoke coverage is configured for browser validation. Before opening a PR, run `npm run lint` and verify key flows in `/editor` (upload, timeline scrub, text overlay edits, and export). When behavior changes, add or update the relevant Playwright smoke tests instead of relying only on manual checks. If a change cannot be covered immediately, document the gap and include a brief manual test checklist in the PR.
 
 ## Commit & Pull Request Guidelines
 Use Conventional Commits for all messages:
@@ -42,6 +46,8 @@ Keep commits focused and descriptive. When requested, split separate implementat
 - linked issue/task (if available),
 - screenshots or GIFs for UI changes,
 - validation notes (lint + manual checks performed).
+
+Update documentation alongside behavior changes. At minimum, keep `AGENTS.md`, `README.md`, `ARCHITECTURE.MD`, or other affected product/developer docs aligned with the implementation whenever workflows, UI behavior, or testing expectations change.
 
 ## Security & Configuration Tips
 Do not commit secrets; keep environment values in `.env`/`.env*.local` only. Avoid editing generated/bundled worker code unless intentionally updating the GIF pipeline.
