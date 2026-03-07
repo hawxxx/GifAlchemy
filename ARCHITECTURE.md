@@ -434,7 +434,8 @@ Recommended extension seams:
 
 ## 21. Operational Commands
 - Install: `npm install`
-- Dev server: `npm run dev`
+- Dev server: `npm run dev` (auto-selects stable polling + webpack on mounted Windows paths like `/mnt/c/...`, uses Turbopack elsewhere)
+- Force Turbopack: `npm run dev:turbo`
 - Lint: `npm run lint`
 - Unit tests: `npm run test:unit`
 - Smoke tests: `npm run test:smoke`

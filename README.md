@@ -79,7 +79,7 @@ npm install
 ```bash
 npm run dev
 ```
-Runs the app with Turbopack at [http://localhost:3000](http://localhost:3000). Use **Open editor** to go to `/editor`.
+Runs the app at [http://localhost:3000](http://localhost:3000). On native Linux/macOS paths it uses Turbopack; on WSL mounted Windows paths such as `/mnt/c/...` it automatically falls back to polling + webpack so file changes reload reliably without restarting the server. Use **Open editor** to go to `/editor`.
 
 ### WSL-first workflow (recommended on Windows)
 ```bash
@@ -87,6 +87,7 @@ wsl
 cd /mnt/c/Users/hawxxx/GifAlchemy
 npm run dev
 ```
+If you explicitly want the old fast path for comparison, run `npm run dev:turbo`, but on `/mnt/c/...` the stable `npm run dev` path is the recommended default.
 
 ### Build & run
 ```bash
@@ -144,7 +145,8 @@ GifAlchemy/
 
 | Script | Description |
 |--------|-------------|
-| `npm run dev` | Start dev server (Turbopack) |
+| `npm run dev` | Start the WSL-aware dev server (Turbopack on native paths, polling + webpack on mounted Windows paths) |
+| `npm run dev:turbo` | Force Turbopack dev server |
 | `npm run build` | Production build |
 | `npm start` | Run production server |
 | `npm run lint` | Run ESLint |
