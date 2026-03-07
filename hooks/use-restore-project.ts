@@ -11,6 +11,7 @@ import { resolveProjectSourceFile } from "@/lib/project-source";
 export function useRestoreProject() {
   const { state, dispatch, processor, projectRepo } = useEditor();
   const attemptedRestore = useRef(false);
+  const restoreInProgress = useRef(false);
 
   useEffect(() => {
     if (
@@ -38,6 +39,9 @@ export function useRestoreProject() {
         if (cancelled || !targetId) return;
 
         attemptedRestore.current = true;
+        restoreInProgress.current = true;
+        dispatch({ type: "RESTORE_START" });
+        if (cancelled) return;
 
         let loaded = await projectRepo.load(targetId);
         if (cancelled) return;
@@ -84,6 +88,20 @@ export function useRestoreProject() {
         const { frames, metadata } = await decodeMedia(processor, file);
         if (cancelled) return;
 
+        const hasValidFrames =
+          frames.length > 0 &&
+          frames[0]?.imageData &&
+          frames[0].imageData.width > 0 &&
+          frames[0].imageData.height > 0;
+        if (!hasValidFrames) {
+          attemptedRestore.current = false;
+          dispatch({
+            type: "UPLOAD_ERROR",
+            payload: "Could not decode the GIF. The file may be corrupted or in an unsupported format.",
+          });
+          return;
+        }
+
         dispatch({
           type: "RESTORE_PROJECT",
           payload: {
@@ -104,11 +122,13 @@ export function useRestoreProject() {
         attemptedRestore.current = false;
         const message = err instanceof Error ? err.message : "Could not restore project.";
         dispatch({ type: "UPLOAD_ERROR", payload: message });
+      } finally {
+        restoreInProgress.current = false;
       }
     })();
 
     return () => {
-      cancelled = true;
+      if (!restoreInProgress.current) cancelled = true;
     };
   }, [state.status, state.frames.length, projectRepo, processor, dispatch]);
 }

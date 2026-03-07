@@ -186,9 +186,6 @@ function EmptyUploadView({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">
                   Recent uploads
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Keep this optional. Reopen prior media only when you need it.
-                </p>
               </div>
               <Button
                 type="button"
@@ -206,7 +203,6 @@ function EmptyUploadView({
             open={showRecentUploads}
             onClose={() => setShowRecentUploads(false)}
             title="Recent uploads"
-            description="Reuse previous source files without crowding the main import surface."
             className="max-w-3xl border-white/10 bg-[linear-gradient(180deg,rgba(17,22,30,0.98),rgba(10,13,19,0.98))] text-white shadow-[0_28px_80px_rgba(0,0,0,0.5)]"
           >
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
