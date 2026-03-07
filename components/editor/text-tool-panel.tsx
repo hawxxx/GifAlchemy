@@ -12,28 +12,6 @@ import { ANIMATION_PRESETS } from "@/core/domain/presets";
 import type { AnimationPresetType, Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
 import { FontLoader } from "@/components/editor/font-loader";
-import { FontPicker } from "@/components/editor/font-picker";
-import type { FontOption } from "@/components/editor/font-picker";
-
-const FONT_OPTIONS: FontOption[] = [
-  { id: "system-ui", label: "System UI", category: "system" },
-  { id: "Georgia, serif", label: "Georgia", category: "system" },
-  { id: "Arial, sans-serif", label: "Arial", category: "system" },
-  { id: "'Times New Roman', serif", label: "Times New Roman", category: "system" },
-  { id: "'Courier New', monospace", label: "Courier New", category: "system" },
-  { id: "Impact, sans-serif", label: "Impact", category: "system" },
-  { id: "Verdana, sans-serif", label: "Verdana", category: "system" },
-  { id: "'Plus Jakarta Sans', sans-serif", label: "HK Modular", category: "google" },
-  { id: "'Rock Salt', cursive", label: "Lava Pro Grunge", category: "google" },
-  { id: "'Permanent Marker', cursive", label: "WC Mano Negra Bold", category: "google" },
-  { id: "'Bebas Neue', sans-serif", label: "Bebas Neue", category: "google" },
-  { id: "'Pacifico', cursive", label: "Pacifico", category: "google" },
-  { id: "'Press Start 2P', monospace", label: "Press Start 2P", category: "google" },
-  { id: "'Cinzel', serif", label: "Cinzel", category: "google" },
-  { id: "'Righteous', sans-serif", label: "Righteous", category: "google" },
-];
-
-const COLORS_QUICK = ["#ffffff", "#000000", "#ef4444", "#3b82f6", "#22c55e", "#f59e0b"];
 
 /** CSS animation name per effect id. */
 const EFFECT_ANIM: Record<string, string> = {
@@ -53,6 +31,10 @@ const EFFECT_ANIM: Record<string, string> = {
   "neon-glow":  "ef-neon-glow 1.5s ease-in-out infinite",
   "glitch":     "ef-glitch 0.8s step-end infinite",
   "rainbow":    "ef-rainbow 2s linear infinite",
+  "deep-burn":  "ef-deep-burn 1.5s ease-in-out infinite",
+  "ghosting":   "ef-ghosting 2s ease-in-out infinite",
+  "scanner":    "ef-scanner 2s ease-in-out infinite",
+  "chrome":     "ef-pulse 1.4s ease-in-out infinite", /* Placeholder for chrome until we have a proper chrome effect */
 };
 
 function EffectCard({
@@ -74,41 +56,40 @@ function EffectCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex flex-col items-center gap-1 rounded-lg border-2 p-1.5 transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 active:scale-[0.98]",
+        "relative flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 transition-all duration-[var(--duration-ui)] ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.95] group",
         selected
-          ? "border-primary bg-primary/15 ring-2 ring-primary/30 shadow-sm"
-          : "border-border bg-muted/40 hover:border-primary/40 hover:bg-muted/70 hover:shadow-sm active:bg-muted/90"
+          ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
+          : "border-white/5 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06] hover:shadow-lg active:bg-white/[0.08]"
       )}
     >
       {selected && (
-        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm">
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-white shadow-[0_2px_10px_rgba(var(--primary-rgb),0.5)] z-10">
           ✓
         </span>
       )}
-      {/* mini preview — typewriter needs overflow clip for clip-path */}
-      <div className="flex h-9 w-full items-center justify-center overflow-hidden rounded-md bg-zinc-800">
+      <div className="flex h-10 w-full items-center justify-center overflow-hidden rounded-lg bg-black/60 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)] transition-transform group-hover:scale-[1.05]">
         {isTypewriter ? (
-          <span className="inline-flex items-end text-sm font-bold text-white select-none">
+          <span className="inline-flex items-end text-[11px] font-black tracking-widest text-white select-none">
             <span
               className="inline-block overflow-hidden whitespace-nowrap"
               style={{ width: "0ch", animation: "ef-typewriter-steps 1.8s steps(2, end) infinite" }}
             >
-              Aa
+              FX
             </span>
             <span className="inline-block w-[0.12em] min-w-[2px] h-[1em] ml-px align-baseline bg-current animate-typewriter-cursor" />
           </span>
         ) : (
           <span
-            className="text-sm font-bold text-white select-none"
+            className="text-[11px] font-black tracking-widest text-white select-none"
             style={anim ? { animation: anim } : undefined}
           >
-            Aa
+            FX
           </span>
         )}
       </div>
       <span className={cn(
-        "text-[10px] leading-none truncate w-full text-center",
-        selected ? "text-primary font-bold" : "text-muted-foreground"
+        "text-[9px] leading-tight font-bold tracking-widest uppercase truncate w-full text-center mt-0.5",
+        selected ? "text-primary" : "text-white/40 group-hover:text-white/70"
       )}>
         {label}
       </span>
@@ -142,6 +123,7 @@ export function TextToolPanel() {
   const hasMultiSelection = multiSelectedIds.length > 1;
   const selectedLineHeight = selected?.lineHeight ?? 1.2;
   const selectedLetterSpacing = selected?.letterSpacing ?? 0;
+  const selectedTextPreset = selected?.textPreset ?? "none";
 
   const updateSelectedOverlay = (updates: Partial<Overlay>) => {
     if (!selected) return;
@@ -762,15 +744,22 @@ export function TextToolPanel() {
                 {["glass-sticker", "cyber-neon", "modern-type", "floating", "deep-burn", "sketch"].map((preset) => (
                   <button
                     key={preset}
-                    onClick={() => updateSelectedOverlay({ textPreset: (selected as any).textPreset === preset ? "none" : preset })}
+                    onClick={() =>
+                      updateSelectedOverlay({ textPreset: selectedTextPreset === preset ? "none" : preset })
+                    }
                     className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all",
-                      (selected as any).textPreset === preset
+                      selectedTextPreset === preset
                         ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
                         : "border-white/5 bg-white/[0.02] text-white/30 hover:border-white/10 hover:bg-white/5 hover:text-white/60"
                     )}
                   >
-                    <div className={cn("h-1.5 w-1.5 rounded-full", (selected as any).textPreset === preset ? "bg-primary animate-pulse" : "bg-white/10")} />
+                    <div
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        selectedTextPreset === preset ? "bg-primary animate-pulse" : "bg-white/10"
+                      )}
+                    />
                     {preset.replace("-", " ")}
                   </button>
                 ))}
@@ -813,7 +802,7 @@ export function TextToolPanel() {
                ))}
              </div>
              
-             {activeEffect !== ("none" as any) && (
+             {activeEffect !== "none" && (
                 <div className="grid grid-cols-2 gap-3 mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
                   <div className="space-y-1">
                     <Label className="text-[9px] font-bold uppercase tracking-widest text-white/40 block">Start Fr.</Label>

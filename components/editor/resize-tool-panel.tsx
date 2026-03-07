@@ -5,13 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Lock, Unlock, Monitor, Smartphone, Square as SquareIcon, Layers } from "lucide-react";
+  type LucideIcon,
+  Lock,
+  Unlock,
+  Monitor,
+  Smartphone,
+  Square as SquareIcon,
+  Layers,
+} from "lucide-react";
 import type { GifMetadata } from "@/core/domain/gif-types";
 import type { OutputSettings, ResizePreset } from "@/core/domain/project";
 import { RESIZE_PRESETS } from "@/core/domain/presets";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const MAX_DIM = 2000;
 
-const PRESET_ICONS: Record<string, any> = {
+const PRESET_ICONS: Record<string, LucideIcon> = {
   original: Layers,
   square: SquareIcon,
   vertical: Smartphone,
@@ -116,31 +117,39 @@ export function ResizeToolPanel({
               key={p.id}
               onClick={() => handlePresetChange(p)}
               className={cn(
-                "group relative flex flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all duration-300",
+                "group relative flex flex-col items-center justify-center gap-2 rounded-[20px] border p-4 transition-all duration-300 ease-[var(--ease-snappy)] active:scale-95",
                 isActive
-                  ? "border-primary/50 bg-primary/10 shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] ring-1 ring-primary/20"
-                  : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
+                  ? "border-primary/40 bg-primary/10 shadow-[0_12px_24px_-8px_rgba(var(--primary-rgb),0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                  : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] hover:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]"
               )}
             >
               <div className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                isActive ? "bg-primary/20 text-primary" : "bg-white/5 text-white/40 group-hover:text-white/70"
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300",
+                isActive 
+                  ? "bg-primary text-white shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)] rotate-0" 
+                  : "bg-white/5 text-white/30 group-hover:text-white/60 group-hover:bg-white/10 group-hover:rotate-6"
               )}>
-                <Icon className="h-4 w-4" />
+                <Icon className="h-5 w-5" />
               </div>
-              <div className="text-center">
+              <div className="text-center space-y-0.5">
                 <span className={cn(
-                  "block text-[10px] font-bold uppercase tracking-widest transition-colors",
-                  isActive ? "text-white/90" : "text-white/30 group-hover:text-white/60"
+                  "block text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
+                  isActive ? "text-white" : "text-white/25 group-hover:text-white/50"
                 )}>
                   {p.label}
                 </span>
                 {p.width && (
-                  <span className="mt-0.5 block text-[9px] font-medium text-white/20">
+                  <span className={cn(
+                    "block text-[9px] font-bold tabular-nums transition-colors",
+                    isActive ? "text-primary/70" : "text-white/10 group-hover:text-white/20"
+                  )}>
                     {p.width}{p.height ? `×${p.height}` : "w"}
                   </span>
                 )}
               </div>
+              {isActive && (
+                <div className="absolute -bottom-1 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+              )}
             </button>
           );
         })}

@@ -1102,26 +1102,31 @@ export function CanvasStage() {
 
       {state.isPreviewMode && (
         <>
-          <div className="pointer-events-none absolute inset-0 z-40 rounded-xl bg-[radial-gradient(circle_at_center,rgba(2,6,14,0.08)_0%,rgba(2,6,14,0.42)_58%,rgba(2,6,14,0.82)_100%)] transition-opacity duration-200" />
-          <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/15 bg-black/45 px-4 py-2 backdrop-blur-md">
-            <span className="text-[11px] font-semibold tracking-[0.15em] uppercase text-white/60">Preview</span>
+          {/* Spotlight Effect - Keeps the center bright while dimming the edges */}
+          <div className="pointer-events-none absolute inset-0 z-40 rounded-xl bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_60%,rgba(0,0,0,0.85)_100%)] transition-opacity duration-300" />
+          
+          <div className="pointer-events-auto absolute inset-x-0 top-0 z-50 flex items-center justify-between rounded-t-xl border-b border-white/10 bg-black/60 px-6 py-3 backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse shadow-[0_0_10px_rgba(var(--primary-rgb),0.8)]" />
+              <span className="text-[11px] font-black tracking-[0.2em] uppercase text-white/80">Cinematic Preview</span>
+            </div>
             <button
               type="button"
               onClick={() => dispatch({ type: "SET_PREVIEW_MODE", payload: false })}
-              className="flex items-center gap-1 text-[11px] text-white/60 transition-colors duration-150 hover:text-white"
+              className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-[11px] font-bold text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
             >
-              <X className="h-3 w-3" />
-              Exit Preview
+              <X className="h-3.5 w-3.5" />
+              ESC TO EXIT
             </button>
           </div>
         </>
       )}
 
-      {/* Floating zoom bar — bottom-right so it stays away from canvas media */}
+      {/* Centered floating zoom bar - Balanced and accessible */}
       <div
         className={cn(
-          "absolute bottom-4 right-4 z-[100] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)]/95 px-2 py-2 shadow-[var(--shadow-md)] backdrop-blur-sm transition-opacity duration-[var(--duration-ui)]",
-          state.isPreviewMode && "opacity-0 pointer-events-none"
+          "absolute bottom-6 left-1/2 z-[100] -translate-x-1/2 rounded-[20px] border border-white/10 bg-[#0d121a]/95 px-3 py-2.5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-2xl transition-all duration-500",
+          state.isPreviewMode && "opacity-0 pointer-events-none translate-y-8"
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -1215,8 +1220,8 @@ export function CanvasStage() {
       {/* Cinema Backdrop Transition */}
       <div 
         className={cn(
-          "pointer-events-none absolute inset-0 z-[110] bg-[#050608] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          state.isPreviewMode ? "opacity-90 backdrop-blur-md" : "opacity-0"
+          "pointer-events-none absolute inset-0 z-[110] bg-[#020406] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          state.isPreviewMode ? "opacity-95 backdrop-blur-3xl" : "opacity-0"
         )}
       />
 
@@ -1315,15 +1320,6 @@ function LogoutIcon() {
 
 function PlayIcon() {
   return <div className="ml-0.5 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white transition-transform group-hover:scale-110" />;
-}
-
-function PauseIcon() {
-  return (
-    <div className="flex gap-1.5 transition-transform group-hover:scale-110">
-      <div className="h-4 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
-      <div className="h-4 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.4)]" />
-    </div>
-  );
 }
 
 function VolumeIcon() {

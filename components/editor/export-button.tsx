@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { AlertTriangle, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -239,11 +239,11 @@ export function ExportButton() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col items-end gap-0.5">
+      <div className="flex items-center gap-2.5">
+        <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2">
             <Select onValueChange={applyExportPreset} disabled={!state.metadata || exporting}>
-              <SelectTrigger className="h-9 w-[120px] rounded-[10px] border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-200 hover:bg-white/[0.06] focus:ring-1 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-black/50" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
+              <SelectTrigger className="h-10 w-[120px] rounded-[12px] border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 hover:bg-white/[0.08] focus:ring-1 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-black/50" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
                 <SelectValue placeholder={EDITOR_LABELS.export.presetPlaceholder} />
               </SelectTrigger>
               <SelectContent className="border-white/10 bg-[#121212]/95 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] text-white/90">
@@ -287,7 +287,7 @@ export function ExportButton() {
                 <>
                   <div 
                     className="absolute inset-y-0 left-0 bg-primary transition-all duration-300 ease-out" 
-                    style={{ width: `${state.processingProgress * 100}%` }}
+                    style={{ width: `${(state.processingProgress ?? 0) * 100}%` }}
                   />
                   <div 
                     className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] bg-[length:200%_100%] animate-shimmer opacity-30" 
@@ -295,7 +295,7 @@ export function ExportButton() {
                   {/* Wave effect at the edge of progress */}
                   <div 
                     className="absolute inset-y-0 w-8 blur-md bg-white/40 mix-blend-overlay transition-all duration-300"
-                    style={{ left: `calc(${state.processingProgress * 100}% - 16px)` }}
+                    style={{ left: `calc(${(state.processingProgress ?? 0) * 100}% - 16px)` }}
                   />
                 </>
               )}
