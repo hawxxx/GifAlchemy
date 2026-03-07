@@ -37,6 +37,50 @@ This document describes the current implementation in this repository as of the 
 
 ## 3. High-Level Architecture
 
+```mermaid
+flowchart TB
+    subgraph UI["Presentation Layer"]
+        Pages["Next.js Pages"]
+        Components["React Components"]
+        Hooks["Custom Hooks"]
+    end
+
+    subgraph State["State Management"]
+        Provider["EditorProvider\n(Reducer + Context)"]
+        History["Undo/Redo History\n(50 snapshots)"]
+    end
+
+    subgraph Core["Application Core"]
+        Commands["Commands\n(editor, overlay)"]
+        Services["Services\n(autosave)"]
+        Ports["Ports / Interfaces"]
+    end
+
+    subgraph Infra["Infrastructure Layer"]
+        GifProcessor["WasmGifProcessor\n(gifuct-js + gif.js)"]
+        IDBRepo["IndexedDB Repo\n(projects + files)"]
+        SupaRepo["Supabase Repo\n(optional remote)"]
+        Worker["gif.worker.js\n(Web Worker)"]
+    end
+
+    Pages --> Components
+    Components --> Hooks
+    Hooks --> Provider
+    Provider --> History
+    Provider --> Commands
+    Commands --> Services
+    Commands --> Ports
+    Ports --> GifProcessor
+    Ports --> IDBRepo
+    Ports --> SupaRepo
+    GifProcessor --> Worker
+
+    style UI fill:#1a1a2e,stroke:#e94560,color:#fff
+    style State fill:#16213e,stroke:#0f3460,color:#fff
+    style Core fill:#0f3460,stroke:#533483,color:#fff
+    style Infra fill:#1a1a2e,stroke:#e94560,color:#fff
+```
+
 ```text
 UI (Next.js pages/components)
   -> Hooks (feature orchestration)
@@ -125,6 +169,46 @@ File: `app/(editor)/editor/page.tsx`
 - Wraps in `ErrorBoundary`.
 
 ## 6. Core Runtime Components
+
+```mermaid
+flowchart LR
+    subgraph Shell["EditorShell"]
+        TopBar["TopBar"]
+        ToolsRail["ToolsRail"]
+        Canvas["CanvasStage"]
+        Props["PropertiesPanel"]
+        Timeline["TimelinePanel"]
+    end
+
+    subgraph Canvas_Sub["Canvas Stage"]
+        Renderer["OverlayRenderer"]
+        Rulers["Rulers + Guides"]
+        Crop["CropOverlay"]
+        Tracking["MotionTrackingUI"]
+    end
+
+    subgraph Props_Sub["Properties Panel"]
+        TextTool["TextToolPanel"]
+        ImageTool["ImageOverlayPanel"]
+        ResizeTool["ResizeToolPanel"]
+        OtherTools["Trim / Optimize / Stickers / Templates / Batch"]
+    end
+
+    Shell --> Canvas_Sub
+    Shell --> Props_Sub
+    Canvas --> Renderer
+    Canvas --> Rulers
+    Canvas --> Crop
+    Canvas --> Tracking
+    Props --> TextTool
+    Props --> ImageTool
+    Props --> ResizeTool
+    Props --> OtherTools
+
+    style Shell fill:#0d1117,stroke:#30363d,color:#c9d1d9
+    style Canvas_Sub fill:#161b22,stroke:#21262d,color:#c9d1d9
+    style Props_Sub fill:#161b22,stroke:#21262d,color:#c9d1d9
+```
 
 ### 6.1 Editor Provider (`providers/editor-provider.tsx`)
 Central source of truth with reducer-driven state.
@@ -316,6 +400,45 @@ File: `core/infrastructure/supabase/client.ts`
 
 ## 11. Data Flow Specifications
 
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UZ as UploadZone
+    participant CS as CanvasStage
+    participant EP as EditorProvider
+    participant GP as GifProcessor
+    participant W as gif.worker.js
+    participant OR as OverlayRenderer
+    participant EB as ExportButton
+    participant IDB as IndexedDB
+
+    Note over U,IDB: Upload & Decode Flow
+    U->>UZ: Drop / Select File
+    UZ->>CS: File Blob
+    CS->>EP: dispatch(UPLOAD_START)
+    EP->>GP: decodeGif(file)
+    GP->>GP: gifuct-js decompress
+    GP-->>EP: frames[] + metadata
+    EP->>EP: dispatch(UPLOAD_SUCCESS)
+    EP-->>CS: Render frame[0]
+
+    Note over U,IDB: Overlay Editing Flow
+    U->>OR: Add / Move / Style Overlay
+    OR->>EP: dispatch(UPDATE_OVERLAY)
+    EP->>EP: Push to undo history
+    EP-->>OR: Re-render with new state
+    EP-->>IDB: Debounced autosave
+
+    Note over U,IDB: Export Flow
+    U->>EB: Click Export
+    EB->>EP: dispatch(EXPORT_START)
+    EP->>GP: exportGifWithOverlays()
+    GP->>W: Encode frames
+    W-->>GP: Encoded Blob
+    GP-->>EP: dispatch(EXPORT_COMPLETE)
+    EP-->>U: triggerDownload(blob)
+```
+
 ### 11.1 Upload + Decode
 1. User uploads file via `UploadZone`.
 2. `CanvasStage` dispatches `UPLOAD_START`.
@@ -432,13 +555,107 @@ Recommended extension seams:
 - Expand overlay model and effect engine in `core/domain/project.ts` + `overlay-commands.ts`.
 - Add richer telemetry sink by subscribing to emitted telemetry custom events.
 
-## 21. Operational Commands
+## 22. Advanced Motion Tracking System
+
+GifAlchemy implements a high-performance, browser-native motion tracking system for overlays. This allows text and images to automatically follow dynamic subjects within a GIF.
+
+```mermaid
+flowchart TD
+    A["User Clicks 'Engage Tracker'"] --> B["SET_TRACKING_MODE\n(EditorProvider)"]
+    B --> C["Canvas: Show Target Reticle"]
+    C --> D["User Clicks on Object to Track"]
+    D --> E["Extract 32×32 Template\nfrom ImageData"]
+    E --> F{"More Frames?"}
+    F -->|Yes| G["Get Next Frame ImageData"]
+    G --> H["Localized Search Window\n(centered on last position)"]
+    H --> I["Compute SAD Score\nfor Each Candidate Block"]
+    I --> J["Select Block with\nLowest SAD Score"]
+    J --> K["Record Position Delta"]
+    K --> L["Generate Keyframe\n(x, y, frameIndex)"]
+    L --> F
+    F -->|No| M["Apply All Keyframes\nto Overlay"]
+    M --> N["Overlay Follows Object\nAcross All Frames"]
+
+    style A fill:#1a1a2e,stroke:#e94560,color:#fff
+    style E fill:#16213e,stroke:#0f3460,color:#fff
+    style I fill:#0f3460,stroke:#533483,color:#fff
+    style M fill:#1a1a2e,stroke:#e94560,color:#fff
+    style N fill:#16213e,stroke:#00d2ff,color:#fff
+```
+
+### 22.1 Core Algorithm: Sum of Absolute Differences (SAD)
+File: `lib/motion-tracker.ts`
+
+```mermaid
+flowchart LR
+    subgraph InputPhase["1. Input"]
+        Frame["Current Frame\nImageData"]
+        Template["32×32 Template\n(from initial click)"]
+    end
+
+    subgraph SearchPhase["2. Search"]
+        Window["Search Window\n(±64px from last pos)"]
+        Candidates["Generate Candidate\nBlocks"]
+    end
+
+    subgraph ScorePhase["3. Scoring"]
+        SAD["SAD = Σ|T[i] - C[i]|"]
+        BestMatch["Find Minimum\nSAD Score"]
+    end
+
+    subgraph OutputPhase["4. Output"]
+        NewPos["New (x, y) Position"]
+        Keyframe["Keyframe Object"]
+    end
+
+    Frame --> Window
+    Template --> Candidates
+    Window --> Candidates
+    Candidates --> SAD
+    SAD --> BestMatch
+    BestMatch --> NewPos
+    NewPos --> Keyframe
+
+    style InputPhase fill:#0d1117,stroke:#30363d,color:#c9d1d9
+    style SearchPhase fill:#161b22,stroke:#21262d,color:#c9d1d9
+    style ScorePhase fill:#0d1117,stroke:#30363d,color:#c9d1d9
+    style OutputPhase fill:#161b22,stroke:#21262d,color:#c9d1d9
+```
+
+The tracker uses a block-matching algorithm optimized for the browser:
+1. **Template Selection**: Upon user click, a 32x32 pixel "template" is extracted from the current frame's `ImageData` around the click coordinates.
+2. **Localized Search**: For each subsequent frame, the algorithm searches within a designated "Search Area" (centered at the last known position) to find the region that most closely matches the template.
+3. **SAD Calculation**: The algorithm computes the Sum of Absolute Differences for every candidate block:
+   ```js
+   score = sum(|template[i] - candidate[i]|)
+   ```
+   The block with the lowest SAD score is identified as the new position.
+4. **Adaptive Anchoring**: The system handles frame-to-frame jitter by normalizing coordinates within the coordinate space of the current project zoom level.
+
+### 22.2 Motion Keyframe Generation
+After tracking is complete, the system automatically translates the relative movement into standard project `Keyframe` objects:
+- **X/Y Offset Mapping**: The delta movement of the tracked object is applied to the overlay's base coordinates.
+- **Auto-Tweening**: Generates discrete keyframes for every frame in the tracking range to ensure perfect alignment, bypassing standard interpolation when precision is required.
+
+## 23. Premium UI & Cinematic Effects
+
+GifAlchemy prides itself on a "Studio-Grade" user experience, utilizing several advanced visual systems:
+
+### 23.1 Surface & Atmosphere
+- **Reactive Studio Cursor**: A dynamic pointer system that changes color and scale based on canvas interaction, providing tactile feedback.
+- **Atmospheric Background**: A multi-layered background system combining a dynamic CSS mesh grid with an animated SVG noise grain to create a high-end SaaS aesthetic.
+- **Advanced Glassmorphism**: Pervasive use of `backdrop-filter: blur(50px)` combined with ultra-thin `1px` borders and internal shadows (`inset`) to simulate premium hardware materials.
+
+### 23.2 Cinematic Preview System
+- **Dynamic Optical Vignette**: During preview mode, a radial gradient mask is applied to focus user attention on the center of the canvas.
+- **Spotlight Focus**: The canvas container dims peripheral elements when in cinematic mode, creating a "theatrical" viewing experience.
+- **Kinetic Timeline**: Timeline scrubbing uses physical momentum and snapping logic to provide a professional editing feel.
+
+## 24. Operational Commands
 - Install: `npm install`
-- Dev server: `npm run dev` (auto-selects stable polling + webpack on mounted Windows paths like `/mnt/c/...`, uses Turbopack elsewhere)
-- Force Turbopack: `npm run dev:turbo`
+- Dev server: `npm run dev`
 - Lint: `npm run lint`
 - Unit tests: `npm run test:unit`
 - Smoke tests: `npm run test:smoke`
 - Production build: `npm run build`
-- Start prod server: `npm start`
 - Release checklist: `npm run release:checklist`
