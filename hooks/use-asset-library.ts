@@ -9,6 +9,8 @@ import {
   type StoredAsset,
 } from "@/core/infrastructure/repositories/indexeddb-asset-library.adapter";
 
+export type { StoredAsset };
+
 export function useAssetLibrary() {
   const [assets, setAssets] = useState<StoredAsset[]>([]);
   const [loading, setLoading] = useState(true);

@@ -40,12 +40,12 @@ export function SearchSortBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search projects…"
-          className="pl-9 bg-[var(--muted)] border-[var(--border)] focus-visible:ring-[var(--ring)]"
+          className="pl-9 bg-[var(--background)]/60 backdrop-blur-md border-[var(--border)] focus-visible:ring-[var(--primary)]/50 rounded-xl shadow-sm"
         />
       </div>
 
       <Select value={sort} onValueChange={(v) => onSortChange(v as SortOption)}>
-        <SelectTrigger className="w-48 bg-[var(--muted)] border-[var(--border)]">
+        <SelectTrigger className="w-48 bg-[var(--background)]/60 backdrop-blur-md border-[var(--border)] rounded-xl shadow-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -56,7 +56,7 @@ export function SearchSortBar({
         </SelectContent>
       </Select>
 
-      <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--muted)] p-1 gap-0.5">
+      <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--background)]/60 backdrop-blur-md p-1 gap-0.5 shadow-sm">
         <Button
           variant="ghost"
           size="icon"

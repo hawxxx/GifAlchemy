@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Sparkles, Upload, Type, Share2, FolderOpen } from "lucide-react";
+import { Plus, Sparkles, Upload, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SearchSortBar, type SortOption, type ViewMode } from "@/components/projects/search-sort-bar";
@@ -71,7 +71,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--primary)]">
@@ -91,59 +91,64 @@ export default function HomePage() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-12 px-6 py-10">
-        <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--card)] via-[var(--muted)] to-[var(--accent)] px-8 py-14 text-center">
-          <div
-            className="pointer-events-none absolute inset-0 animate-hero-pulse"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 28% 55%, oklch(0.65 0.2 250), transparent 48%), radial-gradient(circle at 72% 45%, oklch(0.65 0.15 300), transparent 48%)",
-            }}
-          />
-          <div className="relative">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--muted)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
-              <Sparkles className="h-3 w-3 text-[var(--primary)]" />
-              Browser-native GIF editor
-            </div>
-            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
-              <span className="bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                GifAlchemy
-              </span>
-              <br />
-              <span className="text-[var(--foreground)]">Transform your GIFs</span>
+        <section className="mb-12">
+          <div className="mb-8">
+            <h1 className="text-3xl font-extrabold tracking-tight text-[var(--foreground)]">
+              {!mounted ? "Loading dashboard..." : projects.length === 0 ? "Ready to create something amazing?" : "Welcome back to your workspace"}
             </h1>
-            <p className="mx-auto mb-8 max-w-md text-base leading-relaxed text-[var(--muted-foreground)]">
-              Add text, effects, and animations to any GIF — right in your browser. No installs, no uploads.
+            <p className="mt-2 text-base text-[var(--muted-foreground)]">
+              Drag and drop a GIF to start editing immediately, or choose a recent project.
             </p>
-            <Button
-              asChild
-              size="lg"
-              className="ring-1 ring-[var(--primary)]/20 shadow-lg shadow-[var(--primary)]/30 transition-all duration-200 hover:shadow-[var(--primary)]/40"
-            >
-              <Link href="/editor?intent=new">
-                <Plus className="h-4 w-4" />
-                Start New Project
-              </Link>
-            </Button>
           </div>
+
+          <Link href="/editor?intent=new" className="block w-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl">
+            <div className="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--card)]/30 px-6 py-16 transition-all duration-500 hover:border-primary/50 hover:bg-primary/5 cursor-pointer overflow-hidden">
+              {/* Subtle dotted grid background */}
+              <div 
+                className="pointer-events-none absolute inset-0 opacity-[0.03] transition-opacity duration-500 group-hover:opacity-[0.08]"
+                style={{
+                  backgroundImage: "radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)",
+                  backgroundSize: "24px 24px"
+                }}
+              />
+              {/* Soft glow on hover */}
+              <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700 blur-3xl group-hover:opacity-100"
+                style={{ background: "radial-gradient(circle at center, var(--primary) 0%, transparent 50%)", opacity: 0.1 }} />
+
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all duration-500 group-hover:-translate-y-1 group-hover:scale-110 group-hover:bg-primary/20 shadow-sm relative z-10">
+                <Upload className="h-8 w-8" />
+              </div>
+              <h2 className="mb-2 text-xl font-bold text-[var(--foreground)] transition-colors group-hover:text-primary relative z-10">Drag & drop your GIF here</h2>
+              <p className="max-w-sm text-center text-sm text-[var(--muted-foreground)] relative z-10">
+                Or click to start a new project from scratch. Beautiful transformations happen directly in your browser.
+              </p>
+              
+              <div className="mt-8 flex items-center gap-4 relative z-10">
+                <Button variant="default" className="shadow-lg shadow-primary/20 transition-all duration-300 group-hover:shadow-primary/50 pointer-events-none">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Blank Project
+                </Button>
+              </div>
+            </div>
+          </Link>
         </section>
 
         <section>
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex items-end justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[var(--foreground)]">Recent Projects</h2>
+              <h2 className="text-xl font-semibold text-[var(--foreground)] tracking-tight">Recent Projects</h2>
               {mounted && projects.length > 0 && (
-                <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                   {projects.length} project{projects.length !== 1 ? "s" : ""}
                 </p>
               )}
             </div>
             {mounted && projects.length > 0 && (
-              <Link
-                href="/editor?intent=new"
-                className="text-xs text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-              >
-                New project →
-              </Link>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:flex text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                <Link href="/editor?intent=new">
+                  New project →
+                </Link>
+              </Button>
             )}
           </div>
 
@@ -205,50 +210,7 @@ export default function HomePage() {
           <UploadsSection />
         </section>
 
-        <Separator className="bg-[var(--border)]" />
 
-        <section>
-          <div className="mb-6 text-center">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">How it works</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">Three simple steps to transform any GIF</p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              {
-                icon: <Upload className="h-5 w-5" />,
-                step: "01",
-                title: "Upload GIF",
-                description: "Drop any GIF file into the editor. Supports files up to 50MB.",
-              },
-              {
-                icon: <Type className="h-5 w-5" />,
-                step: "02",
-                title: "Add Text & Effects",
-                description: "Layer text overlays with animations, custom fonts, and timing controls.",
-              },
-              {
-                icon: <Share2 className="h-5 w-5" />,
-                step: "03",
-                title: "Export & Share",
-                description: "Export your edited GIF, optimized and ready to share anywhere.",
-              },
-            ].map(({ icon, step, title, description }) => (
-              <div
-                key={step}
-                className="group relative rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 transition-all duration-200 hover:border-[var(--primary)]/40 hover:bg-[var(--muted)]"
-              >
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] transition-colors group-hover:bg-[var(--primary)]/20">
-                    {icon}
-                  </div>
-                  <span className="font-mono text-xs font-semibold text-[var(--muted-foreground)]">{step}</span>
-                </div>
-                <h3 className="mb-1.5 text-sm font-semibold text-[var(--foreground)]">{title}</h3>
-                <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">{description}</p>
-              </div>
-            ))}
-          </div>
-        </section>
       </main>
 
       <footer className="mt-16 border-t border-[var(--border)] py-6">

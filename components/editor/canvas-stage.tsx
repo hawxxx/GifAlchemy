@@ -162,15 +162,37 @@ function EmptyUploadView({
 
   useEffect(() => {
     let active = true;
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlParam = params.get("url");
+      const assetParam = params.get("asset");
+
+      if (urlParam) {
+        params.delete("url");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+        void onUrlAccepted(decodeURIComponent(urlParam)).catch(() => {
+          if (active) onError("Failed to load video from URL.");
+        });
+      } else if (assetParam) {
+        params.delete("asset");
+        window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+        void onAssetSelected(assetParam).catch(() => {
+          if (active) onError("Failed to load asset.");
+        });
+      }
+    }
+
     void listAssets(MAX_RECENT).then((items) => {
       if (active) setRecentUploads(items);
     }).catch(() => {
       if (active) setRecentUploads([]);
     });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [onUrlAccepted, onAssetSelected, onError]);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 overflow-auto p-6">

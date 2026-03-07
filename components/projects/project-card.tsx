@@ -70,21 +70,50 @@ export function ProjectCard({ project, onOpen, onDelete, onRename }: ProjectCard
 
   return (
     <div
-      className="group relative flex flex-col rounded-xl border border-border/40 bg-card overflow-hidden cursor-pointer transition-all duration-200 ease-out hover:border-border/70 hover:shadow-lg hover:shadow-black/20 active:scale-[0.99]"
+      className="group relative flex flex-col rounded-xl border border-border/40 bg-card overflow-hidden cursor-pointer transition-all duration-300 ease-out hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 active:scale-[0.98]"
       onClick={() => !isEditing && onOpen()}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-[#1a1a1e] rounded-t-xl">
+      <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-muted/50 to-muted rounded-t-xl">
         {project.previewDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={project.previewDataUrl}
-            alt={project.name}
-            className="h-full w-full object-cover"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={project.previewDataUrl}
+              alt={project.name}
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+            />
+            {project.previewDataUrl.startsWith("data:video/") && (
+              <video
+                src={project.previewDataUrl}
+                className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                loop
+                muted
+                playsInline
+                ref={(el) => {
+                  if (el) {
+                    el.onmouseenter = () => el.play().catch(() => {});
+                    el.onmouseleave = () => {
+                      el.pause();
+                      el.currentTime = 0;
+                    };
+                  }
+                }}
+              />
+            )}
+            {/* Fallback for non-video animated images (e.g. GIFs) - just show them scaling slightly if they can't be autoplayed distinctly */}
+            {!project.previewDataUrl.startsWith("data:video/") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={project.previewDataUrl}
+                alt={project.name}
+                className="absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-500 group-hover:scale-105 group-hover:opacity-100"
+              />
+            )}
+          </>
         ) : (
           <div
-            className="h-full w-full opacity-60"
+            className="h-full w-full opacity-60 transition-transform duration-700 group-hover:scale-110"
             style={{
               backgroundImage:
                 "repeating-conic-gradient(oklch(0.22 0 0) 0% 25%, oklch(0.17 0 0) 0% 50%)",
@@ -94,9 +123,9 @@ export function ProjectCard({ project, onOpen, onDelete, onRename }: ProjectCard
         )}
 
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center">
-          <span className="opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0 text-xs font-medium text-white bg-black/70 rounded-lg px-3 py-1.5 backdrop-blur-sm">
-            Open
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+          <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 text-xs font-medium text-white shadow-sm shadow-black/50 bg-black/60 rounded-lg px-3 py-1.5 backdrop-blur-md">
+            Open Editor
           </span>
         </div>
       </div>
