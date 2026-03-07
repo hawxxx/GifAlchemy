@@ -93,11 +93,7 @@ export function EditorShell({ className }: { className?: string }) {
   }, [projectRepo, state.frames.length, state.status]);
 
   useEffect(() => {
-    if (
-      state.frames.length > 0 ||
-      state.status !== "empty" ||
-      state.status === "loading"
-    ) {
+    if (state.frames.length > 0 || state.status !== "empty") {
       setShowOnboarding(false);
       setShowTour(false);
       setTourStep(0);
@@ -165,10 +161,10 @@ export function EditorShell({ className }: { className?: string }) {
 
       <div
         className={cn(
-          "grid min-h-0 flex-1 gap-3 overflow-hidden border-y border-[var(--border-subtle)] px-3 py-3 transition-colors duration-[var(--duration-ui)]",
-          "bg-[var(--background-0)]",
+          "grid min-h-0 flex-1 gap-4 overflow-hidden border-y border-white/5 px-4 py-4 transition-colors duration-[var(--duration-ui)]",
+          "bg-background/40 backdrop-blur-md",
           "[grid-template-columns:minmax(0,1fr)] [grid-template-rows:auto_minmax(0,1fr)_minmax(220px,auto)]",
-          "md:px-4 md:py-4 md:[grid-template-columns:88px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
+          "md:[grid-template-columns:88px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
         )}
       >
         <div
@@ -187,9 +183,11 @@ export function EditorShell({ className }: { className?: string }) {
         </div>
 
         <div className={cn(
-          "surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-0)] shadow-[var(--shadow-lg)] transition-all duration-[var(--duration-ui)]",
+          "relative surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[#090b0f] shadow-2xl transition-all duration-[var(--duration-ui)]",
           state.isPreviewMode && "ring-1 ring-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.6)]"
         )}>
+          {/* Deep dotted grid background */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)]" />
           <CanvasStage />
         </div>
 
@@ -208,10 +206,10 @@ export function EditorShell({ className }: { className?: string }) {
       </div>
 
       <div className={cn(
-        "shrink-0 border-t border-[var(--border-subtle)] bg-[var(--background-1)] px-3 pb-3 pt-2 md:px-4 md:pb-4 transition-opacity duration-[var(--duration-ui)]",
+        "shrink-0 border-t border-white/5 bg-background/50 backdrop-blur-md px-4 pb-4 pt-0 transition-opacity duration-[var(--duration-ui)]",
         state.isPreviewMode && "pointer-events-none opacity-10"
       )}>
-        <div className="animate-panel-in h-[160px] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-1)] shadow-[var(--shadow-md)] transition-all duration-[var(--duration-ui)] md:h-[176px]">
+        <div className="animate-panel-in h-[160px] overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl backdrop-blur-2xl transition-all duration-[var(--duration-ui)] md:h-[188px]">
           <TimelinePanel />
         </div>
       </div>

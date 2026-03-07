@@ -81,8 +81,8 @@ export function AssetLibraryPanel() {
   };
 
   return (
-    <div className="space-y-3">
-      <section className="rounded-xl border border-border/60 bg-background/60 p-3">
+    <div className="space-y-4">
+      <section className="rounded-xl border border-white/5 bg-black/10 p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -92,13 +92,13 @@ export function AssetLibraryPanel() {
               Drag onto the canvas to reuse source media.
             </p>
           </div>
-          <Button type="button" variant="ghost" size="sm" className="h-7 rounded-md px-2 text-[11px]">
+          <Button type="button" variant="ghost" size="sm" className="h-7 rounded-md px-2 text-[11px] hover:bg-white/5 hover:text-white transition-colors">
             <RefreshCcw className="h-3.5 w-3.5" />
             {loading ? "Loading" : assets.length}
           </Button>
         </div>
         {sourceAssets.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-center text-[12px] text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-[11px] text-muted-foreground bg-black/20">
             Upload GIF, WebM, MP4, or PNG assets to keep them available after refresh.
           </div>
         ) : (
@@ -112,17 +112,17 @@ export function AssetLibraryPanel() {
                   event.dataTransfer.setData("application/x-gifalchemy-asset-id", asset.id);
                   event.dataTransfer.effectAllowed = "copy";
                 }}
-                className="group overflow-hidden rounded-lg border border-border/60 bg-card/70 text-left transition-colors hover:border-primary/35 hover:bg-card"
+                className="group overflow-hidden rounded-lg border border-white/5 bg-black/20 text-left transition-colors hover:border-white/20 hover:bg-white/5"
                 title="Drag onto canvas"
               >
-                <div className="relative flex h-20 items-center justify-center overflow-hidden bg-muted/30">
+                <div className="relative flex h-20 items-center justify-center overflow-hidden bg-black/30">
                   {asset.previewDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={asset.previewDataUrl} alt={asset.name} className="h-full w-full object-cover" />
                   ) : asset.type.startsWith("video/") ? (
-                    <Video className="h-6 w-6 text-muted-foreground/60" />
+                    <Video className="h-6 w-6 text-white/40" />
                   ) : (
-                    <ImageIcon className="h-6 w-6 text-muted-foreground/60" />
+                    <ImageIcon className="h-6 w-6 text-white/40" />
                   )}
                 </div>
                 <div className="space-y-1 px-2 py-2">
@@ -137,7 +137,7 @@ export function AssetLibraryPanel() {
         )}
       </section>
 
-      <section className="rounded-xl border border-border/60 bg-background/60 p-3">
+      <section className="rounded-xl border border-white/5 bg-black/10 p-3">
         <div className="mb-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Saved projects
@@ -147,7 +147,7 @@ export function AssetLibraryPanel() {
           </p>
         </div>
         {projects.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/70 px-3 py-4 text-center text-[12px] text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-[11px] text-muted-foreground bg-black/20">
             No saved projects yet.
           </div>
         ) : (
@@ -157,14 +157,14 @@ export function AssetLibraryPanel() {
                 key={project.id}
                 type="button"
                 onClick={() => void openProject(project.id)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card/70 px-2.5 py-2 text-left transition-colors hover:border-primary/35 hover:bg-card"
+                className="flex w-full items-center gap-3 rounded-lg border border-white/5 bg-black/20 px-2.5 py-2 text-left transition-colors hover:border-white/20 hover:bg-white/5"
               >
-                <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted/40">
+                <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/30">
                   {project.previewDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={project.previewDataUrl} alt={project.name} className="h-full w-full object-cover" />
                   ) : (
-                    <FolderOpen className="h-4 w-4 text-muted-foreground/60" />
+                    <FolderOpen className="h-4 w-4 text-white/40" />
                   )}
                 </div>
                 <div className="min-w-0">

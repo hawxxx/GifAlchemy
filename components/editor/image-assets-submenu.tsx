@@ -5,7 +5,7 @@ import { ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createImageOverlay } from "@/core/application/commands/overlay-commands";
 import { useEditor } from "@/hooks/use-editor";
-import { getAssetFile, listAssets, saveAsset, type StoredAsset } from "@/lib/asset-library";
+import { getAssetFile, listAssets, saveAsset, deleteStoredAsset, type StoredAsset } from "@/lib/asset-library";
 import { cn, formatBytes } from "@/lib/utils";
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -264,46 +264,64 @@ export function ImageAssetsSubmenu({ open, onClose, className }: ImageAssetsSubm
             {storedAssets.map((asset) => {
               const isBusy = busyAssetId === asset.id;
               return (
-                <button
+                <div
                   key={asset.id}
-                  type="button"
-                  draggable
-                  onDragStart={(event) => {
-                    event.dataTransfer.setData("application/x-gifalchemy-image-asset-id", asset.id);
-                    event.dataTransfer.effectAllowed = "copy";
-                  }}
-                  onClick={() => void handleAssetPick(asset.id)}
                   className={cn(
-                    "group overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] text-left transition-all duration-150",
+                    "group relative overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] text-left transition-all duration-150",
                     "hover:-translate-y-0.5 hover:border-white/16 hover:bg-white/[0.06]",
                     isBusy && "border-primary/35 bg-primary/10"
                   )}
                   title={asset.name}
                 >
-                  <div className="relative flex h-24 items-center justify-center overflow-hidden bg-[repeating-conic-gradient(#171b21_0%_25%,#20252d_0%_50%)_50%_/_12px_12px]">
-                    {asset.previewDataUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={asset.previewDataUrl}
-                        alt={asset.name}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <ImageIcon className="h-5 w-5 text-white/45" />
-                    )}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/55 to-transparent px-2 pb-2 pt-6 text-[10px] uppercase tracking-[0.12em] text-white/72 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                      <span>Drag</span>
-                      <span>Click</span>
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("application/x-gifalchemy-image-asset-id", asset.id);
+                      event.dataTransfer.effectAllowed = "copy";
+                    }}
+                    onClick={() => void handleAssetPick(asset.id)}
+                    className="flex flex-col w-full h-full text-left"
+                  >
+                    <div className="relative flex h-24 items-center justify-center overflow-hidden w-full bg-[repeating-conic-gradient(#171b21_0%_25%,#20252d_0%_50%)_50%_/_12px_12px]">
+                      {asset.previewDataUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={asset.previewDataUrl}
+                          alt={asset.name}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <ImageIcon className="h-5 w-5 text-white/45" />
+                      )}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/55 to-transparent px-2 pb-2 pt-6 text-[10px] uppercase tracking-[0.12em] text-white/72 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                        <span>Drag</span>
+                        <span>Click</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-1 px-3 py-2.5">
-                    <p className="truncate text-xs font-medium text-white/92">{asset.name}</p>
-                    <p className="text-[10px] tabular-nums text-white/46">
-                      {formatBytes(asset.size)}
-                      {asset.width && asset.height ? ` · ${asset.width}x${asset.height}` : ""}
-                    </p>
-                  </div>
-                </button>
+                    <div className="space-y-1 px-3 py-2.5 w-full">
+                      <p className="truncate text-xs font-medium text-white/92">{asset.name}</p>
+                      <p className="text-[10px] tabular-nums text-white/46">
+                        {formatBytes(asset.size)}
+                        {asset.width && asset.height ? ` · ${asset.width}x${asset.height}` : ""}
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void deleteStoredAsset(asset.id).then(() => {
+                        setStoredAssets((prev) => prev.filter((a) => a.id !== asset.id));
+                      });
+                    }}
+                    className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 opacity-0 backdrop-blur-md transition-all duration-200 hover:bg-destructive hover:scale-110 group-hover:opacity-100 shadow-sm"
+                    aria-label="Remove asset"
+                  >
+                    <X className="h-3.5 w-3.5 text-white" />
+                  </button>
+                </div>
               );
             })}
           </div>

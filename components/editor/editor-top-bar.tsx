@@ -162,8 +162,8 @@ export function EditorTopBar({
   return (
     <header
       className={cn(
-        "relative z-20 shrink-0 border-b border-[var(--border-subtle)]",
-        "animate-panel-in bg-[var(--surface-1)]/95 backdrop-blur-sm transition-colors duration-[var(--duration-ui)]",
+        "relative z-20 shrink-0 border-b border-white/10",
+        "animate-panel-in bg-black/40 backdrop-blur-xl transition-all duration-300",
         "flex h-auto flex-wrap items-center gap-2 px-3 py-2 sm:px-4",
         className
       )}
@@ -172,7 +172,7 @@ export function EditorTopBar({
         <Link
           href="/"
           aria-label={EDITOR_LABELS.topBar.logo}
-          className="surface-sheen inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/45 bg-background/75 px-2.5 py-1.5 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 hover:border-border/60 hover:bg-background/90"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-black/30 px-2.5 py-1.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 hover:border-white/20 hover:bg-white/5"
         >
           <Sparkles className="animate-float-idle h-4 w-4 text-primary/85" />
           <span className="text-[13px] font-semibold tracking-[0.02em]">GifAlchemy</span>
@@ -192,14 +192,14 @@ export function EditorTopBar({
                 if (e.key === "Enter") commitEdit();
                 if (e.key === "Escape") setEditing(false);
               }}
-              className="min-w-0 max-w-[170px] rounded-lg border border-border/50 bg-background/70 px-2.5 py-1 text-sm font-medium tracking-[0.01em] text-foreground outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 focus:border-border/70 focus:ring-2 focus:ring-ring/35 sm:max-w-[240px]"
+              className="min-w-0 max-w-[170px] rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-sm font-medium tracking-[0.01em] text-white outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 focus:border-primary/50 focus:ring-2 focus:ring-primary/40 sm:max-w-[240px]"
               autoFocus
             />
           ) : (
             <button
               onClick={startEdit}
               title={EDITOR_LABELS.topBar.rename}
-              className="max-w-[170px] truncate rounded-lg px-2.5 py-1 text-sm font-semibold tracking-[0.01em] text-foreground/95 transition-all duration-150 hover:bg-background/65 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 sm:max-w-[240px]"
+              className="max-w-[170px] truncate rounded-lg px-2.5 py-1 text-sm font-semibold tracking-[0.01em] text-white/90 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:max-w-[240px]"
             >
               {projectName}
             </button>
@@ -209,11 +209,11 @@ export function EditorTopBar({
       </div>
 
       <div className="ml-auto flex items-center gap-2.5">
-        <div className="surface-sheen flex items-center gap-1 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
+        <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300">
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
+            className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50"
             onClick={openShortcuts}
           >
             <Keyboard className="h-4 w-4" />
@@ -225,7 +225,7 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground"
+                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white"
               >
                 <History className="h-4 w-4" />
                 <span className="hidden lg:inline">{EDITOR_LABELS.topBar.recent}</span>
@@ -261,7 +261,7 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground"
+                className="h-8 rounded-lg gap-1.5 px-2 text-xs font-medium text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white"
               >
                 <Clock3 className="h-4 w-4" />
                 <span className="hidden lg:inline">{EDITOR_LABELS.topBar.history}</span>
@@ -324,11 +324,11 @@ export function EditorTopBar({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-0.5 rounded-xl border border-border/45 bg-background/62 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] transition-colors duration-200">
+        <div className="flex items-center gap-0.5 rounded-xl border border-white/10 bg-black/20 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
+            className="h-8 w-8 rounded-lg text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50"
             disabled={!canUndo}
             onClick={undo}
             aria-label="Undo"
@@ -339,7 +339,7 @@ export function EditorTopBar({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-background/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70"
+            className="h-8 w-8 rounded-lg text-white/70 transition-all duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50"
             disabled={!canRedo}
             onClick={redo}
             aria-label="Redo"

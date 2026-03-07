@@ -40,7 +40,7 @@ export function ImageOverlayPanel() {
     <div className="flex flex-col gap-3">
       {selectedOverlay && !selectedOverlay.imageDataUrl && (
         <div
-          className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-500/50 bg-amber-500/5 p-4"
+          className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 p-4"
           role="alert"
         >
           <p className="text-xs font-medium text-amber-200/90 text-center">
@@ -50,7 +50,7 @@ export function ImageOverlayPanel() {
             type="button"
             variant="outline"
             size="sm"
-            className="border-amber-500/40 text-amber-200 hover:bg-amber-500/20"
+            className="border-amber-500/20 text-amber-200 hover:bg-amber-500/10 transition-colors"
             onClick={openImageAssets}
           >
             <Images className="mr-1.5 h-3.5 w-3.5" />
@@ -60,8 +60,8 @@ export function ImageOverlayPanel() {
       )}
 
       {selectedOverlay && (
-        <div className="flex flex-col gap-2 rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3 shadow-[inset_0_1px_0_0_theme(colors.background/70)]">
-          <Label className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
+        <div className="flex flex-col gap-2 rounded-xl border border-white/5 bg-black/10 p-3">
+          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">
             Opacity
           </Label>
           <div className="flex items-center gap-3">
@@ -74,7 +74,7 @@ export function ImageOverlayPanel() {
               aria-label="Image opacity"
               className="flex-1"
             />
-            <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
+            <span className="w-8 text-right text-xs font-medium tabular-nums text-muted-foreground">
               {Math.round(selectedOpacity * 100)}%
             </span>
           </div>
@@ -83,7 +83,7 @@ export function ImageOverlayPanel() {
 
       {imageOverlays.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/90">
             Image layers
           </p>
           {imageOverlays.map((overlay) => {
@@ -94,8 +94,8 @@ export function ImageOverlayPanel() {
                 className={cn(
                   "group flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-pointer transition-colors",
                   isSelected
-                    ? "border-primary/40 bg-primary/8"
-                    : "border-border/50 hover:border-border/80 hover:bg-muted/20"
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-white/5 hover:border-white/10 hover:bg-white/5"
                 )}
                 onClick={() => {
                   selectOverlay(overlay.id);
@@ -107,10 +107,10 @@ export function ImageOverlayPanel() {
                   <img
                     src={overlay.imageDataUrl}
                     alt={overlay.content}
-                    className="h-8 w-8 rounded object-cover shrink-0 border border-border/40"
+                    className="h-8 w-8 rounded object-cover shrink-0 border border-white/10"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border/40 bg-muted/30">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-white/10 bg-black/20">
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}

@@ -2,7 +2,6 @@
 
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
 import { useEditor } from "@/hooks/use-editor";
 import { cn } from "@/lib/utils";
 import type { OutputFormat } from "@/core/domain/gif-types";
@@ -43,28 +42,31 @@ export function OptimizeToolPanel() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-xs mb-2 block">Playback speed</Label>
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-2">Playback speed</Label>
         <div className="grid grid-cols-4 gap-1.5">
           {SPEED_OPTIONS.map((speed) => (
-            <Button
+            <button
               key={speed}
               type="button"
-              variant={state.playbackRate === speed ? "default" : "outline"}
-              size="sm"
-              className={cn("rounded-lg text-xs", state.playbackRate === speed && "shadow-sm")}
+              className={cn(
+                "h-8 rounded-lg border transition-colors text-[11px] font-medium",
+                state.playbackRate === speed
+                  ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
+                  : "border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              )}
               onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: speed })}
             >
               {speed}x
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <Label className="text-xs">Output quality</Label>
-          <span className="text-xs text-muted-foreground tabular-nums">{state.outputSettings.quality}%</span>
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Output quality</Label>
+          <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{state.outputSettings.quality}%</span>
         </div>
         <Slider
           value={[state.outputSettings.quality]}
@@ -78,26 +80,29 @@ export function OptimizeToolPanel() {
             })
           }
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="text-[10px] text-muted-foreground/80 leading-relaxed pt-1">
           Higher quality can increase output size and export time.
         </p>
       </div>
 
-      <div className="space-y-2.5 rounded-lg border border-border/60 bg-background/70 p-3">
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <Label className="text-xs">Background</Label>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Background</Label>
+            <p className="mt-1 text-[10px] text-muted-foreground/80">
               Keep transparency for transparent GIFs, or bake in a solid color.
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
+        <div className="flex items-center gap-2">
+          <button
             type="button"
-            variant={backgroundMode === "transparent" ? "default" : "outline"}
-            size="sm"
-            className="rounded-lg text-xs"
+            className={cn(
+              "h-8 flex-1 rounded-lg border transition-colors text-[11px] font-medium",
+              backgroundMode === "transparent"
+                ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
+                : "border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            )}
             onClick={() =>
               dispatch({
                 type: "UPDATE_OUTPUT_SETTINGS",
@@ -106,12 +111,15 @@ export function OptimizeToolPanel() {
             }
           >
             Transparent
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant={backgroundMode === "solid" ? "default" : "outline"}
-            size="sm"
-            className="rounded-lg text-xs"
+            className={cn(
+              "h-8 flex-1 rounded-lg border transition-colors text-[11px] font-medium",
+              backgroundMode === "solid"
+                ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
+                : "border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            )}
             onClick={() =>
               dispatch({
                 type: "UPDATE_OUTPUT_SETTINGS",
@@ -120,9 +128,9 @@ export function OptimizeToolPanel() {
             }
           >
             Solid color
-          </Button>
+          </button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pt-1">
           <input
             type="color"
             value={backgroundColor}
@@ -133,48 +141,50 @@ export function OptimizeToolPanel() {
                 payload: { backgroundColor: e.target.value, backgroundMode: "solid" },
               })
             }
-            className="h-9 w-11 cursor-pointer rounded-lg border border-border/70 bg-transparent p-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-8 w-12 cursor-pointer rounded-lg border border-white/10 bg-black/20 p-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Background color"
           />
-          <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+          <div className="rounded-lg border border-white/5 bg-black/20 px-3 py-2 text-[10px] text-muted-foreground flex-1">
             {backgroundMode === "solid"
-              ? `Export will render over ${backgroundColor.toUpperCase()}.`
-              : "Transparent pixels stay transparent in preview/export where supported."}
+              ? `Export will render over ${backgroundColor.toUpperCase()}`
+              : "Transparent pixels stay transparent"}
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5">
-        <p className="text-[11px] text-muted-foreground">
-          Tip: For faster exports, trim timeline range and reduce output dimensions in Resize.
+      <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+        <p className="text-[10px] leading-relaxed text-muted-foreground/80">
+          Tip: For faster exports, trim timeline range and reduce output dimensions in <span className="text-muted-foreground font-medium">Resize</span>.
         </p>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-background/70 p-2.5">
-        <p className="text-xs font-medium mb-2">Export format support matrix</p>
-        <div className="space-y-1.5">
+      <div className="rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-3 block">Format support</Label>
+        <div className="space-y-2">
           {EXPORT_SUPPORT_MATRIX.map((row) => {
             const isActive = row.format === selectedFormat;
             return (
               <div
                 key={row.format}
                 className={cn(
-                  "rounded border px-2 py-1.5 text-[11px]",
-                  isActive ? "border-primary/50 bg-primary/5" : "border-border/50 bg-muted/20"
+                  "rounded-lg border p-2 text-[11px] transition-colors",
+                  isActive ? "border-primary/30 bg-primary/10" : "border-white/5 bg-black/30"
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium uppercase">{row.format}</span>
+                  <span className="font-medium uppercase text-foreground">{row.format}</span>
                   <span
                     className={cn(
-                      "uppercase text-[10px]",
-                      row.status === "native" ? "text-emerald-600" : "text-amber-600"
+                      "uppercase text-[9px] px-1.5 py-0.5 rounded-full border",
+                      row.status === "native" 
+                        ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" 
+                        : "text-amber-400 bg-amber-500/10 border-amber-500/20"
                     )}
                   >
                     {row.status === "native" ? "native" : `fallback -> ${row.fallbackTo?.toUpperCase()}`}
                   </span>
                 </div>
-                <p className="mt-1 text-muted-foreground">{row.note}</p>
+                <p className="mt-1.5 text-[10px] text-muted-foreground/80">{row.note}</p>
               </div>
             );
           })}

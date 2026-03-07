@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useCallback, useState, useEffect, type MouseEvent, type CSSProperties } from "react";
 import { useEditor } from "@/hooks/use-editor";
+import { useOverlays } from "@/hooks/use-overlays";
 import type { Overlay, TypewriterCursorStyle } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
 
@@ -122,6 +123,7 @@ export interface OverlayRendererProps {
 
 export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = false }: OverlayRendererProps) {
   const { state, dispatch } = useEditor();
+  const { removeOverlay } = useOverlays();
   const { activeTool, selectedOverlayId } = state;
   const isTextMode = activeTool === "text";
   const isImageMode = activeTool === "image";
@@ -182,6 +184,26 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
       if (settleRef.current?.rafId != null) cancelAnimationFrame(settleRef.current.rafId);
     };
   }, []);
+
+  // Global delete shortcut for overlays
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.hasAttribute("contenteditable") ||
+        editingOverlayId !== null
+      ) {
+        return;
+      }
+      if ((e.key === "Backspace" || e.key === "Delete") && selectedOverlayId) {
+        e.preventDefault();
+        removeOverlay(selectedOverlayId);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedOverlayId, editingOverlayId, removeOverlay]);
 
   const interpolated = useMemo(
     () => overlays.map((o) => ({ overlay: o, ...interpolate(o, currentFrameIndex) })),
@@ -691,12 +713,15 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
             style={{
               left: `${displayX * 100}%`,
               top: `${displayY * 100}%`,
-              transform: `translate(-50%, -50%) scale(${(isDragging ? 1.02 : 1) * scale}) rotate(${rotation}deg)`,
-              boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.35)" : undefined,
-              transition: dragPreview?.overlayId === overlay.id
-                ? "left 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), top 0.22s cubic-bezier(0.34, 1.2, 0.64, 1)"
-                : undefined,
-              opacity,
+              transform: `translate(-50%, -50%) scale(${(isDragging ? 1.05 : 1) * scale}) rotate(${isDragging ? rotation + 1.5 : rotation}deg)`,
+              boxShadow: !isOverlayImageType && isDragging ? "0 16px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)" : undefined,
+              filter: isOverlayImageType && isDragging ? "drop-shadow(0 20px 30px rgba(0,0,0,0.5))" : undefined,
+              transition: isDragging
+                ? "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, filter 0.3s ease, opacity 0.2s"
+                : dragPreview?.overlayId === overlay.id
+                ? "left 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), top 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, filter 0.3s ease"
+                : "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, filter 0.3s ease, opacity 0.2s",
+              opacity: isDragging ? opacity * 0.85 : opacity,
               ...(isOverlayImageType
                 ? {}
                 : {

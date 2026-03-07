@@ -96,28 +96,28 @@ export function ResizeToolPanel({
         )?.id ?? "original";
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="grid grid-cols-2 gap-2">
+    <div className={cn("space-y-4", className)}>
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs">Width</Label>
+          <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Width</Label>
           <Input
             type="number"
             min={1}
             max={MAX_DIM}
             value={width || ""}
             onChange={(e) => handleWidthChange(e.target.value)}
-            className="rounded-lg mt-1"
+            className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
           />
         </div>
         <div>
-          <Label className="text-xs">Height</Label>
+          <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Height</Label>
           <Input
             type="number"
             min={1}
             max={MAX_DIM}
             value={height || ""}
             onChange={(e) => handleHeightChange(e.target.value)}
-            className="rounded-lg mt-1"
+            className="h-8 rounded-lg bg-black/20 border-white/10 text-xs focus-visible:ring-1 focus-visible:ring-white/20"
           />
         </div>
       </div>
@@ -126,21 +126,21 @@ export function ResizeToolPanel({
           aria-label="Lock aspect ratio"
           pressed={aspectLock}
           onPressedChange={setAspectLock}
-          className="rounded-lg"
+          className="h-8 w-8 rounded-lg data-[state=on]:bg-primary/20 data-[state=on]:text-primary border border-transparent data-[state=on]:border-primary/30"
         >
-          {aspectLock ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+          {aspectLock ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4 text-muted-foreground" />}
         </Toggle>
-        <Label className="text-xs">Lock aspect</Label>
+        <Label className="text-xs cursor-pointer select-none" onClick={() => setAspectLock(!aspectLock)}>Lock aspect</Label>
       </div>
-      <div>
-        <Label className="text-xs">Preset</Label>
+      <div className="border-t border-white/10 pt-4">
+        <Label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-2 block">Preset</Label>
         <Select value={currentPresetId} onValueChange={handlePresetChange}>
-          <SelectTrigger className="rounded-lg mt-1">
+          <SelectTrigger className="h-9 rounded-lg bg-black/20 border-white/10 text-xs">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-white/10 bg-[#161a23]/95 backdrop-blur-xl">
             {RESIZE_PRESETS.map((p) => (
-              <SelectItem key={p.id} value={p.id} className="rounded-lg">
+              <SelectItem key={p.id} value={p.id} className="text-xs cursor-pointer focus:bg-white/5 focus:text-foreground">
                 {p.label}
               </SelectItem>
             ))}

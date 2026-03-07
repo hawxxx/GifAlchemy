@@ -24,6 +24,7 @@ interface Props {
   onChange: (font: string) => void;
   fonts: FontOption[];
   disabled?: boolean;
+  className?: string;
 }
 
 const STORAGE_KEY = "gifalchemy:custom-fonts";
@@ -50,7 +51,7 @@ async function registerFontFace(name: string, source: string | ArrayBuffer): Pro
   document.fonts.add(fontFace);
 }
 
-export function FontPicker({ value, onChange, fonts, disabled }: Props) {
+export function FontPicker({ value, onChange, fonts, disabled, className }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [uploadedFonts, setUploadedFonts] = useState<FontOption[]>([]);
@@ -139,7 +140,8 @@ export function FontPicker({ value, onChange, fonts, disabled }: Props) {
               "flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 text-sm ring-offset-background transition-colors",
               "hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               disabled && "cursor-not-allowed opacity-50",
-              open && "border-ring ring-2 ring-ring/30"
+              open && "border-ring ring-2 ring-ring/30",
+              className
             )}
             aria-haspopup="listbox"
             aria-expanded={open}

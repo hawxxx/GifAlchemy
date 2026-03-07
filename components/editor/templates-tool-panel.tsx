@@ -311,23 +311,23 @@ export function TemplatesToolPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label className="text-xs">Template browser</Label>
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-1">Template browser</Label>
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search templates"
-          className="h-8"
+          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
           aria-label="Search templates"
         />
         <Select value={scope} onValueChange={(value) => setScope(value as TemplateScope)}>
-          <SelectTrigger className="h-8">
+          <SelectTrigger className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] hover:bg-white/5 transition-colors">
             <SelectValue placeholder="Template source" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All templates</SelectItem>
-            <SelectItem value="built-in">Built-in</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
+          <SelectContent className="border-white/10 bg-black/60 backdrop-blur-xl">
+            <SelectItem value="all" className="text-[11px]">All templates</SelectItem>
+            <SelectItem value="built-in" className="text-[11px]">Built-in</SelectItem>
+            <SelectItem value="custom" className="text-[11px]">Custom</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -339,9 +339,9 @@ export function TemplatesToolPanel() {
               key={template.id}
               type="button"
               onClick={() => applyTemplate(template)}
-              className="w-full rounded-lg border border-border bg-background p-2 text-left transition-colors hover:bg-accent"
+              className="w-full rounded-xl border border-white/8 bg-black/20 p-2.5 text-left transition-all hover:bg-white/10 hover:border-white/15 hover:-translate-y-0.5"
             >
-              <div className="mb-2 overflow-hidden rounded-md border border-border/60">
+              <div className="mb-2.5 overflow-hidden rounded-lg border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] bg-black/40">
                 <Image
                   src={template.previewDataUrl ?? templatePreviewDataUrl(template.name, template.layers)}
                   alt={`${template.name} preview`}
@@ -351,34 +351,34 @@ export function TemplatesToolPanel() {
                   loading="lazy"
                 />
               </div>
-              <p className="text-sm font-medium">{template.name}</p>
-              <p className="text-xs text-muted-foreground">{template.description ?? "No description"}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <p className="text-[13px] font-medium text-white/90">{template.name}</p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground/80 mt-0.5">{template.description ?? "No description"}</p>
+              <p className="mt-1.5 inline-block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded-full">
                 {template.source}
               </p>
             </button>
           ))}
           {templates.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] text-muted-foreground">
               No templates match your search.
             </div>
           )}
         </div>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2">
-        <Label className="text-xs">Save template from overlays</Label>
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Save template from overlays</Label>
         <Input
           value={templateName}
           onChange={(e) => setTemplateName(e.target.value)}
           placeholder="Template name"
-          className="h-8"
+          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
           aria-label="Template name"
         />
         <Button
           type="button"
           size="sm"
-          className="w-full rounded-lg"
+          className="w-full h-8 rounded-lg text-[11px] bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-muted-foreground"
           onClick={saveCurrentAsTemplate}
           disabled={state.overlays.length === 0}
         >
@@ -386,43 +386,43 @@ export function TemplatesToolPanel() {
         </Button>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2">
-        <Label className="text-xs">Restore points</Label>
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block">Restore points</Label>
         <Input
           value={snapshotName}
           onChange={(e) => setSnapshotName(e.target.value)}
           placeholder="Restore point label"
-          className="h-8"
+          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 transition-colors"
           aria-label="Restore point label"
         />
         <Button
           type="button"
           size="sm"
-          className="w-full rounded-lg"
+          className="w-full h-8 rounded-lg text-[11px] bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-muted-foreground"
           onClick={createRestorePoint}
           disabled={state.frames.length === 0}
         >
           Create restore point
         </Button>
 
-        <div className="max-h-32 space-y-1 overflow-y-auto pr-1">
+        <div className="max-h-32 space-y-1 overflow-y-auto pr-1 mt-2">
           {projectSnapshots.map((snapshot) => (
             <div
               key={snapshot.id}
-              className="flex items-center justify-between rounded border border-border bg-background px-2 py-1"
+              className="flex items-center justify-between rounded-lg border border-white/8 bg-black/20 px-2.5 py-1.5 transition-colors hover:border-white/15"
             >
               <div className="min-w-0">
-                <p className="truncate text-xs font-medium">{snapshot.label}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="truncate text-[11px] font-medium text-white/90">{snapshot.label}</p>
+                <p className="text-[10px] text-muted-foreground/80 mt-0.5">
                   {new Date(snapshot.createdAt).toLocaleString()}
                 </p>
               </div>
-              <div className="ml-2 flex items-center gap-1">
+              <div className="ml-2 flex items-center gap-1.5">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-6 rounded px-2 text-[11px]"
+                  className="h-6 rounded-md px-2 text-[10px] border-white/10 bg-transparent text-white/70 hover:bg-white/10 hover:text-white font-medium"
                   onClick={() => restoreProjectSnapshot(snapshot.id)}
                 >
                   Restore
@@ -431,7 +431,7 @@ export function TemplatesToolPanel() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 rounded px-2 text-[11px]"
+                  className="h-6 rounded-md px-2 text-[10px] text-muted-foreground hover:bg-red-500/20 hover:text-red-400 function-medium"
                   onClick={() => deleteProjectSnapshot(snapshot.id)}
                 >
                   Remove
@@ -440,7 +440,7 @@ export function TemplatesToolPanel() {
             </div>
           ))}
           {projectSnapshots.length === 0 && (
-            <p className="text-xs text-muted-foreground">No restore points yet.</p>
+            <p className="text-[11px] text-muted-foreground">No restore points yet.</p>
           )}
         </div>
       </div>

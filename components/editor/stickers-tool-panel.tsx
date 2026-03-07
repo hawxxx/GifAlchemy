@@ -90,45 +90,45 @@ export function StickersToolPanel() {
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label className="text-xs">Sticker packs</Label>
+    <div className="space-y-4">
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground block mb-1">Sticker packs</Label>
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search stickers"
-          className="h-8"
+          className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] focus-visible:ring-primary/40 focus-visible:border-primary/40 transition-colors"
           aria-label="Search stickers"
         />
         <Select value={category} onValueChange={(value) => setCategory(value as StickerCategory)}>
-          <SelectTrigger className="h-8">
+          <SelectTrigger className="h-8 rounded-lg border-white/10 bg-black/20 text-[11px] hover:bg-white/5 transition-colors">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            <SelectItem value="reaction">Reactions</SelectItem>
-            <SelectItem value="mood">Moods</SelectItem>
-            <SelectItem value="shape">Shapes</SelectItem>
-            <SelectItem value="symbol">Symbols</SelectItem>
+          <SelectContent className="border-white/10 bg-black/60 backdrop-blur-xl">
+            <SelectItem value="all" className="text-[11px]">All categories</SelectItem>
+            <SelectItem value="reaction" className="text-[11px]">Reactions</SelectItem>
+            <SelectItem value="mood" className="text-[11px]">Moods</SelectItem>
+            <SelectItem value="shape" className="text-[11px]">Shapes</SelectItem>
+            <SelectItem value="symbol" className="text-[11px]">Symbols</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Color (for supported stickers)</Label>
+          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Color</Label>
           <input
             type="color"
             value={tint}
             onChange={(e) => setTint(e.target.value)}
-            className="h-7 w-10 rounded border border-border bg-background p-0.5"
+            className="h-7 w-10 cursor-pointer rounded-lg border border-white/10 bg-black/20 p-0.5"
             aria-label="Sticker tint color"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="space-y-3 rounded-xl border border-white/5 bg-black/10 p-3">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground/80">
           <span>{filtered.length} results</span>
           <span>★/✓/◆ are tintable</span>
         </div>
@@ -137,7 +137,7 @@ export function StickersToolPanel() {
             <button
               key={sticker.id}
               type="button"
-              className="h-11 rounded-lg border border-border bg-background text-xl transition-colors hover:bg-accent"
+              className="h-11 rounded-xl border border-white/5 bg-black/20 text-xl transition-all hover:bg-white/10 hover:border-white/15 hover:-translate-y-0.5"
               onClick={() => addSticker(sticker)}
               title={`Add ${sticker.glyph} (${sticker.pack})`}
               aria-label={`Add ${sticker.glyph} sticker`}
@@ -146,7 +146,7 @@ export function StickersToolPanel() {
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-4 rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+            <div className="col-span-4 rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-6 text-center text-[11px] text-muted-foreground">
               No stickers match your search.
             </div>
           )}

@@ -32,7 +32,10 @@ const TOOLBAR_HEIGHT = 56;
 
 function getDefaultPos(): ToolbarPos {
   if (typeof window === "undefined") return { x: 0, y: 16 };
-  return { x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), y: 16 };
+  return { 
+    x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), 
+    y: Math.max(0, window.innerHeight / 2 - TOOLBAR_HEIGHT / 2) 
+  };
 }
 
 // ─── Toolbar button ───────────────────────────────────────────────────────────
@@ -152,6 +155,17 @@ export function FloatingTextToolbar() {
     return () => window.removeEventListener("resize", onResize);
   }, [setPosSynced]);
 
+  // Center toolbar when it initially mounts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPosSynced({ 
+        x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), 
+        y: Math.max(0, window.innerHeight / 2 - TOOLBAR_HEIGHT / 2) 
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Close color popover on outside click
   useEffect(() => {
     if (!colorOpen) return;
@@ -205,7 +219,7 @@ export function FloatingTextToolbar() {
 
   return (
     <div
-      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/16 bg-slate-950/60 p-1.5 text-white shadow-[0_20px_46px_-30px_rgba(2,6,23,0.9),0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-2xl supports-[backdrop-filter]:bg-slate-950/50 select-none"
+      className="fixed z-[100] flex items-center gap-1.5 rounded-2xl border border-white/10 bg-black/40 p-1.5 text-white shadow-2xl backdrop-blur-xl select-none"
       style={{ left: pos.x, top: pos.y }}
     >
       <div

@@ -44,12 +44,12 @@ const TRACK_H = 34;
 // ─── Per-overlay colours ─────────────────────────────────────────────────────
 
 const COLORS = [
-  { bar: "bg-blue-400/55 border-blue-300/45", text: "text-white/95", dot: "bg-blue-300/80" },
-  { bar: "bg-violet-400/55 border-violet-300/45", text: "text-white/95", dot: "bg-violet-300/80" },
-  { bar: "bg-emerald-400/55 border-emerald-300/45", text: "text-white/95", dot: "bg-emerald-300/80" },
-  { bar: "bg-orange-400/55 border-orange-300/45", text: "text-white/95", dot: "bg-orange-300/80" },
-  { bar: "bg-rose-400/55 border-rose-300/45", text: "text-white/95", dot: "bg-rose-300/80" },
-  { bar: "bg-cyan-400/55 border-cyan-300/45", text: "text-white/95", dot: "bg-cyan-300/80" },
+  { bar: "bg-gradient-to-r from-blue-500/40 to-blue-400/20 border-blue-400/30", text: "text-blue-50", dot: "bg-blue-400" },
+  { bar: "bg-gradient-to-r from-violet-500/40 to-violet-400/20 border-violet-400/30", text: "text-violet-50", dot: "bg-violet-400" },
+  { bar: "bg-gradient-to-r from-emerald-500/40 to-emerald-400/20 border-emerald-400/30", text: "text-emerald-50", dot: "bg-emerald-400" },
+  { bar: "bg-gradient-to-r from-orange-500/40 to-orange-400/20 border-orange-400/30", text: "text-orange-50", dot: "bg-orange-400" },
+  { bar: "bg-gradient-to-r from-rose-500/40 to-rose-400/20 border-rose-400/30", text: "text-rose-50", dot: "bg-rose-400" },
+  { bar: "bg-gradient-to-r from-cyan-500/40 to-cyan-400/20 border-cyan-400/30", text: "text-cyan-50", dot: "bg-cyan-400" },
 ];
 const color = (i: number) => COLORS[i % COLORS.length];
 
@@ -57,14 +57,13 @@ const color = (i: number) => COLORS[i % COLORS.length];
 
 function overlayRange(overlay: Overlay, frameCount: number) {
   if (Number.isFinite(overlay.inFrame) || Number.isFinite(overlay.outFrame)) {
-    const range = getOverlayFrameRange(overlay, frameCount);
-    return { start: range.inFrame, end: range.outFrame };
+    return getOverlayFrameRange(overlay, frameCount);
   }
   if (overlay.keyframes.length > 0) {
     const indices = overlay.keyframes.map((k) => k.frameIndex);
     return clampOverlayFrameRange(Math.min(...indices), Math.max(...indices), frameCount);
   }
-  return { start: 0, end: Math.max(0, frameCount - 1) };
+  return { inFrame: 0, outFrame: Math.max(0, frameCount - 1) };
 }
 
 function formatTime(frameIndex: number, avgDelayMs: number): string {
@@ -112,9 +111,12 @@ function Playhead({ pct, totalRows }: PlayheadProps) {
   const totalH = THUMB_ROW_H + RULER_H + totalRows * TRACK_H;
   return (
     <div
-      className="absolute top-0 z-20 pointer-events-none"
+      className="absolute top-0 z-20 pointer-events-none group"
       style={{ left: `${pct}%`, height: totalH }}
     >
+      {/* Pulsing radial glow for playhead */}
+      <div className="absolute top-0 left-1/2 h-full w-[36px] -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,rgba(255,111,97,0.35)_0%,transparent_70%)] animate-pulse" />
+      
       {/* triangle notch */}
       <div className="absolute -top-0 left-1/2 h-0 w-0 -translate-x-1/2 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#ff6f61] drop-shadow-[0_0_4px_rgba(255,111,97,0.55)]" />
       {/* vertical glow + core line */}
@@ -306,7 +308,7 @@ export function TimelinePanel() {
         baseRangeById: Object.fromEntries(
           movingOverlays.map((o) => {
             const range = overlayRange(o, frameCount);
-            return [o.id, { inFrame: range.start, outFrame: range.end }];
+            return [o.id, { inFrame: range.inFrame, outFrame: range.outFrame }];
           })
         ),
       };
@@ -396,7 +398,7 @@ export function TimelinePanel() {
         overlayId: overlay.id,
         side,
         startClientX: e.clientX,
-        baseRange: { inFrame: range.start, outFrame: range.end },
+        baseRange: { inFrame: range.inFrame, outFrame: range.outFrame },
       };
       dispatch({ type: "SET_FRAME", payload: xToFrame(e.clientX) });
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -608,7 +610,7 @@ export function TimelinePanel() {
   }
 
   return (
-    <div className="flex h-full select-none flex-col overflow-hidden border-t border-white/10 bg-[linear-gradient(180deg,rgba(28,33,43,0.94)_0%,rgba(21,25,33,0.96)_100%)]">
+    <div className="flex h-full select-none flex-col overflow-hidden relative">
       {/* ── Controls bar ─────────────────────────────────────────────────── */}
       <div className="flex h-9 shrink-0 items-center gap-1.5 border-b border-white/10 bg-black/25 px-3 backdrop-blur-[1px]">
         <Button
@@ -646,28 +648,32 @@ export function TimelinePanel() {
           A/D: prev/next
         </span>
 
-        <span className="ml-2 text-xs text-muted-foreground/85">
-          Speed {playbackRate}x
-        </span>
+        <div className="ml-2 flex items-center gap-1 rounded-md border border-white/12 bg-black/25 px-1.5 py-0.5">
+          <button
+            type="button"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.max(0.25, playbackRate - 0.25) })}
+            disabled={playbackRate <= 0.25}
+            title="Decrease speed"
+            aria-label="Decrease playback speed"
+          >
+            <Minus className="h-3 w-3" />
+          </button>
+          
+          <span className="min-w-8 text-center text-[10px] font-medium tabular-nums text-muted-foreground">
+            {playbackRate.toFixed(2).replace(/\.?0+$/, '')}x
+          </span>
 
-        <div className="flex items-center gap-0.5">
-          {([0.5, 1, 1.5, 2] as const).map((rate) => (
-            <Button
-              key={rate}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-6 min-w-7 rounded-md text-xs tabular-nums transition-colors duration-150",
-                playbackRate === rate
-                  ? "bg-primary/90 text-primary-foreground shadow-[0_0_0_1px_rgba(255,255,255,0.12)_inset] hover:bg-primary/85"
-                  : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
-              )}
-              onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: rate })}
-              title={`Playback speed ${rate}×`}
-            >
-              {rate}×
-            </Button>
-          ))}
+          <button
+            type="button"
+            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => dispatch({ type: "SET_PLAYBACK_RATE", payload: Math.min(3, playbackRate + 0.25) })}
+            disabled={playbackRate >= 3}
+            title="Increase speed"
+            aria-label="Increase playback speed"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
         </div>
         <div className="ml-2 flex items-center gap-1 rounded-md border border-white/12 bg-black/25 px-1.5 py-0.5">
           <button
@@ -770,7 +776,7 @@ export function TimelinePanel() {
           variant="ghost"
           size="sm"
           className="h-7 gap-1.5 rounded-md text-xs text-muted-foreground transition-colors duration-150 hover:bg-white/12 hover:text-foreground"
-          onClick={addOverlay}
+          onClick={() => addOverlay()}
           disabled={frameCount === 0}
           title="Add text layer"
         >
@@ -1068,7 +1074,7 @@ export function TimelinePanel() {
             const c = color(i);
             const isSelected = selectedSet.has(overlay.id);
             const isLocked = overlay.locked === true;
-            const { start, end } = overlayRange(overlay, frameCount);
+            const { inFrame: start, outFrame: end } = overlayRange(overlay, frameCount);
             const leftPct = (start / Math.max(1, frameCount - 1)) * 100;
             const widthPct = Math.max(
               ((end - start) / Math.max(1, frameCount - 1)) * 100,

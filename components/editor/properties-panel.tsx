@@ -54,24 +54,24 @@ export function PropertiesPanel({
     activeTool !== "batch";
 
   const sectionCardClass =
-    "content-visibility-auto relative overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-1)] p-4 shadow-[var(--shadow-sm)]";
+    "content-visibility-auto relative overflow-hidden rounded-xl border border-white/8 bg-white/[0.025] p-4 shadow-sm transition-all duration-300 hover:bg-white/[0.035] hover:border-white/10";
   const sectionTitleClass =
-    "mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]";
+    "mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80";
 
   return (
     <aside
       className={cn(
-        "editor-chrome relative flex flex-col overflow-auto rounded-2xl border border-border/60 bg-gradient-to-b from-card/95 via-card/88 to-card/82 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.72)] backdrop-blur-xl",
-        "ring-1 ring-black/[0.03] dark:ring-white/[0.05]",
+        "editor-chrome relative flex flex-col overflow-auto rounded-2xl border border-white/10 bg-black/40 shadow-xl backdrop-blur-2xl",
+        "ring-1 ring-white/[0.02]",
         className
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/35 dark:ring-white/[0.08]"
+        className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/[0.05]"
       />
 
-      <div className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-gradient-to-b from-card/98 via-card/94 to-card/88 px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(15,23,42,0.08)] backdrop-blur-xl supports-[backdrop-filter]:bg-card/92">
+      <div className="sticky top-0 z-10 shrink-0 border-b border-white/10 bg-black/40 px-5 py-4 shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.02)] backdrop-blur-3xl">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72">
