@@ -38,29 +38,6 @@ export function ImageOverlayPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div
-        className="flex items-start justify-between gap-3 rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 p-3"
-      >
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground/80">
-            Image assets
-          </p>
-          <p className="mt-1 text-[11px] leading-5 text-muted-foreground/72">
-            Open the image browser to upload or reuse saved overlays.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-8 rounded-lg px-3"
-          onClick={openImageAssets}
-        >
-          <Images className="h-4 w-4" />
-          Browse
-        </Button>
-      </div>
-
       {selectedOverlay && !selectedOverlay.imageDataUrl && (
         <div
           className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-500/50 bg-amber-500/5 p-4"
@@ -201,9 +178,11 @@ export function ImageOverlayPanel() {
       )}
 
       {imageOverlays.length === 0 && (
-        <p className="text-center text-xs text-muted-foreground/70 py-1">
-          No image overlays yet. Use the Image tool browser to add one.
-        </p>
+        <div className="rounded-xl border border-border/55 bg-gradient-to-b from-background/70 to-background/45 px-3 py-3 text-center">
+          <p className="text-xs text-muted-foreground/78">
+            No image overlays yet. Open the Image submenu from the left rail to drag assets into the canvas.
+          </p>
+        </div>
       )}
     </div>
   );

@@ -10,7 +10,7 @@ import { NextStepsMenu } from "./next-steps-menu";
 import { OnboardingModal } from "./onboarding-modal";
 import { KeyboardShortcutsModal } from "./keyboard-shortcuts-modal";
 import { GuidedOnboarding } from "./guided-onboarding";
-import { ImageAssetsModal } from "./image-assets-modal";
+import { ImageAssetsSubmenu } from "./image-assets-submenu";
 import { useEditor } from "@/hooks/use-editor";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useRestoreProject } from "@/hooks/use-restore-project";
@@ -116,6 +116,12 @@ export function EditorShell({ className }: { className?: string }) {
     return () => window.removeEventListener("gifalchemy:open-image-assets", openImageAssets);
   }, []);
 
+  useEffect(() => {
+    if (state.activeTool !== "image" || state.isPreviewMode) {
+      setShowImageAssets(false);
+    }
+  }, [state.activeTool, state.isPreviewMode]);
+
   const dismissOnboarding = () => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(ONBOARDING_KEY, "seen");
@@ -165,14 +171,20 @@ export function EditorShell({ className }: { className?: string }) {
           "md:px-4 md:py-4 md:[grid-template-columns:88px_minmax(0,1fr)_320px] md:[grid-template-rows:minmax(0,1fr)]"
         )}
       >
-        <ToolsRail
-          activeTool={state.activeTool}
-          onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
+        <div
           className={cn(
-            "transition-all duration-[var(--duration-ui)]",
+            "relative z-20",
             state.isPreviewMode && "pointer-events-none opacity-15 scale-[0.98]"
           )}
-        />
+        >
+          <ToolsRail
+            activeTool={state.activeTool}
+            imageAssetsOpen={showImageAssets}
+            onSelectTool={(tool) => dispatch({ type: "SET_TOOL", payload: tool })}
+            className="transition-all duration-[var(--duration-ui)]"
+          />
+          <ImageAssetsSubmenu open={showImageAssets} onClose={() => setShowImageAssets(false)} />
+        </div>
 
         <div className={cn(
           "surface-sheen animate-panel-in min-h-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-0)] shadow-[var(--shadow-lg)] transition-all duration-[var(--duration-ui)]",
@@ -216,7 +228,6 @@ export function EditorShell({ className }: { className?: string }) {
       />
 
       <KeyboardShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <ImageAssetsModal open={showImageAssets} onClose={() => setShowImageAssets(false)} />
       {showTour && (
         <GuidedOnboarding
           stepIndex={tourStep}

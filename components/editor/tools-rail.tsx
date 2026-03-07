@@ -49,11 +49,17 @@ const TOOL_GROUPS: ToolId[][] = [
 
 export interface ToolsRailProps {
   activeTool: ToolId | null;
+  imageAssetsOpen?: boolean;
   onSelectTool: (tool: ToolId | null) => void;
   className?: string;
 }
 
-export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProps) {
+export function ToolsRail({
+  activeTool,
+  imageAssetsOpen = false,
+  onSelectTool,
+  className,
+}: ToolsRailProps) {
   return (
     <TooltipProvider delayDuration={400}>
       <aside
@@ -90,11 +96,16 @@ export function ToolsRail({ activeTool, onSelectTool, className }: ToolsRailProp
                       <button
                         type="button"
                         onClick={() => {
+                          if (id === "image") {
+                            const shouldOpenAssets = !isActive || !imageAssetsOpen;
+                            onSelectTool(shouldOpenAssets ? "image" : null);
+                            if (shouldOpenAssets && typeof window !== "undefined") {
+                              window.dispatchEvent(new CustomEvent("gifalchemy:open-image-assets"));
+                            }
+                            return;
+                          }
                           const nextTool = isActive ? null : id;
                           onSelectTool(nextTool);
-                          if (id === "image" && nextTool === "image" && typeof window !== "undefined") {
-                            window.dispatchEvent(new CustomEvent("gifalchemy:open-image-assets"));
-                          }
                         }}
                         aria-label={TOOL_LABELS[id]}
                         className={cn(
