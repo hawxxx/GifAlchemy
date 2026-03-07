@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEditor } from "@/hooks/use-editor";
 import { useOverlays } from "@/hooks/use-overlays";
+import { FontPicker, FONTS } from "@/components/editor/font-picker";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,9 +33,10 @@ const TOOLBAR_HEIGHT = 56;
 
 function getDefaultPos(): ToolbarPos {
   if (typeof window === "undefined") return { x: 0, y: 16 };
+  // Position centered horizontally, but pushed down slightly from the very center to avoid blocking the image focus point
   return { 
     x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), 
-    y: Math.max(0, window.innerHeight / 2 - TOOLBAR_HEIGHT / 2) 
+    y: Math.max(0, window.innerHeight / 2 + 100)
   };
 }
 
@@ -155,12 +157,12 @@ export function FloatingTextToolbar() {
     return () => window.removeEventListener("resize", onResize);
   }, [setPosSynced]);
 
-  // Center toolbar when it initially mounts
+  // Center toolbar slightly above middle when it initially mounts
   useEffect(() => {
     if (typeof window !== "undefined") {
       setPosSynced({ 
         x: Math.max(0, window.innerWidth / 2 - TOOLBAR_WIDTH / 2), 
-        y: Math.max(0, window.innerHeight / 2 - TOOLBAR_HEIGHT / 2) 
+        y: Math.max(0, window.innerHeight / 2 + 100)
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,12 +189,9 @@ export function FloatingTextToolbar() {
   const color = selectedOverlay.color ?? "#ffffff";
   const fontSize = selectedOverlay.fontSize ?? 32;
 
-  // Extract a human-readable font name from the fontFamily string
-  const fontName =
-    selectedOverlay.fontFamily
-      ?.split(",")[0]
-      ?.replace(/['"]/g, "")
-      ?.trim() ?? "Font";
+  const handleFontChange = (fontId: string) => {
+    updateOverlay(selectedOverlay.id, { fontFamily: fontId });
+  };
 
   const toggle = (field: "fontWeight" | "fontStyle") => {
     if (field === "fontWeight") {
@@ -238,10 +237,16 @@ export function FloatingTextToolbar() {
           <GripVertical className="h-4 w-4" />
         </div>
 
-        {/* Font name */}
-        <span className="hidden max-w-[72px] truncate pr-1 text-[10px] font-medium tracking-[0.02em] text-white/55 sm:block">
-          {fontName}
-        </span>
+        {/* Font Selector */}
+        <div className="w-[120px]">
+          <FontPicker
+            fonts={FONTS}
+            value={selectedOverlay.fontFamily ?? "Inter, sans-serif"}
+            onChange={handleFontChange}
+            disabled={selectedOverlay.locked}
+            className="h-8 border-none bg-transparent hover:bg-white/[0.04] shadow-none focus-visible:ring-0 focus-visible:bg-white/[0.08] px-2 text-white/90 text-xs"
+          />
+        </div>
       </ControlGroup>
 
       <Sep />

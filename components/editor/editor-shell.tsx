@@ -195,6 +195,12 @@ export function EditorShell({ className }: { className?: string }) {
             "[mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_90%)]"
           )} />
           
+          {/* Atmospheric Ambient Core Engine */}
+          <div className="pointer-events-none absolute inset-0 -z-30 bg-[#06080b]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(59,130,246,0.06),transparent_60%)] animate-pulse mix-blend-screen" style={{ animationDuration: '8s' }} />
+            <div className="absolute inset-x-0 top-0 h-[40vh] bg-gradient-to-b from-primary/[0.03] to-transparent pointer-events-none" />
+          </div>
+          
           {/* Active Grid Overlay - Progressive disclosure */}
           {state.snapToGrid && (
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:32px_32px] animate-fade-in" />

@@ -12,6 +12,7 @@ import { ANIMATION_PRESETS } from "@/core/domain/presets";
 import type { AnimationPresetType, Overlay } from "@/core/domain/project";
 import { cn } from "@/lib/utils";
 import { FontLoader } from "@/components/editor/font-loader";
+import { FontPicker, FONTS } from "@/components/editor/font-picker";
 
 /** CSS animation name per effect id. */
 const EFFECT_ANIM: Record<string, string> = {
@@ -404,15 +405,14 @@ export function TextToolPanel() {
 
           {/* Typography Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-[10px] font-semibold uppercase tracking-widest text-white/50 block">Font</Label>
-              <Input
-                type="text"
+              <FontPicker
+                fonts={FONTS}
                 value={selected.fontFamily}
-                onChange={(e) => updateOverlay(selected.id, { fontFamily: e.target.value })}
-                className="h-8 rounded-md border-white/10 bg-black/20 text-xs text-white/90 focus-visible:ring-1 focus-visible:ring-primary/20 hover:border-white/20 transition-all"
-                placeholder="Impact, Arial"
+                onChange={(font) => updateOverlay(selected.id, { fontFamily: font })}
                 disabled={selectedLocked}
+                className="h-8 border-white/10 bg-black/20 text-white/90 focus-visible:ring-1 focus-visible:ring-primary/20 hover:border-white/20 transition-all text-xs"
               />
             </div>
             <div className="space-y-1.5">
@@ -738,31 +738,90 @@ export function TextToolPanel() {
                   {(selected.backgroundColor ?? "#00000000") === "#00000000" ? "Enable" : "Enabled"}
                 </button>
               </div>
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-4">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Premium Styles</Label>
               <div className="grid grid-cols-2 gap-2">
-                {["glass-sticker", "cyber-neon", "modern-type", "floating", "deep-burn", "sketch"].map((preset) => (
-                  <button
-                    key={preset}
-                    onClick={() =>
-                      updateSelectedOverlay({ textPreset: selectedTextPreset === preset ? "none" : preset })
-                    }
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all",
-                      selectedTextPreset === preset
-                        ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
-                        : "border-white/5 bg-white/[0.02] text-white/30 hover:border-white/10 hover:bg-white/5 hover:text-white/60"
-                    )}
-                  >
-                    <div
+                {[
+                  {
+                    id: "glass-sticker",
+                    label: "Glass",
+                    desc: "Frost & Shadow",
+                    bg: "from-white/10 to-transparent",
+                    border: "border-white/20",
+                    fx: <div className="absolute -right-2 -top-2 h-10 w-10 rounded-full bg-white/20 blur-xl group-hover:bg-white/30 transition-colors" />
+                  },
+                  {
+                    id: "cyber-neon",
+                    label: "Neon",
+                    desc: "Synthwave Glow",
+                    bg: "from-cyan-500/10 to-transparent",
+                    border: "border-cyan-500/30",
+                    fx: <div className="absolute -inset-0.5 rounded-xl border border-cyan-400/50 opacity-0 group-hover:opacity-100 transition-opacity shadow-[inset_0_0_12px_rgba(34,211,238,0.4),0_0_8px_rgba(34,211,238,0.6)]" />
+                  },
+                  {
+                    id: "modern-type",
+                    label: "Modern",
+                    desc: "Clean & Bold",
+                    bg: "from-white/5 to-black/30",
+                    border: "border-white/10",
+                    fx: <div className="absolute bottom-0 left-0 h-[3px] w-0 bg-white group-hover:w-full transition-all duration-500 ease-out" />
+                  },
+                  {
+                    id: "floating",
+                    label: "Float",
+                    desc: "Airy Elevation",
+                    bg: "from-indigo-500/10 to-transparent",
+                    border: "border-indigo-500/20",
+                    fx: <div className="absolute inset-x-4 bottom-1 h-2 rounded-[100%] bg-black/80 blur-[4px] opacity-0 group-hover:opacity-100 group-hover:translate-y-1 transition-all duration-300" />
+                  },
+                  {
+                    id: "deep-burn",
+                    label: "Burn",
+                    desc: "Embers & Heat",
+                    bg: "from-orange-500/10 to-black/20",
+                    border: "border-orange-500/20",
+                    fx: <div className="absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-orange-500/40 to-transparent mix-blend-color-dodge opacity-30 group-hover:opacity-100 transition-opacity duration-300" />
+                  },
+                  {
+                    id: "sketch",
+                    label: "Sketch",
+                    desc: "Rough Pencil",
+                    bg: "from-yellow-500/10 to-transparent",
+                    border: "border-yellow-500/20",
+                    fx: (
+                       <svg className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-4 w-full opacity-20 group-hover:opacity-50 transition-opacity duration-300 text-yellow-500" preserveAspectRatio="none" viewBox="0 0 100 20">
+                         <path d="M2,10 Q25,2 50,10 T98,10" stroke="currentColor" fill="none" strokeWidth="2.5" strokeLinecap="round" />
+                       </svg>
+                    )
+                  }
+                ].map((preset) => {
+                  const isActive = selectedTextPreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() =>
+                        updateSelectedOverlay({ textPreset: isActive ? "none" : preset.id })
+                      }
                       className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        selectedTextPreset === preset ? "bg-primary animate-pulse" : "bg-white/10"
+                        "group relative overflow-hidden flex flex-col items-start gap-0.5 rounded-[12px] border p-3 text-left transition-all duration-300 active:scale-95",
+                        isActive
+                          ? `border-primary shadow-[0_4px_20px_rgba(var(--primary-rgb),0.3),inset_0_1px_0_rgba(255,255,255,0.2)] bg-primary/20`
+                          : `bg-gradient-to-br ${preset.bg} ${preset.border} hover:border-white/30 hover:shadow-[0_8px_16px_rgba(0,0,0,0.4)]`
                       )}
-                    />
-                    {preset.replace("-", " ")}
-                  </button>
-                ))}
+                    >
+                      {preset.fx}
+                      {/* Active Indicator Dot */}
+                      <div className={cn("absolute top-3 right-3 h-1.5 w-1.5 rounded-full transition-all duration-300", isActive ? "bg-white shadow-[0_0_10px_rgba(255,255,255,1)] scale-100" : "bg-white/10 scale-75 group-hover:bg-white/30")} />
+                      
+                      <span className={cn("relative z-10 text-[11px] font-black uppercase tracking-widest", isActive ? "text-white" : "text-white/80 group-hover:text-white transition-colors")}>
+                        {preset.label}
+                      </span>
+                      <span className={cn("relative z-10 text-[9px] font-medium tracking-wide", isActive ? "text-primary-foreground/80" : "text-white/40 group-hover:text-white/60 transition-colors")}>
+                        {preset.desc}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -782,7 +841,7 @@ export function TextToolPanel() {
                    selected={activeEffect === p.id}
                    onSelect={() => {
                      if (selectedLocked) return;
-                     if ((p.id as string) === "none") {
+                     if (p.id === "none") {
                        clearEffect(selected.id);
                      } else {
                        const nextStart = selected.effects[0]?.startFrame ?? 0;
@@ -801,8 +860,7 @@ export function TextToolPanel() {
                  />
                ))}
              </div>
-             
-             {activeEffect !== "none" && (
+             {(activeEffect as string) !== "none" && (
                 <div className="grid grid-cols-2 gap-3 mt-1 rounded-lg border border-white/5 bg-white/[0.02] p-2.5">
                   <div className="space-y-1">
                     <Label className="text-[9px] font-bold uppercase tracking-widest text-white/40 block">Start Fr.</Label>
@@ -815,7 +873,9 @@ export function TextToolPanel() {
                       onChange={(e) => {
                         const nextStart = Math.max(0, Math.min(frameLast, Number(e.target.value) || 0));
                         const nextEnd = Math.max(nextStart, Math.min(frameLast, effectEnd));
-                        bakeEffect(selected.id, activeEffect as AnimationPresetType, nextStart, nextEnd);
+                        if (activeEffect !== "none") {
+                          bakeEffect(selected.id, activeEffect as AnimationPresetType, nextStart, nextEnd);
+                        }
                       }}
                       className="h-7 rounded bg-black/20 border-white/10 text-[11px] font-bold text-white/80 focus-visible:ring-1 pr-1 pl-2 text-right focus-visible:ring-primary/40 focus-visible:bg-black/30 placeholder:text-white/30"
                     />
@@ -830,7 +890,9 @@ export function TextToolPanel() {
                       disabled={selectedLocked}
                       onChange={(e) => {
                         const nextEnd = Math.max(effectStart, Math.min(frameLast, Number(e.target.value) || effectStart));
-                        bakeEffect(selected.id, activeEffect as AnimationPresetType, effectStart, nextEnd);
+                        if ((activeEffect as string) !== "none") {
+                          bakeEffect(selected.id, activeEffect as AnimationPresetType, effectStart, nextEnd);
+                        }
                       }}
                       className="h-7 rounded bg-black/20 border-white/10 text-[11px] font-bold text-white/80 focus-visible:ring-1 pr-1 pl-2 text-right focus-visible:ring-primary/40 focus-visible:bg-black/30 placeholder:text-white/30"
                     />

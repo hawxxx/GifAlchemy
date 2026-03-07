@@ -744,6 +744,11 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
 
         const textBoxStyles: CSSProperties = {
           display: "inline-block",
+          textAlign: overlay.textAlign ?? "center",
+          fontWeight: overlay.fontWeight ?? "normal",
+          fontStyle: overlay.fontStyle ?? "normal",
+          lineHeight: overlay.lineHeight ?? 1.2,
+          letterSpacing: `${overlay.letterSpacing ?? 0}px`,
           backgroundColor,
           padding: `${backgroundPaddingY}px ${backgroundPaddingX}px`,
           borderRadius: `${backgroundRadius}px`,
@@ -789,6 +794,8 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                     fontWeight: overlay.fontWeight ?? "normal",
                     fontStyle: overlay.fontStyle ?? "normal",
                     textAlign: overlay.textAlign ?? "center",
+                    lineHeight: overlay.lineHeight ?? 1.2,
+                    letterSpacing: `${overlay.letterSpacing ?? 0}px`,
                     ...textFillStyles,
                     textShadow: presetStyle.textShadow || textShadow,
                     ...presetStyle,
@@ -861,6 +868,10 @@ export function OverlayRenderer({ overlays, currentFrameIndex, previewMode = fal
                   userSelect: "text" as const,
                   whiteSpace: "pre-wrap",
                   textAlign: overlay.textAlign ?? "center",
+                  fontWeight: overlay.fontWeight ?? "normal",
+                  fontStyle: overlay.fontStyle ?? "normal",
+                  lineHeight: overlay.lineHeight ?? 1.2,
+                  letterSpacing: `${overlay.letterSpacing ?? 0}px`,
                   background: "transparent",
                 }}
               />

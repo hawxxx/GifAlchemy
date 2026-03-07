@@ -282,7 +282,7 @@ const CHECKERBOARD = "repeating-conic-gradient(#17191e 0% 25%, #1f2228 0% 50%) 5
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.05;
-const RULER_SIZE = 18;
+const RULER_SIZE = 22;
 type CropDragMode = "move" | "n" | "s" | "w" | "e" | "nw" | "ne" | "sw" | "se";
 
 export function CanvasStage() {
@@ -798,8 +798,8 @@ export function CanvasStage() {
     { mode: "s", cursor: "ns-resize", className: "left-1/2 -translate-x-1/2 -bottom-1.5", ariaLabel: "Resize crop bottom edge" },
     { mode: "se", cursor: "nwse-resize", className: "-right-1.5 -bottom-1.5", ariaLabel: "Resize crop bottom right" },
   ];
-  const horizontalTicks = Array.from({ length: Math.floor(w / 20) + 1 }, (_, i) => i * 20);
-  const verticalTicks = Array.from({ length: Math.floor(h / 20) + 1 }, (_, i) => i * 20);
+  const horizontalTicks = Array.from({ length: Math.floor(w / 10) + 1 }, (_, i) => i * 10);
+  const verticalTicks = Array.from({ length: Math.floor(h / 10) + 1 }, (_, i) => i * 10);
 
   return (
     <div
@@ -925,22 +925,26 @@ export function CanvasStage() {
         {effectiveShowRulers && (
           <>
             <div
-              className="absolute left-0 bg-card/90 border-b border-border/70 pointer-events-none"
+              className="absolute left-0 bg-[#0a0c10]/95 backdrop-blur-md border-b border-white/10 pointer-events-none"
               style={{ top: -RULER_SIZE, width: w, height: RULER_SIZE, zIndex: 35 }}
             >
               {horizontalTicks.map((tick) => {
                 const isMajor = tick % 100 === 0;
+                const isMid = tick % 50 === 0;
                 return (
                   <div
                     key={`x-${tick}`}
-                    className="absolute top-0"
+                    className="absolute top-0 bottom-0 flex flex-col justify-end"
                     style={{ left: tick }}
                   >
                     <div
-                      className={cn("w-px bg-border/90", isMajor ? "h-4" : "h-2")}
+                      className={cn(
+                        "w-px transition-all",
+                        isMajor ? "h-full bg-white/20" : isMid ? "h-[10px] bg-white/10" : "h-[5px] bg-white/[0.06]"
+                      )}
                     />
                     {isMajor && (
-                      <span className="absolute top-[2px] left-1 text-[9px] leading-none text-muted-foreground/90">
+                      <span className="absolute top-[2px] left-[5px] text-[9.5px] font-mono font-medium tracking-tight text-white/40 leading-none">
                         {tick}
                       </span>
                     )}
@@ -949,23 +953,27 @@ export function CanvasStage() {
               })}
             </div>
             <div
-              className="absolute top-0 bg-card/90 border-r border-border/70 pointer-events-none"
+              className="absolute top-0 bg-[#0a0c10]/95 backdrop-blur-md border-r border-white/10 pointer-events-none"
               style={{ left: -RULER_SIZE, width: RULER_SIZE, height: h, zIndex: 35 }}
             >
               {verticalTicks.map((tick) => {
                 const isMajor = tick % 100 === 0;
+                const isMid = tick % 50 === 0;
                 return (
                   <div
                     key={`y-${tick}`}
-                    className="absolute left-0"
+                    className="absolute left-0 right-0 flex justify-end"
                     style={{ top: tick }}
                   >
                     <div
-                      className={cn("h-px bg-border/90", isMajor ? "w-4" : "w-2")}
+                      className={cn(
+                        "h-px transition-all",
+                        isMajor ? "w-full bg-white/20" : isMid ? "w-[10px] bg-white/10" : "w-[5px] bg-white/[0.06]"
+                      )}
                     />
                     {isMajor && (
                       <span
-                        className="absolute left-[2px] top-1 text-[9px] leading-none text-muted-foreground/90 [writing-mode:vertical-rl]"
+                        className="absolute left-[3px] top-[5px] text-[9.5px] font-mono font-medium tracking-tight text-white/40 leading-none [writing-mode:vertical-rl] rotate-180"
                       >
                         {tick}
                       </span>
@@ -975,7 +983,7 @@ export function CanvasStage() {
               })}
             </div>
             <div
-              className="absolute bg-card border border-border/70 pointer-events-none"
+              className="absolute bg-[#0a0c10]/95 backdrop-blur-md border border-white/10 pointer-events-none shadow-[inset_-1px_-1px_0_rgba(255,255,255,0.05)]"
               style={{ left: -RULER_SIZE, top: -RULER_SIZE, width: RULER_SIZE, height: RULER_SIZE, zIndex: 36 }}
             />
           </>
@@ -1220,7 +1228,7 @@ export function CanvasStage() {
       {/* Cinema Backdrop Transition */}
       <div 
         className={cn(
-          "pointer-events-none absolute inset-0 z-[110] bg-[#020406] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "pointer-events-none absolute inset-0 z-[5] bg-[#020406] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
           state.isPreviewMode ? "opacity-95 backdrop-blur-3xl" : "opacity-0"
         )}
       />

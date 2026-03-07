@@ -16,13 +16,38 @@ import { cn } from "@/lib/utils";
 export interface FontOption {
   id: string;
   label: string;
-  category: "system" | "google" | "uploaded";
+  category: "system" | "google" | "uploaded" | "custom";
 }
+
+export const FONTS: FontOption[] = [
+  // System
+  { id: "Inter, sans-serif", label: "Inter", category: "system" },
+  { id: "Impact, sans-serif", label: "Impact", category: "system" },
+  { id: "Arial, sans-serif", label: "Arial", category: "system" },
+  { id: "'Courier New', monospace", label: "Courier New", category: "system" },
+  // Textured / Unique (via Google Fonts)
+  { id: "'Creepster', cursive", label: "Creepster", category: "google" },
+  { id: "'Nosifer', cursive", label: "Nosifer", category: "google" },
+  { id: "'Monoton', cursive", label: "Monoton", category: "google" },
+  { id: "'Bungee Shade', cursive", label: "Bungee Shade", category: "google" },
+  { id: "'Special Elite', cursive", label: "Special Elite", category: "google" },
+  { id: "'VT323', monospace", label: "VT323", category: "google" },
+  // Curated Google
+  { id: "'Plus Jakarta Sans', sans-serif", label: "Plus Jakarta Sans", category: "google" },
+  { id: "'Rock Salt', cursive", label: "Rock Salt", category: "google" },
+  { id: "'Permanent Marker', cursive", label: "Permanent Marker", category: "google" },
+  { id: "'Bebas Neue', sans-serif", label: "Bebas Neue", category: "google" },
+  { id: "'Pacifico', cursive", label: "Pacifico", category: "google" },
+  { id: "'Press Start 2P', system-ui", label: "Press Start 2P", category: "google" },
+  { id: "'Cinzel', serif", label: "Cinzel", category: "google" },
+  { id: "'Righteous', sans-serif", label: "Righteous", category: "google" },
+];
 
 interface Props {
   value: string;
   onChange: (font: string) => void;
-  fonts: FontOption[];
+  fonts?: FontOption[];
+
   disabled?: boolean;
   className?: string;
 }
@@ -51,7 +76,7 @@ async function registerFontFace(name: string, source: string | ArrayBuffer): Pro
   document.fonts.add(fontFace);
 }
 
-export function FontPicker({ value, onChange, fonts, disabled, className }: Props) {
+export function FontPicker({ value, onChange, fonts = FONTS, disabled, className }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [uploadedFonts, setUploadedFonts] = useState<FontOption[]>([]);
@@ -82,6 +107,7 @@ export function FontPicker({ value, onChange, fonts, disabled, className }: Prop
 
   const grouped = {
     system: filtered.filter((f) => f.category === "system"),
+    custom: filtered.filter((f) => f.category === "custom"),
     google: filtered.filter((f) => f.category === "google"),
     uploaded: filtered.filter((f) => f.category === "uploaded"),
   };
@@ -183,11 +209,17 @@ export function FontPicker({ value, onChange, fonts, disabled, className }: Prop
           </div>
 
           <div className="max-h-[320px] overflow-y-auto py-2">
-            {(["system", "google", "uploaded"] as const).map((cat) => {
+            {(["system", "custom", "google", "uploaded"] as const).map((cat) => {
               const items = grouped[cat];
               if (items.length === 0) return null;
               const catLabel =
-                cat === "system" ? "System fonts" : cat === "google" ? "Curated fonts" : "Uploaded fonts";
+                cat === "system"
+                  ? "System fonts"
+                  : cat === "custom"
+                  ? "Premium custom"
+                  : cat === "google"
+                  ? "Curated fonts"
+                  : "Uploaded fonts";
               return (
                 <div key={cat}>
                   <DropdownMenuLabel className="px-3 py-1 text-[10px] tracking-[0.16em] text-white/42">

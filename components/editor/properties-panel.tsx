@@ -61,7 +61,7 @@ export function PropertiesPanel({
   return (
     <aside
       className={cn(
-        "editor-chrome relative flex flex-col overflow-auto rounded-none border-l border-white/10 bg-[#0a0a0a]/90 shadow-2xl backdrop-blur-3xl xl:w-80",
+        "editor-chrome relative flex flex-col overflow-auto rounded-none border-l border-white/5 bg-[#0a0a0a]/70 shadow-[0_0_80px_-20px_rgba(0,0,0,1)] backdrop-blur-[50px] saturate-150 xl:w-80",
         className
       )}
     >

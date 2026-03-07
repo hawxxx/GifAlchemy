@@ -19,7 +19,7 @@ import {
 } from "@/core/application/commands/editor-commands";
 import { ERROR_MESSAGES } from "@/lib/constants";
 import { RESIZE_PRESETS } from "@/core/domain/presets";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, cn } from "@/lib/utils";
 import { EDITOR_LABELS } from "@/lib/i18n/editor-labels";
 import {
   ExportDiagnosticsModal,
@@ -239,90 +239,104 @@ export function ExportButton() {
 
   return (
     <>
-      <div className="flex items-center gap-2.5">
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-2">
-            <Select onValueChange={applyExportPreset} disabled={!state.metadata || exporting}>
-              <SelectTrigger className="h-10 w-[120px] rounded-[12px] border border-white/10 bg-white/[0.04] px-3 text-xs font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 hover:bg-white/[0.08] focus:ring-1 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-black/50" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
-                <SelectValue placeholder={EDITOR_LABELS.export.presetPlaceholder} />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-[#121212]/95 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] text-white/90">
-                {RESIZE_PRESETS.map((preset) => (
-                  <SelectItem key={preset.id} value={preset.id} className="focus:bg-white/10 focus:text-white rounded-md mx-1 my-0.5 max-w-[calc(100%-8px)]">
-                    {preset.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {diagnostics ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => setDiagnosticsOpen(true)}
-                aria-label={EDITOR_LABELS.export.diagnosticsAriaOpen}
-                title={EDITOR_LABELS.export.diagnosticsTitle}
-              >
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-              </Button>
-            ) : null}
-
-            <Button
-              variant="default"
-              size="sm"
-              className="group relative h-10 overflow-hidden rounded-[12px] px-6 font-semibold tracking-wide text-white shadow-[0_8px_20px_-4px_rgba(var(--primary-rgb),0.4),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all duration-300 hover:shadow-[0_12px_28px_-4px_rgba(var(--primary-rgb),0.6),inset_0_1px_0_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none focus-visible:ring-1 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black min-w-[140px]"
-              disabled={!canExport || exporting}
-              onClick={handleExport}
-              aria-label={EDITOR_LABELS.export.primaryIdle}
-            >
-              {/* Dynamic animated gradient background */}
-              {!exporting && (
-                <div className="absolute inset-0 bg-[linear-gradient(110deg,var(--primary),45%,#60a5fa,55%,var(--primary))] bg-[length:200%_100%] animate-shimmer opacity-95 transition-opacity group-hover:opacity-100" />
-              )}
-
-              {/* Liquid Progress Background */}
-              {exporting && (
-                <>
-                  <div 
-                    className="absolute inset-y-0 left-0 bg-primary transition-all duration-300 ease-out" 
-                    style={{ width: `${(state.processingProgress ?? 0) * 100}%` }}
-                  />
-                  <div 
-                    className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)] bg-[length:200%_100%] animate-shimmer opacity-30" 
-                  />
-                  {/* Wave effect at the edge of progress */}
-                  <div 
-                    className="absolute inset-y-0 w-8 blur-md bg-white/40 mix-blend-overlay transition-all duration-300"
-                    style={{ left: `calc(${(state.processingProgress ?? 0) * 100}% - 16px)` }}
-                  />
-                </>
-              )}
-
-              {/* Subtle inner top highlight */}
-              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-              
-              <div className="relative z-10 flex items-center justify-center gap-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)] w-full">
-                {exporting ? (
-                   <>
-                     <span className="text-[14px] font-black italic tracking-tighter opacity-80 mr-1">
-                       {Math.round(state.processingProgress * 100)}%
-                     </span>
-                     <span className="animate-pulse">{EDITOR_LABELS.export.primaryBusy}</span>
-                   </>
-                ) : (
-                   <>
-                     <Download className="h-4.5 w-4.5 text-white group-hover:-translate-y-0.5 transition-transform duration-300" />
-                     <span>{EDITOR_LABELS.export.primaryIdle}</span>
-                   </>
-                )}
-              </div>
-            </Button>
+      <div className="flex items-center gap-3">
+        {state.metadata && (
+          <div className="hidden lg:flex items-center gap-1.5 px-3 h-8 rounded-[8px] border border-white/5 bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" />
+            <span className="text-[10px] font-bold tracking-widest uppercase text-white/40 whitespace-nowrap">
+              EST. {estimatedOutputSize ? formatBytes(estimatedOutputSize) : EDITOR_LABELS.export.estimateUnknown}
+            </span>
           </div>
-          <p className="mr-1 text-[10px] font-medium tracking-wide text-muted-foreground/80 lowercase" aria-live="polite">
-            ~ {estimatedOutputSize ? formatBytes(estimatedOutputSize) : EDITOR_LABELS.export.estimateUnknown}
-          </p>
+        )}
+        <div className="flex items-center gap-1.5">
+          <Select onValueChange={applyExportPreset} disabled={!state.metadata || exporting}>
+            <SelectTrigger className="h-9 w-[110px] rounded-[8px] border border-white/10 bg-white/[0.04] px-3 text-[10px] font-black uppercase tracking-widest text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 hover:bg-white/[0.08] hover:text-white focus:ring-1 focus:ring-primary/40 focus:ring-offset-1 focus:ring-offset-black/50" aria-label={EDITOR_LABELS.export.presetPlaceholder}>
+              <SelectValue placeholder={EDITOR_LABELS.export.presetPlaceholder} />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#121212]/95 backdrop-blur-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] text-white/90">
+              {RESIZE_PRESETS.map((preset) => (
+                <SelectItem key={preset.id} value={preset.id} className="focus:bg-white/10 focus:text-white rounded-md mx-1 my-0.5 max-w-[calc(100%-8px)]">
+                  {preset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {diagnostics ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-[8px] focus-visible:ring-1 focus-visible:ring-amber-500/50"
+              onClick={() => setDiagnosticsOpen(true)}
+              aria-label={EDITOR_LABELS.export.diagnosticsAriaOpen}
+              title={EDITOR_LABELS.export.diagnosticsTitle}
+            >
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </Button>
+          ) : null}
+
+          <Button
+            variant="default"
+            size="sm"
+            className={cn(
+              "group relative h-9 overflow-hidden rounded-[8px] px-6 text-[10.5px] font-black uppercase tracking-[0.15em] text-white shadow-[0_6px_15px_-4px_rgba(var(--primary-rgb),0.5),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all duration-500",
+              !exporting && "hover:shadow-[0_10px_24px_-4px_rgba(var(--primary-rgb),0.7),inset_0_1px_0_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.98]",
+              exporting && "w-[180px] cursor-wait opacity-100 shadow-[0_0_30px_-5px_var(--primary)]",
+              !canExport && !exporting && "opacity-50 hover:scale-100 hover:shadow-none",
+              "focus-visible:ring-1 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black min-w-[120px]"
+            )}
+            disabled={!canExport || exporting}
+            onClick={handleExport}
+            aria-label={exporting ? EDITOR_LABELS.export.primaryBusy : EDITOR_LABELS.export.primaryIdle}
+          >
+            {/* Dynamic animated gradient background */}
+            {!exporting && (
+              <div className="absolute inset-0 bg-[linear-gradient(110deg,#ec4899,45%,#a855f7,55%,#ec4899)] bg-[length:200%_100%] animate-shimmer opacity-95 transition-opacity group-hover:opacity-100" />
+            )}
+
+            {/* Premium Liquid Processing Background */}
+            {exporting && (
+              <>
+                <div 
+                  className="absolute inset-y-0 left-0 bg-[linear-gradient(90deg,var(--primary),#3b82f6)] transition-all duration-300 ease-out" 
+                  style={{ width: `${Number(state.processingProgress || 0) * 100}%` }}
+                />
+                <div 
+                  className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)] bg-[length:200%_100%] animate-[shimmer_1.5s_infinite] mix-blend-overlay" 
+                />
+                {/* Intense Edge Glow on Progress Bar */}
+                <div 
+                  className="absolute inset-y-0 w-12 blur-md bg-white/50 mix-blend-overlay transition-all duration-300"
+                  style={{ left: `calc(${Number(state.processingProgress || 0) * 100}% - 24px)` }}
+                />
+              </>
+            )}
+
+            {/* Subtle inner top highlight */}
+            <div className="absolute inset-x-0 top-0 h-px bg-white/30 mix-blend-overlay" />
+            
+            <div className="relative z-10 flex items-center justify-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] w-full w-max">
+              {exporting ? (
+                 <>
+                   <span className="text-[11px] font-extrabold tracking-[0.2em] text-white">
+                     PROCESSING
+                   </span>
+                   <span className="text-[12px] font-mono text-white/90 translate-y-[0.5px]">
+                     {Math.round(Number(state.processingProgress || 0) * 100)}%
+                   </span>
+                 </>
+              ) : (
+                 <>
+                   <span className="relative flex items-center justify-center h-4 w-4">
+                     <Download className="absolute h-3.5 w-3.5 text-white group-hover:-translate-y-[2px] opacity-100 group-hover:opacity-0 transition-all duration-300" />
+                     <Download className="absolute h-3.5 w-3.5 text-white translate-y-[8px] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 delay-75" />
+                   </span>
+                   <span>{EDITOR_LABELS.export.primaryIdle}</span>
+                 </>
+              )}
+            </div>
+          </Button>
         </div>
       </div>
 
